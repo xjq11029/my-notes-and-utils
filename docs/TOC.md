@@ -27,9 +27,16 @@
 - guides/code-review/_GUIDE_CHANGELOG.md —— 代码分析指令变更日志
 - guides/code-review/_REVIEW_GUIDE_CHANGELOG.md —— 代码审查指令变更日志
 
+### 学习方法论（guides/learning/）
+- guides/learning/AI辅助源码阅读方法.md —— 面向后端开发者的 AI 辅助开源项目源码阅读方法论（通用，不绑定具体项目）
+
 ## 工具函数（src/）
 - src/python/utils.py
 - src/js/utils.js
+- src/js/README.md —— JS/Node.js 通用工具索引（依赖说明）
+- src/js/errors.js —— 通用自定义错误类层次
+- src/js/query-helper.js —— Sequelize 通用分页/筛选查询
+- src/js/http-tool.js —— 统一响应 / JWT 解析 / 可配置上传 / Markdown TOC
 
 ## 用法示例（examples/）
 - examples/README.md —— 示例索引
