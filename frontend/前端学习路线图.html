@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2026 前端学习路线图</title>
+<style>
+  :root {
+    --stage1: #E0552B;
+    --stage1-light: #FFF0EB;
+    --stage1-accent: #FDE8E0;
+    --stage2: #D4A017;
+    --stage2-light: #FFFDF5;
+    --stage2-accent: #FFF8E1;
+    --stage3: #2563EB;
+    --stage3-light: #F0F5FF;
+    --stage3-accent: #E0EAFF;
+    --stage4: #7C3AED;
+    --stage4-light: #F8F5FF;
+    --stage4-accent: #EDE5FF;
+    --stage5: #0891B2;
+    --stage5-light: #F0FDFF;
+    --stage5-accent: #E0F7FA;
+    --stage6: #16A34A;
+    --stage6-light: #F0FFF4;
+    --stage6-accent: #E0FFE8;
+    --stage7: #DC2626;
+    --stage7-light: #FFF5F5;
+    --stage7-accent: #FEE2E2;
+    --stage8: #9333EA;
+    --stage8-light: #FAF5FF;
+    --stage8-accent: #F3E8FF;
+    --bg: #F5F5F5;
+    --border: #E0E0E0;
+    --text: #333333;
+    --text-light: #666666;
+    --white: #FFFFFF;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: "Noto Sans CJK SC", "WenQuanYi Micro Hei", "Microsoft YaHei", "PingFang SC", sans-serif;
+    background: #E8E8E8;
+    color: var(--text);
+    line-height: 1.5;
+    padding: 20px;
+  }
+
+  .container {
+    max-width: 1920px;
+    margin: 0 auto;
+    background: var(--white);
+    border-radius: 8px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+    padding: 24px 16px 16px;
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid #E0E0E0;
+  }
+
+  .header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: #1A1A1A;
+    letter-spacing: 2px;
+  }
+
+  .header .subtitle {
+    font-size: 14px;
+    color: #999;
+    margin-top: 4px;
+  }
+
+  .roadmap {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 10px;
+    min-width: 1800px;
+  }
+
+  .stage {
+    display: flex;
+    flex-direction: column;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    background: var(--white);
+  }
+
+  /* Stage title */
+  .stage-title {
+    padding: 10px 12px;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--white);
+    text-align: center;
+    letter-spacing: 1px;
+  }
+
+  .stage:nth-child(1) .stage-title { background: var(--stage1); }
+  .stage:nth-child(2) .stage-title { background: var(--stage2); }
+  .stage:nth-child(3) .stage-title { background: var(--stage3); }
+  .stage:nth-child(4) .stage-title { background: var(--stage4); }
+  .stage:nth-child(5) .stage-title { background: var(--stage5); }
+  .stage:nth-child(6) .stage-title { background: var(--stage6); }
+.stage:nth-child(7) .stage-title { background: var(--stage7); }
+.stage:nth-child(8) .stage-title { background: var(--stage8); }
+
+  .stage-title .stage-num {
+    display: block;
+    font-size: 11px;
+    font-weight: 400;
+    opacity: 0.9;
+    margin-bottom: 2px;
+  }
+
+  /* Module area */
+  .stage-body {
+    flex: 1;
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .stage:nth-child(1) .stage-body { background: var(--stage1-light); }
+  .stage:nth-child(2) .stage-body { background: var(--stage2-light); }
+  .stage:nth-child(3) .stage-body { background: var(--stage3-light); }
+  .stage:nth-child(4) .stage-body { background: var(--stage4-light); }
+  .stage:nth-child(5) .stage-body { background: var(--stage5-light); }
+  .stage:nth-child(6) .stage-body { background: var(--stage6-light); }
+.stage:nth-child(7) .stage-body { background: var(--stage7-light); }
+.stage:nth-child(8) .stage-body { background: var(--stage8-light); }
+
+  .module {
+    background: var(--white);
+    border-radius: 6px;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+  }
+
+  .module-title {
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    padding-bottom: 4px;
+    border-bottom: 1px dashed #E0E0E0;
+  }
+
+  .stage:nth-child(1) .module-title { color: var(--stage1); }
+  .stage:nth-child(2) .module-title { color: var(--stage2); }
+  .stage:nth-child(3) .module-title { color: var(--stage3); }
+  .stage:nth-child(4) .module-title { color: var(--stage4); }
+  .stage:nth-child(5) .module-title { color: var(--stage5); }
+  .stage:nth-child(6) .module-title { color: var(--stage6); }
+.stage:nth-child(7) .module-title { color: var(--stage7); }
+.stage:nth-child(8) .module-title { color: var(--stage8); }
+
+  .module-items {
+    list-style: none;
+    font-size: 12px;
+    color: #555;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px 6px;
+  }
+
+  .module-items li {
+    position: relative;
+    padding-left: 10px;
+  }
+
+  .module-items li::before {
+    content: "·";
+    position: absolute;
+    left: 0;
+    top: 0;
+    font-weight: bold;
+  }
+
+  .stage:nth-child(1) .module-items li::before { color: var(--stage1); }
+  .stage:nth-child(2) .module-items li::before { color: var(--stage2); }
+  .stage:nth-child(3) .module-items li::before { color: var(--stage3); }
+  .stage:nth-child(4) .module-items li::before { color: var(--stage4); }
+  .stage:nth-child(5) .module-items li::before { color: var(--stage5); }
+  .stage:nth-child(6) .module-items li::before { color: var(--stage6); }
+.stage:nth-child(7) .module-items li::before { color: var(--stage7); }
+.stage:nth-child(8) .module-items li::before { color: var(--stage8); }
+
+  /* Skill acquisition */
+  .stage-skill {
+    padding: 10px 12px;
+    font-size: 12px;
+    line-height: 1.6;
+    color: #2D6A2D;
+  }
+
+  .stage:nth-child(1) .stage-skill { background: var(--stage1-accent); border-top: 2px solid var(--stage1); }
+  .stage:nth-child(2) .stage-skill { background: var(--stage2-accent); border-top: 2px solid var(--stage2); }
+  .stage:nth-child(3) .stage-skill { background: var(--stage3-accent); border-top: 2px solid var(--stage3); }
+  .stage:nth-child(4) .stage-skill { background: var(--stage4-accent); border-top: 2px solid var(--stage4); }
+  .stage:nth-child(5) .stage-skill { background: var(--stage5-accent); border-top: 2px solid var(--stage5); }
+  .stage:nth-child(6) .stage-skill { background: var(--stage6-accent); border-top: 2px solid var(--stage6); }
+
+  .stage-skill .skill-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 3px;
+    display: block;
+  }
+
+  .stage:nth-child(1) .stage-skill .skill-label { color: var(--stage1); }
+  .stage:nth-child(2) .stage-skill .skill-label { color: var(--stage2); }
+  .stage:nth-child(3) .stage-skill .skill-label { color: var(--stage3); }
+  .stage:nth-child(4) .stage-skill .skill-label { color: var(--stage4); }
+  .stage:nth-child(5) .stage-skill .skill-label { color: var(--stage5); }
+  .stage:nth-child(6) .stage-skill .skill-label { color: var(--stage6); }
+
+  /* Progress arrows */
+  .progress-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    margin-bottom: 16px;
+    padding: 0 4px;
+  }
+
+  .progress-step {
+    display: flex;
+    align-items: center;
+    gap: 0;
+  }
+
+  .progress-dot {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 12px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .progress-label {
+    font-size: 11px;
+    color: #666;
+    margin-left: 6px;
+    white-space: nowrap;
+  }
+
+  .progress-arrow {
+    margin: 0 12px;
+    color: #CCC;
+    font-size: 16px;
+    font-weight: 300;
+    flex-shrink: 0;
+  }
+
+  /* 所有 progress-step 在奇数位置 (1/3/5/7/9/11)，因为箭头占偶数位置 */
+  .progress-step:nth-child(1)  .progress-dot { background: var(--stage1); }
+  .progress-step:nth-child(3)  .progress-dot { background: var(--stage2); }
+  .progress-step:nth-child(5)  .progress-dot { background: var(--stage3); }
+  .progress-step:nth-child(7)  .progress-dot { background: var(--stage4); }
+  .progress-step:nth-child(9)  .progress-dot { background: var(--stage5); }
+  .progress-step:nth-child(11) .progress-dot { background: var(--stage6); }
+
+  .tbl-stage { padding: 4px 10px; border-bottom: 1px solid #EEE; }
+  .tbl-dir { padding: 4px 10px; border-bottom: 1px solid #EEE; }
+  .tbl-files { padding: 4px 10px; border-bottom: 1px solid #EEE; font-size: 11px; }
+
+  .footer {
+    text-align: center;
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid #E0E0E0;
+    font-size: 11px;
+    color: #999;
+  }
+
+  @media screen and (max-width: 1400px) {
+    .roadmap {
+      grid-template-columns: repeat(3, 1fr);
+      min-width: auto;
+    }
+  }
+
+  @media screen and (max-width: 900px) {
+    .roadmap {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .progress-bar {
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+  }
+
+  @media screen and (max-width: 600px) {
+    .roadmap {
+      grid-template-columns: 1fr;
+    }
+    .header h1 {
+      font-size: 20px;
+    }
+  }
+
+  @media print {
+    body { background: white; padding: 0; }
+    .container { box-shadow: none; border-radius: 0; max-width: 100%; }
+    .roadmap { min-width: auto; gap: 4px; }
+    .stage { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <div class="header">
+    <h1>2026 前端学习路线图</h1>
+    <div class="subtitle">六阶段循序渐进 · 从零基础到全栈前端工程师</div>
+  </div>
+
+  <!-- Progress bar -->
+  <div class="progress-bar">
+    <div class="progress-step">
+      <div class="progress-dot">1</div>
+      <span class="progress-label">前端基础</span>
+    </div>
+    <span class="progress-arrow">→</span>
+    <div class="progress-step">
+      <div class="progress-dot">2</div>
+      <span class="progress-label">JavaScript 核心</span>
+    </div>
+    <span class="progress-arrow">→</span>
+    <div class="progress-step">
+      <div class="progress-dot">3</div>
+      <span class="progress-label">TS + 浏览器</span>
+    </div>
+    <span class="progress-arrow">→</span>
+    <div class="progress-step">
+      <div class="progress-dot">4</div>
+      <span class="progress-label">前端框架</span>
+    </div>
+    <span class="progress-arrow">→</span>
+    <div class="progress-step">
+      <div class="progress-dot">5</div>
+      <span class="progress-label">工程化 + 性能</span>
+    </div>
+    <span class="progress-arrow">→</span>
+    <div class="progress-step">
+      <div class="progress-dot">6</div>
+      <span class="progress-label">Node + 全栈实战</span>
+    </div>
+  </div>
+
+  <!-- 6 Stage Columns -->
+  <div class="roadmap">
+
+    <!-- Stage 1: HTML + CSS -->
+    <div class="stage">
+      <div class="stage-title">
+        <span class="stage-num">阶段 1</span>
+        前端基础
+      </div>
+      <div class="stage-body">
+        <div class="module">
+          <div class="module-title">HTML 核心与语义化</div>
+          <ul class="module-items">
+            <li>HTML5 语义化标签</li>
+            <li>块级/行内/行内块元素</li>
+            <li>表单元素与验证</li>
+            <li>meta / viewport</li>
+            <li>SEO 优化基础</li>
+            <li>a11y (WAI-ARIA/键盘焦点)</li>
+            <li>自定义验证 / 实时反馈</li>
+            <li>Canvas 基础 (2D上下文/路径)</li>
+            <li>SVG 基础 (基本形状/路径)</li>
+            <li>enctype (multipart/form-data)</li>
+          </ul>
+        </div>
+        <div class="module">
+          <div class="module-title">CSS 布局核心</div>
+          <ul class="module-items">
+            <li>盒模型 (box-sizing)</li>
+            <li>BFC 块级格式化上下文</li>
+            <li>Flex 弹性布局</li>
+            <li>Grid 网格布局</li>
+            <li>6 种居中方案</li>
+            <li>响应式设计 (rem/vw/vh)</li>
+          </ul>
+        </div>
+        <div class="module">
+          <div class="module-title">CSS 进阶与性能</div>
+          <ul class="module-items">
+            <li>CSS3 动画 (transition/animation)</li>
+            <li>CSS 变量 (--custom)</li>
+            <li>回流 (Reflow) 与重绘 (Repaint)</li>
+            <li>选择器优先级与性能</li>
+            <li>移动端 1px / retina 适配</li>
+            <li>BEM 命名规范</li>
+            <li>OOCSS / SMACSS / ITCSS</li>
+            <li>Container Queries / CSS Layers</li>
+            <li>CSS Nesting / :has() 选择器</li>
+            <li>层叠上下文 (Stacking Context)</li>
+          </ul>
+        </div>
+        <div class="module">
+          <div class="module-title">CSS 工具链</div>
+          <ul class="module-items">
+            <li>Sass / Less (变量/嵌套/混入)</li>
+            <li>Tailwind CSS (原子化 CSS)</li>
+            <li>CSS Modules (样式隔离)</li>
+          </ul>
+        </div>
+      </div>
+      <div class="stage-skill">
+        <span class="skill-label">✦ 技能获得</span>
+        独立完成静态页面还原，掌握 Flex/Grid 双布局体系，理解 CSS 性能优化方向
+      </div>
+    </div>
+
+    <!-- Stage 2: JavaScript Core -->
+    <div class="stage">
+      <div class="stage-title">
+        <span class="stage-num">阶段 2</span>
+        JavaScript 核心
+      </div>
+      <div class="stage-body">
+        <div class="module">
+          <div class="module-title">语法基础与执行机制</div>
+          <ul class="module-items">
+            <li>var/let/const 与提升 (Hoisting)</li>
+            <li>7 种原始类型 + Object</li>
+            <li>执行上下文 (VO/AO)</li>
+            <li>作用域链 (词法作用域)</li>
+            <li>原型链 (__proto__/prototype)</li>
+            <li>this 绑定 (5 种规则)</li>
+            <li>闭包 (形成条件与应用)</li>
+            <li>try/catch / Error 类型</li>
+            <li>全局错误捕获</li>
+            <li>ArrayBuffer / TypedArray / DataView</li>
+          </ul>
+        </div>
+        <div class="module">
+          <div class="module-title">DOM 操作与事件机制</div>
+          <ul class="module-items">
+            <li>DOM 树 / 节点增删改查</li>
+            <li>querySelector / querySelectorAll</li>
+            <li>属性/样式/尺寸操作</li>
+            <li>MutationObserver</li>
+            <li>事件流 (捕获→目标→冒泡)</li>
+            <li>事件委托 (event.target)</li>
+            <li>stopPropagation / preventDefault</li>
+            <li>CustomEvent</li>
+          </ul>
+        </div>
+        <div class="module">
+          <div class="module-title">BOM 浏览器对象模型</div>
+          <ul class="module-items">
+            <li>window (setTimeout/setInterval)</li>
+            <li>location (href/search/hash)</li>
+            <li>history (pushState/popstate)</li>
+            <li>navigator / screen</li>
+            <li>URL / URLSearchParams</li>
+            <li>Web APIs (Geolocation等)</li>
+          </ul>
+        </div>
+        <div class="module">
+          <div class="module-title">异步编程与 ES6+</div>
+          <ul class="module-items">
+            <li>事件循环 (宏任务/微任务)</li>
+            <li>Promise (all/race/allSettled)</li>
+            <li>async/await 语法糖</li>
+            <li>箭头函数/解构/扩展运算符</li>
+            <li>ES Module vs CommonJS</li>
+            <li>Symbol (唯一标识/iterator)</li>
+            <li>setTimeout 与事件循环关系</li>
+          </ul>
+        </div>
+        <div class="module">
+          <div class="module-title">JSON 与网络请求</div>
+          <ul class="module-items">
+            <li>JSON.parse / JSON.stringify</li>
+            <li>序列化陷阱 (toJSON)</li>
+            <li>AJAX / XMLHttpRequest</li>
+            <li>Fetch API (Response/Headers)</li>
+            <li>AbortController 请求取消</li>
+            <li>Axios (拦截器/实例/配置)</li>
+          </ul>
+        </div>
+        <div class="module">
+          <div class="module-title">正则表达式</div>
+          <ul class="module-items">
+            <li>元字符 / 量词 / 字符类</li>
+            <li>标志 (g/i/m/s/u)</li>
+            <li>test/exec/match/replace</li>
+            <li>常用正则 (邮箱/手机号/URL)</li>
+            <li>贪婪 vs 非贪婪</li>
+            <li>前瞻与后顾</li>
+          </ul>
+        </div>
+        <div class="module">
+          <div class="module-title">常用 API 与手写原理</div>
+          <ul class="module-items">
+            <li>防抖 (debounce) / 节流 (throttle)</li>
+            <li>深拷贝 / 浅拷贝</li>
+            <li>手写 call / apply / bind</li>
+            <li>手写 new / instanceof</li>
+            <li>纯函数 / 不可变性</li>
+            <li>高阶函数 / 柯里化</li>
+            <li>函数组合 (compose/pipe)</li>
+            <li>V8 垃圾回收 (GC)</li>
+          </ul>
+        </div>
+      </div>
+      <div class="stage-skill">
+        <span class="skill-label">✦ 技能获得</span>
+        具备扎实的 JavaScript 核心编程能力，能解释 JS 的执行机制，能手写高频面试原理题，为框架学习打下坚实基础
+      </div>
+    </div>
+
+    <!-- Stage 3: TypeScript + Browser -->
+    <div class="stage">
+      <div class="stage-title">
+        <span class="stage-num">阶段 3</span>
+        TypeScript + 浏览器原理
+      </div>
+      <div class="stage-body">
+        <div class="module">
+          <div class="module-title">TypeScript 类型系统</div>
+          <ul class="module-items">
+            <li>基础类型 / 联合 / 交叉</li>
+            <li>interface vs type 别名</li>
+            <li>泛型 (约束/条件类型)</li>
+            <li>工具类型 (Partial/Pick/Omit)</li>
+            <li>条件类型 / infer / 映射类型</li>
+            <li>装饰器 / tsconfig 配置</li>
+          </ul>
+        </div>
+        <div class="module">
+          <div class="module-title">网络协议基础 (TCP/IP+DNS)</div>
+          <ul class="module-items">
+            <li>OSI 七层 / TCP/IP 四层</li>
+            <li>DNS 解析 (递归/迭代)</li>
+            <li>TCP 三次握手 / 四次挥手</li>
+            <li>UDP vs TCP 对比</li>
+            <li>URL 组成 / 编码解码</li>
+          </ul>
+        </div>
+        <div class="module">
+          <div class="module-title">HTTP 协议基础</div>
+          <ul class="module-items">
+            <li>请求方法 (GET/POST/PUT/DELETE)</li>
+            <li>状态码 (2xx/3xx/4xx/5xx)</li>
+            <li>请求头/响应头 (Content-Type等)</li>
+            <li>HTTPS 与 TLS 握手</li>
+            <li>HTTP/1.1 vs HTTP/2 vs HTTP/3</li>
+            <li>RESTful API 设计原则</li>
+          </ul>
+        </div>
+        <div class="module">
+          <div class="module-title">浏览器渲染与 V8</div>
+          <ul class="module-items">
+            <li>多进程架构</li>
+            <li>渲染流程 (HTML→CSSOM→渲染树→布局→绘制→合成)</li>
+            <li>V8 执行管线 (Ignition→Sparkplug→Maglev→TurboFan)</li>
+            <li>V8 分代垃圾回收</li>
+          </ul>
+        </div>
+        <div class="module">
+          <div class="module-title">事件循环与 Web 安全</div>
+          <ul class="module-items">
+            <li>浏览器事件循环 (与 Node 区别)</li>
+            <li>宏任务/微任务执行顺序</li>
+            <li>requestAnimationFrame</li>
+            <li>requestIdleCallback</li>
+            <li>跨域与 CORS (简单/预检)</li>
+            <li>XSS 防御 (CSP/HttpOnly)</li>
+            <li>CSRF 防御 (SameSite/Token)</li>
+            <li>Cookie / Storage / IndexedDB</li>
+            <li>WebSocket (ws:// 全双工)</li>
+            <li>同源策略 (协议+域名+端口)</li>
+          </ul>
+        </div>
+      </div>
+      <div class="stage-skill">
+        <span class="skill-label">✦ 技能获得</span>
+        能用 TS 编写类型安全代码，理解浏览器渲染全流程，能防御常见 Web 安全漏洞
+      </div>
+    </div>
+
+    <!-- Stage 4: Vue 3 + React 18 -->
+    <div class="stage">
+      <div class="stage-title">
+        <span class="stage-num">阶段 4</span>
+        前端框架
+      </div>
+      <div class="stage-body">
+        <div class="module">
+          <div class="module-title">包管理器基础</div>
+          <ul class="module-items">
+            <li>pnpm init / install / add</li>
+            <li>pnpm dev / build 脚本</li>
+            <li>package.json 核心字段</li>
+          </ul>
+        </div>
+        <div class="module">
+          <div class="module-title">Git 版本控制</div>
+          <ul class="module-items">
+            <li>clone / add / commit / push / pull</li>
+            <li>branch / merge / checkout</li>
+            <li>.gitignore 忽略规则</li>
+            <li>分支策略 (Git Flow)</li>
+          </ul>
+        </div>
+        <div class="module">
+          <div class="module-title">Vue 3 核心</div>
+          <ul class="module-items">
+            <li>Composition API (ref/reactive)</li>
+            <li>computed / watch / watchEffect</li>
+            <li>生命周期 (setup→onMounted)</li>
+            <li>组件通信 (props/emits/provide)</li>
+            <li>响应式原理 (Proxy/dep/track)</li>
+            <li>虚拟 DOM diff (双端/静态标记)</li>
+            <li>Vue Router (hash/history)</li>
+            <li>Pinia 状态管理</li>
+            <li>&lt;script setup&gt; 语法糖</li>
+            <li>Teleport (模态框/弹窗)</li>
+            <li>Suspense 异步组件</li>
+            <li>v-model 原理 (:modelValue)</li>
+          </ul>
+        </div>
+        <div class="module">
+          <div class="module-title">React 18 核心</div>
+          <ul class="module-items">
+            <li>JSX 与虚拟 DOM</li>
+            <li>Hooks (useState/useEffect/useRef)</li>
+            <li>useLayoutEffect (vs useEffect)</li>
+            <li>useMemo / useCallback / useReducer</li>
+            <li>React.memo (vs useMemo/useCallback)</li>
+            <li>Hooks 规则 (闭包过期/依赖数组)</li>
+            <li>Fiber 架构 (可中断/时间分片)</li>
+            <li>Diff 算法 (同级比较/key)</li>
+            <li>React Router v6 (懒加载)</li>
+            <li>Redux Toolkit / Zustand</li>
+            <li>Concurrent (useTransition/useDeferredValue)</li>
+            <li>Automatic Batching</li>
+            <li>Server Components (RSC)</li>
+          </ul>
+        </div>
+      </div>
+      <div class="stage-skill">
+        <span class="skill-label">✦ 技能获得</span>
+        独立开发企业级中后台应用，理解框架核心原理，具备框架选型和技术决策能力
+      </div>
+    </div>
+
+    <!-- Stage 5: Engineering + Performance -->
+    <div class="stage">
+      <div class="stage-title">
+        <span class="stage-num">阶段 5</span>
+        工程化 + 性能优化
+      </div>
+      <div class="stage-body">
+        <div class="module">
+          <div class="module-title">构建工具原理</div>
+          <ul class="module-items">
+            <li>Webpack (Entry/Output/Loader/Plugin)</li>
+            <li>打包流程 (依赖图→模块打包)</li>
+            <li>Loader vs Plugin 区别</li>
+            <li>Vite (ES Module / 预构建 / HMR)</li>
+            <li>Babel 转译 (ES6+ → ES5)</li>
+            <li>Vite 预构建 (esbuild)</li>
+            <li>webpack-bundle-analyzer</li>
+            <li>Webpack vs Vite 选型</li>
+          </ul>
+        </div>
+        <div class="module">
+          <div class="module-title">工程规范与流程</div>
+          <ul class="module-items">
+            <li>ESLint + Prettier 配置</li>
+            <li>Husky + lint-staged</li>
+            <li>CI/CD (GitHub Actions)</li>
+            <li>Monorepo (pnpm/Turborepo)</li>
+            <li>Docker 容器化部署</li>
+            <li>测试 (Jest/Vitest/Cypress)</li>
+            <li>测试金字塔 (单元>集成>E2E)</li>
+            <li>设计模式 (观察者/工厂/代理)</li>
+          </ul>
+        </div>
+        <div class="module">
+          <div class="module-title">加载与运行时优化</div>
+          <ul class="module-items">
+            <li>Core Web Vitals (LCP/INP/CLS)</li>
+            <li>代码分割 (Code Splitting)</li>
+            <li>Tree Shaking (sideEffects)</li>
+            <li>懒加载 (图片/组件/路由)</li>
+            <li>缓存策略 (强缓存/协商/SW)</li>
+            <li>资源优化 (WebP/Gzip/Brotli)</li>
+            <li>内存泄漏排查</li>
+            <li>虚拟列表 / 回流重绘优化</li>
+            <li>SSR / SSG / ISR</li>
+            <li>响应式图片 (srcset/sizes)</li>
+            <li>preload / prefetch / preconnect</li>
+            <li>Critical CSS 内联关键 CSS</li>
+            <li>防抖节流业务应用</li>
+          </ul>
+        </div>
+      </div>
+      <div class="stage-skill">
+        <span class="skill-label">✦ 技能获得</span>
+        独立搭建构建与部署流程，系统性性能优化，将 LCP 降至 2.5s 以内
+      </div>
+    </div>
+
+    <!-- Stage 6: Node.js + Full-stack -->
+    <div class="stage">
+      <div class="stage-title">
+        <span class="stage-num">阶段 6</span>
+        Node.js + 全栈实战
+      </div>
+      <div class="stage-body">
+        <div class="module">
+          <div class="module-title">Node.js 运行时</div>
+          <ul class="module-items">
+            <li>V8 + libuv 架构</li>
+            <li>事件循环 (6 阶段)</li>
+            <li>模块机制 (CommonJS 缓存)</li>
+            <li>Buffer 与 Stream (背压)</li>
+            <li>fs 文件系统</li>
+            <li>process 对象 / 环境变量 (dotenv)</li>
+            <li>进程管理 (PM2 / cluster)</li>
+            <li>日志 (winston / pino)</li>
+          </ul>
+        </div>
+        <div class="module">
+          <div class="module-title">数据库与 ORM</div>
+          <ul class="module-items">
+            <li>MySQL / PostgreSQL 基础</li>
+            <li>MongoDB (文档/集合/聚合)</li>
+            <li>Redis (字符串/哈希/过期)</li>
+            <li>Prisma / TypeORM</li>
+          </ul>
+        </div>
+        <div class="module">
+          <div class="module-title">Web 框架与 BFF 层</div>
+          <ul class="module-items">
+            <li>Express vs Koa (洋葱模型)</li>
+            <li>compose 函数原理</li>
+            <li>Session/Cookie 鉴权</li>
+            <li>JWT (access+refresh token)</li>
+            <li>CORS 中间件 (cors 包)</li>
+            <li>速率限制 (express-rate-limit)</li>
+            <li>安全中间件 (helmet)</li>
+            <li>BFF 层 (接口聚合/数据裁剪)</li>
+          </ul>
+        </div>
+        <div class="module">
+          <div class="module-title">企业后台管理系统实战</div>
+          <ul class="module-items">
+            <li>需求分析 / 技术选型</li>
+            <li>RBAC 权限模型</li>
+            <li>路由守卫 (鉴权/动态路由)</li>
+            <li>组件封装 (表格/表单/弹窗)</li>
+            <li>Docker 部署 / Nginx 代理</li>
+          </ul>
+        </div>
+      </div>
+      <div class="stage-skill">
+        <span class="skill-label">✦ 技能获得</span>
+        独立开发前后端分离项目，设计 BFF 层接口，从需求分析到部署上线，达到初中级前端工程师标准
+      </div>
+    </div>
+
+    <!-- Stage 7: AI 辅助开发 -->
+    <div class="stage">
+      <div class="stage-title"><span class="stage-num">阶段 7</span>AI 辅助开发</div>
+      <div class="stage-body">
+        <div class="module">
+          <div class="module-title">AI 编程工具</div>
+          <ul class="module-items">
+            <li>Cursor：Tab补全、Cmd+K编辑、Composer多文件生成、Agent模式</li>
+            <li>Claude Code：CLI交互、项目级上下文理解、多文件重构</li>
+            <li>GitHub Copilot：行内补全、Chat、Workspace代理</li>
+            <li>工具选型对比（适用场景、优劣势）</li>
+          </ul>
+        </div>
+        <div class="module">
+          <div class="module-title">Prompt 工程</div>
+          <ul class="module-items">
+            <li>Prompt 五要素：角色设定、任务描述、上下文、输出格式、示例引导</li>
+            <li>前端专用模板：组件生成、单元测试、重构、审查</li>
+            <li>复杂表单 Prompt 策略</li>
+            <li>避免 AI 幻觉：约束API范围、引用官方文档、分步生成</li>
+          </ul>
+        </div>
+        <div class="module">
+          <div class="module-title">AI 代码审查</div>
+          <ul class="module-items">
+            <li>三级审查：AI自动 → AI深度 → 人工复核</li>
+            <li>竞态条件检测：AbortController、useEffect cleanup</li>
+            <li>AST 自动拦截：自定义 ESLint 规则</li>
+            <li>防调试方案识别：debugger循环、getter陷阱、console劫持</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stage 8: 跨端开发 -->
+    <div class="stage">
+      <div class="stage-title"><span class="stage-num">阶段 8</span>跨端开发</div>
+      <div class="stage-body">
+        <div class="module">
+          <div class="module-title">uniapp 基础</div>
+          <ul class="module-items">
+            <li>架构原理：编译时转换 vs 运行时适配</li>
+            <li>条件编译：#ifdef / #ifndef（template/script/style）</li>
+            <li>项目结构：pages.json、manifest.json、uni.scss</li>
+            <li>生命周期：应用生命周期 vs 页面生命周期</li>
+            <li>组件体系：内置组件（view/scroll-view/swiper）、uni-ui</li>
+            <li>API 体系：uni.request、uni.getLocation、uni.chooseImage</li>
+          </ul>
+        </div>
+        <div class="module">
+          <div class="module-title">渲染差异</div>
+          <ul class="module-items">
+            <li>H5 vs 小程序：浏览器DOM渲染 vs 双线程同层渲染</li>
+            <li>flex 布局差异：默认主轴方向、flex-wrap、gap</li>
+            <li>CSS 支持度差异：position:fixed、overflow:scroll</li>
+            <li>标准排查路径：环境检查→条件编译→样式隔离→原生组件→数据绑定</li>
+          </ul>
+        </div>
+        <div class="module">
+          <div class="module-title">跨端性能优化</div>
+          <ul class="module-items">
+            <li>首屏秒开：分包加载（主包&lt;2MB）、预加载、组件懒加载</li>
+            <li>原生模块与 AI SDK 依赖拆分策略</li>
+            <li>setData 优化：合并/路径/节流/减量</li>
+            <li>长列表虚拟滚动、内存管理</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="file-refs" style="max-width: 1920px; margin: 16px auto 0; padding: 16px 20px; background: #FAFAFA; border-radius: 8px; border: 1px solid #E0E0E0;">
+    <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 12px; color: #333;">与 frontend 目录文件对应关系</h3>
+    <table style="width: 100%; border-collapse: collapse; font-size: 12px; color: #555;">
+      <thead>
+        <tr style="background: #F0F0F0;">
+          <th style="padding: 6px 10px; text-align: left; border-bottom: 1px solid #E0E0E0;">阶段</th>
+          <th style="padding: 6px 10px; text-align: left; border-bottom: 1px solid #E0E0E0;">目录</th>
+          <th style="padding: 6px 10px; text-align: left; border-bottom: 1px solid #E0E0E0;">核心文件</th>
+          <th style="padding: 6px 10px; text-align: left; border-bottom: 1px solid #E0E0E0;">辅助文件</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td style="padding: 4px 10px; border-bottom: 1px solid #EEE;">阶段一</td><td style="padding: 4px 10px; border-bottom: 1px solid #EEE;">01-html-css/</td><td style="padding: 4px 10px; border-bottom: 1px solid #EEE; font-size: 11px;">01-HTML核心与语义化.md、02-CSS布局核心.md、03-CSS进阶与性能.md</td><td style="padding: 4px 10px; border-bottom: 1px solid #EEE;">04-HTMLCSS笔面试题集.md</td></tr>
+        <tr><td style="padding: 4px 10px; border-bottom: 1px solid #EEE;">阶段二</td><td style="padding: 4px 10px; border-bottom: 1px solid #EEE;">02-javascript-core/</td><td style="padding: 4px 10px; border-bottom: 1px solid #EEE; font-size: 11px;">01-语法基础与执行机制.md、02-异步编程与ES6+特性.md、03-常用API与手写原理.md、05-DOM操作与事件机制.md、06-JSON与网络请求.md、07-正则表达式.md、08-BOM与浏览器扩展API.md</td><td style="padding: 4px 10px; border-bottom: 1px solid #EEE;">04-JavaScript核心笔面试题集.md</td></tr>
+        <tr><td style="padding: 4px 10px; border-bottom: 1px solid #EEE;">阶段三</td><td style="padding: 4px 10px; border-bottom: 1px solid #EEE;">03-typescript/ + 04-browser/</td><td style="padding: 4px 10px; border-bottom: 1px solid #EEE; font-size: 11px;">01-TypeScript基础与类型系统.md、02-高级类型与工程配置.md、01-浏览器渲染与V8原理.md、02-事件循环与Web安全.md、04-网络协议基础.md</td><td style="padding: 4px 10px; border-bottom: 1px solid #EEE;">03-TypeScript笔面试题集.md、03-浏览器笔面试题集.md</td></tr>
+        <tr><td style="padding: 4px 10px; border-bottom: 1px solid #EEE;">阶段四</td><td style="padding: 4px 10px; border-bottom: 1px solid #EEE;">05-vue/ + 06-react/</td><td style="padding: 4px 10px; border-bottom: 1px solid #EEE; font-size: 11px;">01-Vue3核心语法.md、02-响应式与编译优化.md、03-路由与状态管理.md、01-React核心与Hooks.md、02-Diff算法与性能优化.md、03-路由与状态管理.md</td><td style="padding: 4px 10px; border-bottom: 1px solid #EEE;">04-Vue3笔面试题集.md、04-React笔面试题集.md</td></tr>
+        <tr><td style="padding: 4px 10px; border-bottom: 1px solid #EEE;">阶段五</td><td style="padding: 4px 10px; border-bottom: 1px solid #EEE;">07-engineering/ + 08-performance/</td><td style="padding: 4px 10px; border-bottom: 1px solid #EEE; font-size: 11px;">01-构建工具原理.md、02-工程规范与流程.md、01-加载性能优化.md、02-运行时优化.md</td><td style="padding: 4px 10px; border-bottom: 1px solid #EEE;">03-前端工程化笔面试题集.md、03-性能优化笔面试题集.md</td></tr>
+        <tr><td style="padding: 4px 10px; border-bottom: 1px solid #EEE;">阶段六</td><td style="padding: 4px 10px; border-bottom: 1px solid #EEE;">09-nodejs/ + 10-project/</td><td style="padding: 4px 10px; border-bottom: 1px solid #EEE; font-size: 11px;">01-Node运行时与核心API.md、02-Web框架与BFF层.md、04-数据库与ORM.md、01-企业后台管理系统实战.md</td><td style="padding: 4px 10px; border-bottom: 1px solid #EEE;">03-Node.js笔面试题集.md</td></tr>
+<tr>
+  <td class="tbl-stage">阶段七</td>
+  <td class="tbl-dir">11-ai-assisted/</td>
+  <td class="tbl-files">01-AI编程工具与工作流.md、02-Prompt工程与代码生成.md、03-AI代码审查与质量管控.md</td>
+  <td class="tbl-files">—</td>
+</tr>
+<tr>
+  <td class="tbl-stage">阶段八</td>
+  <td class="tbl-dir">12-cross-platform/</td>
+  <td class="tbl-files">01-uniapp跨端开发基础.md、02-uniapp渲染差异与性能优化.md</td>
+  <td class="tbl-files">—</td>
+</tr>
+      </tbody>
+    </table>
+    <p style="margin-top: 12px; font-size: 12px; color: #666; line-height: 1.8;">
+      每个模块还包含以下辅助文件：<br>
+      <span style="color: #999;">✦</span> *-导览.md（学习导航）<br>
+      <span style="color: #999;">✦</span> 常见错误汇总.md（避坑指南）<br>
+      <span style="color: #999;">✦</span> 概念对比速查.md（核心概念对照）<br>
+      <span style="color: #999;">✦</span> 综合场景.md（实践场景）<br>
+      <span style="color: #999;">✦</span> 笔面试题集（面试备考）<br>
+      <br>
+      此外，<code>02-javascript-core/</code> 模块还包含两个专属可视化辅助文件：<br>
+      <span style="color: #999;">✦</span> 01-语法基础与执行机制-原型链流程图.md<br>
+      <span style="color: #999;">✦</span> 01-语法基础与执行机制-双链协同图.md
+    </p>
+  </div>
+
+  <div class="footer" style="margin-top: 16px">
+    基于 frontend/ 目录 10 个模块完整知识体系 · 配套 MD 文档：<a href="./前端学习路线图.md">前端学习路线图.md</a>
+  </div>
+
+</div>
+
+</body>
+</html>
