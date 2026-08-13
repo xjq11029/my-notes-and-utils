@@ -10,3 +10,6 @@ node_modules/
 # General
 .DS_Store
 *.log
+
+# WorkBuddy internal data (not version-controlled)
+.workbuddy/
