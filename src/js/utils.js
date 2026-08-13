@@ -1,4 +1,4 @@
-# 常用 JS 工具示例
+// 常用 JS 工具示例
 function debounce(fn, wait = 300) {
   let t = null;
   return function(...args) {

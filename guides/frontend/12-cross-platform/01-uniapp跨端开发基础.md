@@ -428,7 +428,7 @@ my-uni-app/
 
   // 微信小程序专属配置
   "mp-weixin": {
-    "appid": "wx1234567890abcdef",
+    "appid": "wxYOUR_APPID_HERE",
     "setting": {
       "urlCheck": false,
       "es6": true,
