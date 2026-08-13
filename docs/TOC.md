@@ -11,7 +11,7 @@
 - guides/backend/README.md —— 后端学习总览与路线
 - guides/backend/知识导览.md —— 知识地图
 - guides/backend/2026最新Java学习路线图.png
-- guides/backend/ 主题模块：01-java-basics、01-java-core、02-javaweb-monolith、02-spring-boot、03-data-access、03-distributed-microservices、04-message-queue、04-python-aiagent、05-microservices、06-container-k8s、07-elasticsearch、08-clickhouse、09-project、10-redis、11-linux-basics、12-nginx、13-git、14-python-ai-agent、15-llm-fine-tuning、16-maven（详见 guides/backend/extensions）
+- guides/backend/ 主题模块（均为已填充内容）：01-java-basics（Java 基础）、02-javaweb-monolith（JavaWeb 单体架构）、03-distributed-microservices（分布式微服务）、04-python-aiagent（Python AI Agent）；扩展模块见 guides/backend/extensions（详见 guides/backend/README.md 与 知识导览.md）
 
 ### 前端技术指南（guides/frontend/）
 - guides/frontend/README.md —— 前端学习总览与路线

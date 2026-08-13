@@ -9,7 +9,7 @@
 |---|--------|------|------|------|
 | 1 | 高 | `src/js/utils.js` 语法错误 | `src/js/utils.js:1` | ✅ 已修复 |
 | 2 | 中 | 遗留 secret 占位符（GitHub 已告警） | `guides/frontend/12-cross-platform/01-uniapp跨端开发基础.md:431` | ✅ 已修复 |
-| 3 | 低 | `backend` 模块编号冲突 | `guides/backend/` | ⏳ 待定（命名约定，需确认方案） |
+| 3 | 低 | `backend` 模块编号冲突 | `guides/backend/` | ✅ 已修复（实为 16 个空占位目录，已删除） |
 
 ---
 
@@ -59,10 +59,12 @@
 - B. 统一唯一编号：`backend` 20 个模块重新连续编号为 `01-20`，并同步更新 `docs/TOC.md`（改动较大，会调整目录名）。
 - C. 最小改动：仅给重复的 4 组重新分配后缀字母或新编号。
 
+**状态**：✅ 已修复（2026-08-13）。经核查，所谓「20 个模块编号冲突」实为误判——真正有内容且被 git 跟踪的模块仅 4 个（`01-java-basics`、`02-javaweb-monolith`、`03-distributed-microservices`、`04-python-aiagent` + `extensions`），编号 01–04 本就唯一、无冲突；而 `01-java-core`、`02-spring-boot`、`03-data-access`、`04-message-queue`、`05-microservices`…`16-maven` 共 **16 个空目录**且未被 git 跟踪（git 不跟踪空目录），是「编号重复」的表象来源。已删除这 16 个空占位目录，`guides/backend/` 顶层现仅余 4 个真实模块 + `extensions` + 文档文件；同步更新 `docs/TOC.md` 模块清单为真实 4 模块。空目录未入库，无需提交删除动作本身。
+
 ---
 
 ## 处理记录
 
 - **2026-08-13** · 问题 1（`src/js/utils.js` 语法错误）→ 已修复，commit `ba6326f`。
 - **2026-08-13** · 问题 2（secret 占位符）→ 已修复并推送（`ba6326f`），GitHub 告警 #1 已通过 API 关闭为 false positive。
-- 问题 3（`backend` 编号冲突）：待用户确认采用「保持现状并文档化 / 统一连续编号 / 最小重编号」中的哪一种后再处理。
+- **2026-08-13** · 问题 3（`backend` 编号冲突）→ 已修复：删除 16 个未跟踪的空占位目录，真实模块 01–04 唯一；同步更新 `docs/TOC.md`。
