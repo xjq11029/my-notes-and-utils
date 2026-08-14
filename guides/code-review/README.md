@@ -13,8 +13,8 @@
 
 | 文件 | 版本 | 作用 |
 |---|---|---|
-| `CODE_ANALYSIS_GUIDE.md` | v1.3.1 | 代码理解指南：对指定文件夹逐文件生成调用图 + 功能说明文档 |
-| `CODE_REVIEW_GUIDE.md` | v1.0.0 | 代码审查指南：对变更集（diff）出具分级审查意见 + 合入结论 |
+| `CODE_ANALYSIS_GUIDE.md` | v1.4.0 | 代码理解指南：对指定文件夹逐文件生成调用图 + 功能说明文档 |
+| `CODE_REVIEW_GUIDE.md` | v1.1.0 | 代码审查指南：对变更集（diff）出具分级审查意见 + 合入结论 |
 | `_GUIDE_CHANGELOG.md` | — | 分析指南的版本变更记录 |
 | `_REVIEW_GUIDE_CHANGELOG.md` | — | 审查指南的版本变更记录 |
 
@@ -139,4 +139,4 @@ docs/code-analysis/      CODE_REVIEW_GUIDE（日常审查）
 
 ---
 
-*本说明对应版本：CODE_ANALYSIS_GUIDE v1.3.1 / CODE_REVIEW_GUIDE v1.0.0（2026-08-13）*
+*本说明对应版本：CODE_ANALYSIS_GUIDE v1.4.0 / CODE_REVIEW_GUIDE v1.1.0（2026-08-14）*
