@@ -15,8 +15,7 @@
 |---|---|---|
 | `CODE_ANALYSIS_GUIDE.md` | v1.4.0 | 代码理解指南：对指定文件夹逐文件生成调用图 + 功能说明文档 |
 | `CODE_REVIEW_GUIDE.md` | v1.1.0 | 代码审查指南：对变更集（diff）出具分级审查意见 + 合入结论 |
-| `_GUIDE_CHANGELOG.md` | — | 分析指南的版本变更记录 |
-| `_REVIEW_GUIDE_CHANGELOG.md` | — | 审查指南的版本变更记录 |
+| `_GUIDE_CHANGELOG.md` | — | 分析 / 审查两份指南的合并版本变更记录（带「指南」列） |
 
 **分工边界**：分析指南不出具合入结论；审查指南不生成分析文档。
 
@@ -80,9 +79,9 @@
 
 | 文件 | 内容 |
 |---|---|
-| `_PROJECT_PROFILE.md` | **项目画像**（技术栈/目录职责/特有调用模式），两个指南共享 |
-| `_INDEX.md` | 总览索引：文件清单 + 模块依赖全景图 + 规模摘要 |
-| `<源文件名>.md` | 每个代码文件一份分析文档（调用图 + 逐块图文解说） |
+| `_PROJECT_PROFILE.md` | **项目画像**（技术栈/目录职责/特有调用模式），两个指南共享，固定位于 `docs/code-analysis/` 根 |
+| `_INDEX.md` | 总览索引：文件清单 + 模块依赖全景图 + 规模摘要，固定位于 `docs/code-analysis/` 根 |
+| `<源文件相对项目根的路径>/<源文件名>.md` | 每个代码文件一份分析文档（调用图 + 逐块图文解说），**按源码目录层级嵌套存放**（如 `src/utils/is.ts` → `docs/code-analysis/src/utils/is.ts.md`），不再平铺在根目录 |
 | `_AUDIT_REPORT.md` | 产物校对报告（10 维度合规审计 + 行号抽查记录） |
 | `_ITERATION_PROPOSAL.md` | 指南迭代建议（需你审批） |
 
@@ -139,4 +138,4 @@ docs/code-analysis/      CODE_REVIEW_GUIDE（日常审查）
 
 ---
 
-*本说明对应版本：CODE_ANALYSIS_GUIDE v1.4.0 / CODE_REVIEW_GUIDE v1.1.0（2026-08-14）*
+*本说明对应版本：CODE_ANALYSIS_GUIDE v1.5.1 / CODE_REVIEW_GUIDE v1.1.0（2026-08-27；变更日志已合并为单一文件 `_GUIDE_CHANGELOG.md`）*
