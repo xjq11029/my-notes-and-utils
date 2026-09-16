@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 434" width="1360" height="868" role="img">
+<title>Codex 的 prompt 组装顺序与 prompt cache 边界</title>
+<desc>prompt 由 system message、tools、instructions 三个稳定前缀，加上 developer 与 user 消息组成的配置层，最后是本轮对话组成；前三层极少变化可命中缓存，配置变更通过追加消息而非修改历史实现。</desc>
+
+<rect x="0" y="0" width="680" height="434" fill="#1C1C1A"/>
+
+<rect x="40" y="40" width="460" height="38" rx="8" fill="#0C447C" stroke="#B5D4F4" stroke-width="0.5"/>
+<text x="56" y="59" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="12" fill="#85B7EB">1</text>
+<text x="76" y="59" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="12" font-weight="500" fill="#B5D4F4">system message</text>
+<text x="484" y="59" text-anchor="end" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="11" fill="#85B7EB">服务端控制</text>
+
+<rect x="40" y="82" width="460" height="38" rx="8" fill="#0C447C" stroke="#B5D4F4" stroke-width="0.5"/>
+<text x="56" y="101" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="12" fill="#85B7EB">2</text>
+<text x="76" y="101" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="12" font-weight="500" fill="#B5D4F4">tools 工具定义</text>
+<text x="484" y="101" text-anchor="end" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="11" fill="#85B7EB">排序必须一致</text>
+
+<rect x="40" y="124" width="460" height="38" rx="8" fill="#0C447C" stroke="#B5D4F4" stroke-width="0.5"/>
+<text x="56" y="143" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="12" fill="#85B7EB">3</text>
+<text x="76" y="143" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="12" font-weight="500" fill="#B5D4F4">instructions 模型指令</text>
+<text x="484" y="143" text-anchor="end" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="11" fill="#85B7EB">含模型专属提示</text>
+
+<path d="M514 40H506V162H514" fill="none" stroke="#5F5E5A" stroke-width="0.5"/>
+<text x="522" y="94" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="11" fill="#B4B2A9">极少变化</text>
+<text x="522" y="110" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="11" fill="#B4B2A9">缓存命中区</text>
+
+<rect x="40" y="166" width="460" height="38" rx="8" fill="#633806" stroke="#EF9F27" stroke-width="0.5"/>
+<text x="56" y="185" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="12" fill="#EF9F27">4</text>
+<text x="76" y="185" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="12" font-weight="500" fill="#FAC775">developer — 沙箱权限说明</text>
+<text x="484" y="185" text-anchor="end" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="11" fill="#EF9F27">按需插入</text>
+
+<rect x="40" y="208" width="460" height="38" rx="8" fill="#633806" stroke="#EF9F27" stroke-width="0.5"/>
+<text x="56" y="227" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="12" fill="#EF9F27">5</text>
+<text x="76" y="227" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="12" font-weight="500" fill="#FAC775">developer — developer_instructions</text>
+<text x="484" y="227" text-anchor="end" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="11" fill="#EF9F27">config.toml</text>
+
+<rect x="40" y="250" width="460" height="38" rx="8" fill="#633806" stroke="#EF9F27" stroke-width="0.5"/>
+<text x="56" y="269" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="12" fill="#EF9F27">6</text>
+<text x="76" y="269" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="12" font-weight="500" fill="#FAC775">user — AGENTS.md 与 skills</text>
+<text x="484" y="269" text-anchor="end" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="11" fill="#EF9F27">上限 32 KiB</text>
+
+<rect x="40" y="292" width="460" height="38" rx="8" fill="#633806" stroke="#EF9F27" stroke-width="0.5"/>
+<text x="56" y="311" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="12" fill="#EF9F27">7</text>
+<text x="76" y="311" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="12" font-weight="500" fill="#FAC775">user — environment_context</text>
+<text x="484" y="311" text-anchor="end" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="11" fill="#EF9F27">cwd 与 shell</text>
+
+<path d="M514 166H506V330H514" fill="none" stroke="#5F5E5A" stroke-width="0.5"/>
+<text x="522" y="236" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="11" fill="#B4B2A9">变更以追加</text>
+<text x="522" y="252" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="11" fill="#B4B2A9">实现，不改</text>
+<text x="522" y="268" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="11" fill="#B4B2A9">动历史前缀</text>
+
+<rect x="40" y="334" width="460" height="38" rx="8" fill="#444441" stroke="#B4B2A9" stroke-width="0.5"/>
+<text x="56" y="353" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="12" fill="#B4B2A9">8</text>
+<text x="76" y="353" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="12" font-weight="500" fill="#D3D1C7">对话历史与工具调用结果</text>
+<text x="484" y="353" text-anchor="end" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="11" fill="#B4B2A9">持续增长</text>
+
+<rect x="40" y="376" width="460" height="38" rx="8" fill="#444441" stroke="#B4B2A9" stroke-width="0.5"/>
+<text x="56" y="395" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="12" fill="#B4B2A9">9</text>
+<text x="76" y="395" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="12" font-weight="500" fill="#D3D1C7">本轮用户消息</text>
+<text x="484" y="395" text-anchor="end" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="11" fill="#B4B2A9">每次都变</text>
+
+<path d="M514 334H506V414H514" fill="none" stroke="#5F5E5A" stroke-width="0.5"/>
+<text x="522" y="366" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="11" fill="#B4B2A9">每次请求</text>
+<text x="522" y="382" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="11" fill="#B4B2A9">都不同</text>
+</svg>

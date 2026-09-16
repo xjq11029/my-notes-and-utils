@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 380" width="1360" height="760" role="img">
+<title>四个代表性 Harness 的设计哲学对比</title>
+<desc>Mini-SWE-Agent 的极简派、OpenHands 的事件溯源派、Claude Code 的递归组合派、Codex CLI 的平台派，数据来自 arXiv 2609.00006 的源码研究。</desc>
+
+<rect x="0" y="0" width="680" height="380" fill="#1C1C1A"/>
+
+<rect x="40" y="40" width="290" height="148" rx="10" fill="#2C2C2A" stroke="#5F5E5A" stroke-width="0.5"/>
+<text x="56" y="66" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="13" font-weight="500" fill="#F1EFE8">Mini-SWE-Agent</text>
+<text x="314" y="66" text-anchor="end" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="11" fill="#5DCAA5">极简派</text>
+<text x="56" y="87" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="11" fill="#888780">证明「脚手架被高估了」</text>
+<text x="56" y="108" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="11" fill="#B4B2A9">· 约 100 行核心 Python</text>
+<text x="56" y="125" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="11" fill="#B4B2A9">· 只用 bash，不用 tool-calling 接口</text>
+<text x="56" y="142" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="11" fill="#B4B2A9">· 线性历史，每步独立执行</text>
+<text x="56" y="159" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="11" fill="#B4B2A9">· SWE-bench verified 超过 74%</text>
+
+<rect x="350" y="40" width="290" height="148" rx="10" fill="#2C2C2A" stroke="#5F5E5A" stroke-width="0.5"/>
+<text x="366" y="66" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="13" font-weight="500" fill="#F1EFE8">OpenHands</text>
+<text x="624" y="66" text-anchor="end" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="11" fill="#85B7EB">事件溯源派</text>
+<text x="366" y="87" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="11" fill="#888780">把会话当作可重放的事件流</text>
+<text x="366" y="108" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="11" fill="#B4B2A9">· 事件溯源的会话引擎</text>
+<text x="366" y="125" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="11" fill="#B4B2A9">· 循环维度上的「极繁」端</text>
+<text x="366" y="142" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="11" fill="#B4B2A9">· 与 Codex 的 Tokio 状态机对照</text>
+<text x="366" y="159" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="11" fill="#B4B2A9">· 便于审计与重放</text>
+
+<rect x="40" y="208" width="290" height="148" rx="10" fill="#2C2C2A" stroke="#5F5E5A" stroke-width="0.5"/>
+<text x="56" y="234" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="13" font-weight="500" fill="#F1EFE8">Claude Code</text>
+<text x="314" y="234" text-anchor="end" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="11" fill="#85B7EB">递归组合派</text>
+<text x="56" y="255" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="11" fill="#888780">用子智能体递归拆解复杂任务</text>
+<text x="56" y="276" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="11" fill="#B4B2A9">· 43 个类型化工具，延迟加载</text>
+<text x="56" y="293" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="11" fill="#B4B2A9">· 三层权限栈</text>
+<text x="56" y="310" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="11" fill="#B4B2A9">· 递归组合式的编排</text>
+<text x="56" y="327" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="11" fill="#B4B2A9">· 源码可见但许可受限</text>
+
+<rect x="350" y="208" width="290" height="148" rx="10" fill="#2C2C2A" stroke="#5F5E5A" stroke-width="0.5"/>
+<text x="366" y="234" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="13" font-weight="500" fill="#F1EFE8">Codex CLI</text>
+<text x="624" y="234" text-anchor="end" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="11" fill="#EF9F27">平台派</text>
+<text x="366" y="255" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="11" fill="#888780">把 Harness 做成可分发的平台</text>
+<text x="366" y="276" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="11" fill="#B4B2A9">· 约 110 万行 Rust，语料库最大</text>
+<text x="366" y="293" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="11" fill="#B4B2A9">· 工具调用由嵌入式 V8 执行</text>
+<text x="366" y="310" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="11" fill="#B4B2A9">· 四层权限栈，语料库最复杂</text>
+<text x="366" y="327" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="11" fill="#B4B2A9">· Apache-2.0，真正开源可 fork</text>
+</svg>

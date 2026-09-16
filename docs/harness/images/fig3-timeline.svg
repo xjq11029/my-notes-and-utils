@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 452" width="1360" height="904" role="img">
+<title>Harness 概念的演进时间轴</title>
+<desc>从 2024 年 5 月 SWE-agent 提出 Agent-Computer Interface 雏形，到 2025 年 11 月 Anthropic 首次系统性使用 harness 术语，到 2026 年 2 月被命名与方法论化，最终在 2026 年 7 月被学术界定格。</desc>
+
+<rect x="0" y="0" width="680" height="452" fill="#1C1C1A"/>
+
+<path d="M70 52V392" fill="none" stroke="#5F5E5A" stroke-width="1"/>
+
+<circle cx="70" cy="52" r="5.5" fill="#7F77DD"/>
+<text x="96" y="50" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="11" fill="#888780">2024-05 · 最早的雏形</text>
+<text x="96" y="68" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="13" font-weight="500" fill="#F1EFE8">Agent-Computer Interface</text>
+<text x="96" y="87" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="11" fill="#B4B2A9">SWE-agent 论文首次用实验证明：接口设计直接决定 Agent 性能</text>
+
+<circle cx="70" cy="120" r="5.5" fill="#7F77DD"/>
+<text x="96" y="118" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="11" fill="#888780">2025-11-26 · 术语落地</text>
+<text x="96" y="136" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="13" font-weight="500" fill="#F1EFE8">harness 首次被系统性使用</text>
+<text x="96" y="155" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="11" fill="#B4B2A9">Anthropic 提出双 Agent 架构，奠定长周期 Agent 的设计范式</text>
+
+<circle cx="70" cy="188" r="5.5" fill="#7F77DD"/>
+<text x="96" y="186" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="11" fill="#888780">2026-02-05 · 命名时刻</text>
+<text x="96" y="204" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="13" font-weight="500" fill="#F1EFE8">Harness Engineering 被命名</text>
+<text x="96" y="223" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="11" fill="#B4B2A9">Hashimoto：每当 Agent 犯错，就工程化一个方案让它永远不再犯</text>
+
+<circle cx="70" cy="256" r="5.5" fill="#1D9E75"/>
+<text x="96" y="254" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="11" fill="#888780">2026-02 中旬 · 一线验证</text>
+<text x="96" y="272" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="13" font-weight="500" fill="#F1EFE8">OpenAI 内部报告使用同一术语</text>
+<text x="96" y="291" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="11" fill="#B4B2A9">零手写代码交付百万行级生产软件，人均每日 3.5 个 PR</text>
+
+<circle cx="70" cy="324" r="5.5" fill="#1D9E75"/>
+<text x="96" y="322" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="11" fill="#888780">2026-04-02 · 方法论化</text>
+<text x="96" y="340" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="13" font-weight="500" fill="#F1EFE8">进入软件工程正统</text>
+<text x="96" y="359" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="11" fill="#B4B2A9">Böckeler 在 martinfowler.com 建立 Guides / Sensors 框架，Martin Fowler 站台</text>
+
+<circle cx="70" cy="392" r="5.5" fill="#1D9E75"/>
+<text x="96" y="390" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="11" fill="#888780">2026-07-15 · 学术定格</text>
+<text x="96" y="408" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="13" font-weight="500" fill="#F1EFE8">11 个生产 Harness 的源码解剖</text>
+<text x="96" y="427" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="11" fill="#B4B2A9">七子系统、13 个横向观察、29 个设计模式；核心论断 Agent = Model + Harness</text>
+</svg>

@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 388" width="1360" height="776" role="img">
+<title>Codex 的 agent loop 结构</title>
+<desc>用户输入进入 prompt 组装，模型推理后判断是否请求工具调用；若是则执行工具并把输出追加进 prompt 形成回路，若否则产出 assistant message 结束本轮。</desc>
+<defs>
+<marker id="arrow2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+</defs>
+
+<rect x="0" y="0" width="680" height="388" fill="#1C1C1A"/>
+
+<rect x="50" y="40" width="200" height="48" rx="8" fill="#0C447C" stroke="#B5D4F4" stroke-width="0.5"/>
+<text x="150" y="64" text-anchor="middle" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="13" font-weight="500" fill="#B5D4F4">用户输入 input</text>
+
+<path d="M150 88L150 104" fill="none" stroke="#888780" stroke-width="1.5" marker-end="url(#arrow2)"/>
+
+<rect x="50" y="108" width="200" height="48" rx="8" fill="#0C447C" stroke="#B5D4F4" stroke-width="0.5"/>
+<text x="150" y="132" text-anchor="middle" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="13" font-weight="500" fill="#B5D4F4">组装 prompt</text>
+
+<path d="M150 156L150 172" fill="none" stroke="#888780" stroke-width="1.5" marker-end="url(#arrow2)"/>
+
+<rect x="50" y="176" width="200" height="48" rx="8" fill="#0C447C" stroke="#B5D4F4" stroke-width="0.5"/>
+<text x="150" y="200" text-anchor="middle" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="13" font-weight="500" fill="#B5D4F4">模型推理 inference</text>
+
+<path d="M150 224L150 240" fill="none" stroke="#888780" stroke-width="1.5" marker-end="url(#arrow2)"/>
+
+<rect x="50" y="244" width="200" height="48" rx="8" fill="#3C3489" stroke="#CECBF6" stroke-width="0.5"/>
+<text x="150" y="268" text-anchor="middle" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="13" font-weight="500" fill="#CECBF6">请求工具调用？</text>
+
+<path d="M150 292L150 316" fill="none" stroke="#888780" stroke-width="1.5" marker-end="url(#arrow2)"/>
+<text x="160" y="304" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="11" fill="#B4B2A9">否</text>
+
+<rect x="50" y="320" width="200" height="48" rx="8" fill="#085041" stroke="#5DCAA5" stroke-width="0.5"/>
+<text x="150" y="338" text-anchor="middle" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="13" font-weight="500" fill="#9FE1CB">assistant message</text>
+<text x="150" y="356" text-anchor="middle" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="11" fill="#5DCAA5">循环终止，控制权交还用户</text>
+
+<path d="M250 268H320V200H386" fill="none" stroke="#888780" stroke-width="1.5" marker-end="url(#arrow2)"/>
+<text x="262" y="258" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="11" fill="#B4B2A9">是</text>
+
+<rect x="390" y="176" width="240" height="48" rx="8" fill="#633806" stroke="#EF9F27" stroke-width="0.5"/>
+<text x="510" y="194" text-anchor="middle" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="13" font-weight="500" fill="#FAC775">执行工具调用</text>
+<text x="510" y="212" text-anchor="middle" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="11" fill="#EF9F27">捕获 stdout / stderr / 退出码</text>
+
+<path d="M510 176L510 158" fill="none" stroke="#888780" stroke-width="1.5" marker-end="url(#arrow2)"/>
+
+<rect x="390" y="108" width="240" height="48" rx="8" fill="#633806" stroke="#EF9F27" stroke-width="0.5"/>
+<text x="510" y="126" text-anchor="middle" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="13" font-weight="500" fill="#FAC775">把工具输出追加进 prompt</text>
+<text x="510" y="144" text-anchor="middle" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="11" fill="#EF9F27">旧 prompt 成为新 prompt 的精确前缀</text>
+
+<path d="M390 132H256" fill="none" stroke="#888780" stroke-width="1.5" marker-end="url(#arrow2)"/>
+
+<rect x="390" y="244" width="240" height="124" rx="12" fill="#2C2C2A" stroke="#B4B2A9" stroke-width="0.5"/>
+<text x="410" y="266" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="12" font-weight="500" fill="#D3D1C7">三个必须记住的事实</text>
+<text x="410" y="290" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="11" fill="#B4B2A9">一个 turn 内可能迭代数十次</text>
+<text x="410" y="312" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="11" fill="#B4B2A9">每轮都要重发完整历史</text>
+<text x="410" y="334" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="11" fill="#B4B2A9">因此请求体积是二次方的</text>
+<text x="410" y="356" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="11" fill="#B4B2A9">缓存命中可把它降为线性</text>
+</svg>
