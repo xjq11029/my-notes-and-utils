@@ -2,7 +2,7 @@
 
 > **整理方式**：faster-whisper 语音转写 + 白板关键帧人工整理；口语已按书面语整理，忠实于原课内容
 > **章节结构**：每章按「概念 → 原理推导 → 白板演示步骤 → 关键结论/公式 → 本节要点回顾」组织
-> **使用说明**：各章截图引用 `../2026-09-07 12-15-43_doc/frames/` 目录，自绘示意图存放于本目录下 `assets/`（共 3 张：`vector_to_scalar.png`、`neuron_structure.png`、`forward_propagation.png`）。请用 VSCode / Typora 打开本文件夹阅读（Mermaid 图会自动渲染）
+> **配图说明**：示意图统一存放于本目录 `assets/`（共 9 张，均为自绘，风格统一）；仅 ch03 保留 2 张**真实抓包证据**截图（tools 定义、SSE 流式响应），仍引用 `../2026-09-07 12-15-43_doc/frames/`——因其「真实抓到」的证据属性无法用自绘图替代。请用 VSCode / Typora 打开本文件夹阅读（Mermaid 图会自动渲染）
 
 ---
 
@@ -12,18 +12,18 @@
 
 ## 章节目录
 
-| 章 | 文件 | 主题 | 时间轴 |
-|---|---|---|---|
-| 1 | [ch01_raw_model.md](ch01_raw_model.md) | 裸模型 Raw Model：大模型的最底层真相 | 00:00–00:15 |
-| 2 | [ch02_model_service.md](ch02_model_service.md) | 模型服务 Model Service：API、定价与采样参数 | 00:15–00:43 |
-| 3 | [ch03_ai_application.md](ch03_ai_application.md) | AI 应用层与概念分析方法论（Skill 实战） | 00:44–01:12 |
-| 4 | [ch04_concepts_intelligence.md](ch04_concepts_intelligence.md) | 概念辨析与智能本质：AI 的分类 | 01:12–01:30 |
-| 5 | [ch05_ml_overview.md](ch05_ml_overview.md) | AI 应用全景与机器学习：问题域与学习范式 | 01:30–01:54 |
-| 6 | [ch06_neuron.md](ch06_neuron.md) | 神经元：从生物结构到数学模型（MP 模型） | 01:54–02:18 |
-| 7 | [ch07_network_structure.md](ch07_network_structure.md) | 神经网络结构：分层、全连接与前向传播 | 02:18–02:40 |
-| 8 | [ch08_loss_gradient.md](ch08_loss_gradient.md) | 损失与梯度下降：网络如何自我调整 | 02:40–02:51 |
-| 9 | [ch09_backpropagation.md](ch09_backpropagation.md) | 反向传播：梯度下降的实现手段 | 02:51–03:01 |
-| 10 | [ch10_training_mode.md](ch10_training_mode.md) | 训练模式：批量、张量与模型文件 | 03:01–03:12 |
+| 章 | 文件 | 主题 |
+|---|---|---|
+| 1 | [ch01_raw_model.md](ch01_raw_model.md) | 裸模型 Raw Model：大模型的最底层真相 |
+| 2 | [ch02_model_service.md](ch02_model_service.md) | 模型服务 Model Service：API、定价与采样参数 |
+| 3 | [ch03_ai_application.md](ch03_ai_application.md) | AI 应用层与概念分析方法论（Skill 实战） |
+| 4 | [ch04_concepts_intelligence.md](ch04_concepts_intelligence.md) | 概念辨析与智能本质：AI 的分类 |
+| 5 | [ch05_ml_overview.md](ch05_ml_overview.md) | AI 应用全景与机器学习：问题域与学习范式 |
+| 6 | [ch06_neuron.md](ch06_neuron.md) | 神经元：从生物结构到数学模型（MP 模型） |
+| 7 | [ch07_network_structure.md](ch07_network_structure.md) | 神经网络结构：分层、全连接与前向传播 |
+| 8 | [ch08_loss_gradient.md](ch08_loss_gradient.md) | 损失与梯度下降：网络如何自我调整 |
+| 9 | [ch09_backpropagation.md](ch09_backpropagation.md) | 反向传播：梯度下降的实现手段 |
+| 10 | [ch10_training_mode.md](ch10_training_mode.md) | 训练模式：批量、张量与模型文件 |
 
 **推荐学习顺序**：按章节顺序通读（1→10 为原课叙事线）；复习时可只看各章「本节要点回顾」。
 
@@ -38,7 +38,7 @@
 | 术语 | 中文注释 | 首见 |
 |---|---|---|
 | Raw Model | 裸模型 / 基础模型 / 原始模型——AI 体系最底层 | ch1 |
-| Token | 词元——自然语言切分出的数字单元；中文 1 字 ≈ 1.5 token，英文 1 词 ≈ 1.3 token | ch1 |
+| Token | 词元——自然语言切分出的数字单元；中文 1 字 ≈ 1.5 token（视分词器而定，Qwen / DeepSeek 系接近 1），英文 1 词 ≈ 1.3 token | ch1 |
 | Tokenization | 分词——文字变 token 列表的过程 | ch1 |
 | Probability Distribution | 概率分布——模型输出"下一个 token 的可能性" | ch1 |
 | Context Window | 上下文窗口——token 列表的最大长度；能容纳 ≠ 能处理好 | ch1 |
@@ -62,7 +62,6 @@
 | top-K / top-P | 候选截断策略：取概率前 K 个 / 累计概率达 P 截断（核采样）；先截断、再随机 | ch2 |
 | Auto-regression | 自回归——输出不断追加回输入的循环；输出 token 更贵的根源 | ch2 |
 | Detokenization | 反分词——token 序列还原成自然语言 | ch2 |
-| Forward / Backward 相关 | 前向传播 / 反向传播见下文神经网络部分 | — |
 
 ### 应用层与方法论（第 3–5 章）
 
@@ -101,14 +100,14 @@
 | Weight (w) | 权重——该维特征的重要程度（可调） | ch6 |
 | Bias (b) | 偏置——激活门槛（可调） | ch6 |
 | Parameter | 参数 = 权重 + 偏置 的统称——神经元唯一可调的东西 | ch6 |
-| Activation Function | 激活函数——设计时定死不可调；老牌代表"与 0 取最大"（ReLU 思想） | ch6 |
+| Activation Function | 激活函数——设计时定死不可调；最常用的是"与 0 取最大"（ReLU 思想） | ch6 |
 | Activation Value | 激活值——神经元输出；0 = 未激活 | ch6 |
 | ReLU | Rectified Linear Unit，修正线性单元——"与 0 取最大值"，负数砍成 0；简单且有效的**非线性**激活函数 | ch6 |
 | Input / Hidden / Output Layer | 输入层（第 0 层，不转换）/ 隐藏层（数量看经验）/ 输出层（数量 = 类别数） | ch7 |
 | Fully Connected | 全连接——下层每个神经元连接上层所有输出；权重数 = 上层输出数 | ch7 |
 | Forward Propagation | 前向传播——信号从输入层逐层流向输出层；每层两步 `z = W·a + b` → `a = σ(z)` | ch7 |
 | Batch / Mini-Batch | 批 / 小批量——一次并行处理多样本（矩阵按列堆叠），配合 GPU 批量并行 | ch7 |
-| FLOPs | Floating Point Operations，浮点运算次数——一次前向约 `2 × 参数量` 次 | ch7 |
+| FLOPs | Floating Point Operations，浮点运算次数——一次前向约 `2 × 参数量` 次（业界惯用此写法指运算次数） | ch7 |
 | Softmax | 归一化指数函数——把输出层得分压成"和为 1 的概率"，可读出置信度 | ch7 |
 | Nonlinearity | 非线性——激活函数必须非线性，否则多层会塌缩成一层线性变换 | ch7 |
 | CNN | Convolutional Neural Network，卷积神经网络——**局部连接 + 权重共享**（与全连接相对） | ch7 |
@@ -124,7 +123,7 @@
 | SGD | Stochastic Gradient Descent，随机梯度下降——单样本更新，噪声大，基本弃用 | ch10 |
 | Full Batch / Mini-Batch | 全批量（最稳最烧钱）/ 小批量（求平均更新，大模型主流）梯度下降 | ch10 |
 | Tensor | 张量——多维数组；配合 GPU 批量并行 | ch10 |
-| Catastrophic Forgetting | 灾难性遗忘——按类别顺序训练导致"训 1 忘 0"；数据要随机打乱 | ch10 |
+| Catastrophic Forgetting | 灾难性遗忘——学新任务后旧能力骤降；顺序训练会让梯度被当前类别带偏，故数据需随机打乱 | ch10 |
 | Overfitting / Underfitting | 过拟合（只认训练集）/ 欠拟合（训练集都学不会） | ch10 |
 | Generalization | 泛化能力——能识别没见过的东西 | ch10 |
 | Inference | 推理——只跑前向传播、**不更新参数**（区别于训练阶段的「前向 + 反向」） | ch10 |

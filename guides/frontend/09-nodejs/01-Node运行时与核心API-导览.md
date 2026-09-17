@@ -216,6 +216,50 @@
 
 ---
 
+## 补充：worker_threads 多线程
+
+### Node.js 单线程模型的真实含义
+
+| 维度 | 内容 |
+|------|------|
+| 是什么 | JavaScript 代码的执行是单线程的，但 Node.js 进程本身不是：主线程只有一段 JS 在跑，而 libuv 线程池、V8 的 GC 与 JIT 后台线程都是多线程 |
+| 能做什么 | 理解"哪些工作不占用 JS 主线程"，从而判断什么时候必须用 `worker_threads` |
+| 怎么用 | 通过 `UV_THREADPOOL_SIZE=8 node app.js` 调整 libuv 线程池（默认 4）；用 `worker_threads` 显式创建可执行 JS 的线程 |
+| 原理和工作流程 | 组成拆解：JS 执行（单线程，主线程 V8 Isolate）、事件循环（单线程，主线程）、libuv 线程池（默认 4 线程，处理文件 I/O / DNS `getaddrinfo` / `zlib` / 部分 `crypto`）、网络 I/O（使用 epoll / kqueue / IOCP 原生异步 API，不占线程）、V8 后台线程（GC、JIT）、Worker Threads（独立 V8 Isolate）。因此 CPU 密集的 JS 计算会阻塞事件循环，导致所有 I/O 回调与定时器被推迟 |
+| 缺点 | 主线程被阻塞时定时器精度下降、接口全部超时；把 CPU 密集计算写成 `async` 并不能解决阻塞，只是改变写法 |
+
+### worker_threads / cluster / child_process 选型
+
+| 维度 | 内容 |
+|------|------|
+| 是什么 | Node.js 三种并行方案：同进程多 Isolate（`worker_threads`）、多进程 fork 副本（`cluster`）、多进程执行任意程序（`child_process`） |
+| 能做什么 | 按"要提升吞吐还是卸载计算还是调用外部程序"选择正确方案 |
+| 怎么用 | `cluster`：多进程监听同一端口提升 HTTP 吞吐；`worker_threads`：`new Worker(path, { workerData })` 卸载 CPU 密集计算；`child_process`：`spawn` / `exec` 调用外部程序 |
+| 原理和工作流程 | 隔离级别与开销依次递增：`worker_threads` 内存开销低、启动快（几十毫秒）、支持 `SharedArrayBuffer` 与 Transferable 共享内存，但崩溃默认会拖垮整个进程；`cluster` 每个进程独立堆、内存开销高、原生支持端口复用、单进程崩溃不影响其他；`child_process` 完全隔离、通信走 stdin / stdout / IPC |
+| 缺点 | `worker_threads` 不支持端口共享（需自行传递 handle）；`cluster` 内存开销大且进程间无法共享内存；`child_process` 启动最慢、通信成本最高 |
+
+### Worker 用法与线程间通信
+
+| 维度 | 内容 |
+|------|------|
+| 是什么 | `Worker` 是独立 V8 Isolate；`parentPort` 提供与主线程的双向通信；`MessageChannel` 提供端口对；`SharedArrayBuffer` 提供真正的共享内存 |
+| 能做什么 | 把 CPU 密集计算移出主线程；在大数据传递场景下用零拷贝方式避免内存翻倍 |
+| 怎么用 | 主线程：`new Worker(path, { workerData })` + `worker.on('message' \| 'error' \| 'exit')`；Worker：`parentPort.postMessage(...)`、`parentPort.on('message', ...)`；零拷贝：`port1.postMessage({ buffer }, [buffer])` 转移 `ArrayBuffer` 所有权；共享内存：`new SharedArrayBuffer(n)` + `Atomics.add` / `Atomics.load` / `Atomics.wait` / `Atomics.notify` |
+| 原理和工作流程 | `postMessage` 使用结构化克隆算法做**深拷贝**，因此不能传递函数、`Symbol` 等不可克隆对象（会抛 `DataCloneError`）；`ArrayBuffer` 是 Transferable，放进 transferList 后所有权被转移，发送方 `byteLength` 变为 0，接收方拿到同一块内存，无拷贝；`SharedArrayBuffer` 不涉及所有权转移，多线程可同时持有，但普通读写**不是原子的**，并发写同一位置会丢更新，必须用 `Atomics` |
+| 缺点 | 结构化克隆对大对象开销显著；`SharedArrayBuffer` 需要配合 `Atomics` 才能保证并发安全；`Atomics.wait` 会阻塞所在线程，只能在 Worker 中使用（主线程调用会抛错） |
+
+### CPU 密集任务卸载与 Worker 复用
+
+| 维度 | 内容 |
+|------|------|
+| 是什么 | 判断哪些任务已经由 libuv 线程池或 C++ 库处理、哪些必须自己开 Worker；以及 Worker 的创建开销与复用策略 |
+| 能做什么 | 用最小代价卸载 CPU 密集计算，避免为每个请求创建线程导致响应变慢与内存暴涨 |
+| 怎么用 | 压缩用 `zlib.gzip` 的异步版本（走线程池）；密码哈希用 `promisify(crypto.pbkdf2)`（走线程池，同步版本会阻塞）；图像处理用 `sharp`（libvips 在 C++ 侧多线程）；纯 JS 计算自建 Worker 池，池大小默认 `CPU 核数 - 1`；优雅关闭用 `postMessage` 通知 + 超时 `terminate()` |
+| 原理和工作流程 | libuv 线程池**不能执行 JS**，只处理 C++ 侧阻塞调用，默认 4 线程，只能通过启动前的 `UV_THREADPOOL_SIZE` 调整；`worker_threads` 每个 Worker 要初始化新的 V8 Isolate（堆、内置对象、JIT 状态），创建耗时几十毫秒量级、内存从几 MB 起，因此高频短任务必须用池复用。Worker 内未捕获异常触发 `error` 事件，不处理会拖垮主进程，需在 Worker 内 `try/catch` 并回传错误 |
+| 缺点 | Worker 池增加实现复杂度（排队、复用、崩溃补齐）；每个 Worker 独立堆导致内存成倍增长；消息传递成本随数据量上升，大对象必须走 Transferable / `SharedArrayBuffer` |
+
+---
+
 ## 本章学习自检
 
 本节为辅助内容，无五维表格。

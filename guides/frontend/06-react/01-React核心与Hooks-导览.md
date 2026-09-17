@@ -244,6 +244,60 @@
 
 ---
 
+## 错误边界、Portals 与进阶 Hooks
+
+### 错误边界（Error Boundary）
+
+| 维度 | 内容 |
+|------|------|
+| 是什么 | 一个类组件，用于捕获其**子组件树**在渲染、生命周期方法和构造函数中抛出的错误并渲染降级 UI，避免整页白屏；依赖 `static getDerivedStateFromError` 和 `componentDidCatch` 两个生命周期。 |
+| 能做什么 | 隔离局部错误，出错时只卸载出错子树并展示 fallback；在 `componentDidCatch` 中做错误上报，配合全局 `window.onerror` 形成双层防护。 |
+| 怎么用 | `class ErrorBoundary extends React.Component { static getDerivedStateFromError(e) { return { hasError: true }; } componentDidCatch(e, info) { report(e, info.componentStack); } render() { return this.state.hasError ? <Fallback /> : this.props.children; } }`；或用 `react-error-boundary` 的 `<ErrorBoundary FallbackComponent={Fallback} onError={...} onReset={...}>`。 |
+| 原理和工作流程 | 子树渲染抛错后沿组件树向上冒泡，找到最近的错误边界；React 先调用 render 阶段的静态方法 `getDerivedStateFromError` 拿到降级 state（必须是纯函数），再在 commit 阶段调用 `componentDidCatch` 执行上报副作用。若整棵树都没有边界，React 卸载整棵树。**函数组件无法实现**：错误边界需要在组件自身 render 之前介入，而 Hooks 在 render 内部执行，且官方没有等价的 `useErrorBoundary`。 |
+| 缺点 | 捕获不到事件处理器错误、异步代码（`setTimeout` / `Promise`）、SSR 错误、边界自身抛出的错误以及水合不匹配；只能包裹子树，粒度需要人工规划；每个边界都要处理 reset，否则用户只能刷新页面。 |
+
+### Portals（传送门）
+
+| 维度 | 内容 |
+|------|------|
+| 是什么 | `createPortal(children, domNode, key?)` 把子节点渲染到 DOM 树中另一个位置的节点下，但在 React 组件树中仍保留在原位置。 |
+| 能做什么 | 让模态框、抽屉、Tooltip、下拉菜单、Toast 脱离父级 `overflow: hidden` / `transform` / `z-index` 层叠上下文的裁剪与限制；Context、props、ref 仍按 React 树正常传递。 |
+| 怎么用 | `import { createPortal } from 'react-dom'; createPortal(<div className="modal-mask" onClick={onClose}>{children}</div>, document.body)`。 |
+| 原理和工作流程 | Fiber 树记录组件关系，真实 DOM 的挂载位置由 `domNode` 决定，React 在 commit 的 mutation 子阶段把 Portal 子树的 DOM 插入 `domNode`。React 17+ 把事件监听器统一挂在 root container 上、通过 Fiber 树模拟冒泡，因此 **Portal 内的事件仍沿 React 组件树冒泡**到父组件，而不是沿真实 DOM 树。 |
+| 缺点 | 事件冒泡行为与 DOM 直觉相反，需要在浮层内 `stopPropagation`；CSS 继承链从 `document.body` 重新开始，父级字体 / 颜色可能丢失；SSR 下 `document` 不存在需做守卫；无障碍焦点管理（焦点陷阱、Esc 关闭）需自行实现。 |
+
+### useImperativeHandle
+
+| 维度 | 内容 |
+|------|------|
+| 是什么 | `useImperativeHandle(ref, createHandle, dependencies?)` 自定义暴露给父组件的 ref 值，把默认的「暴露真实 DOM 节点」替换为「暴露一组受控的命令式方法」。 |
+| 能做什么 | 在保持内部 DOM 封装的前提下，向父组件暴露聚焦、滚动、播放控制、Canvas 绘制等一次性动作能力。 |
+| 怎么用 | `const FancyInput = forwardRef((props, ref) => { const inputRef = useRef(null); useImperativeHandle(ref, () => ({ focus: () => inputRef.current.focus() }), []); return <input ref={inputRef} {...props} />; });` 父组件通过 `inputApi.current.focus()` 调用。 |
+| 原理和工作流程 | 必须配合 `forwardRef`（React 19 起 ref 可直接作为 prop 传递），执行时机与 `useLayoutEffect` 相同，在 layout 子阶段把 `createHandle()` 的返回值赋给父组件的 `ref.current`，因此父组件拿到的是自定义对象而非 DOM 节点。 |
+| 缺点 | 绕过单向数据流，父组件可直接调用子组件方法，调用顺序敏感、可测试性差；`createHandle` 依赖数组写错会捕获过期值；只适合表达「一次性动作」，不适合表达「持续状态」，滥用会让组件难以维护。 |
+
+### useSyncExternalStore
+
+| 维度 | 内容 |
+|------|------|
+| 是什么 | `useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot?)` 用于订阅 React 之外的外部数据源，并保证在并发渲染下读到一致快照，避免 tearing（撕裂）。 |
+| 能做什么 | 安全订阅浏览器 API（`navigator.onLine`、`matchMedia`、`localStorage`）与自定义 store；是 `react-redux` v8+ `useSelector`、Zustand 等库订阅机制的底层实现；天然支持 SSR 快照。 |
+| 怎么用 | `useSyncExternalStore(subscribe, () => navigator.onLine, () => true)`；`subscribe` 需定义在组件外保证引用稳定，`getSnapshot` 必须返回缓存过的不可变值，`getServerSnapshot` 用于 SSR。 |
+| 原理和工作流程 | 并发渲染下一次渲染可能被拆成多个时间片，若中途外部 store 变化，同一次渲染的不同部分会读到不同值（tearing）。`useSyncExternalStore` 在渲染期间持续比对 `getSnapshot()` 返回值，发现变化就丢弃当前渲染重新开始，保证同一帧所有组件读到同一份快照；相比 `useEffect` 订阅，它在渲染阶段即可取值，无首屏闪烁，且订阅引用稳定时不会反复订阅。 |
+| 缺点 | 快照变化时可能触发同步强制更新，牺牲部分并发收益；`getSnapshot` 返回新对象会导致无限渲染；`subscribe` 每次渲染传新函数会反复订阅；比 `useState` + `useEffect` 写法更繁琐，只适合外部数据源。 |
+
+### 受控组件与非受控组件
+
+| 维度 | 内容 |
+|------|------|
+| 是什么 | 受控组件的值由 React state 驱动（`value` + `onChange`，React 是唯一数据源）；非受控组件的值由 DOM 自己维护，React 通过 `ref` 读取，初始值用 `defaultValue` / `defaultChecked` 指定。 |
+| 能做什么 | 受控适合实时校验、输入联动、字符计数、按钮禁用等需要每次输入拿到最新值的场景；非受控适合一次性提交的大型表单、`<input type="file" />`、集成第三方非 React 组件、性能敏感的高频输入。 |
+| 怎么用 | 受控：`<input value={v} onChange={e => setV(e.target.value)} />`；非受控：`<input name="x" defaultValue="张三" />` + `new FormData(formRef.current)`；重置非受控表单用 `<form key={formVersion}>` 强制重建。 |
+| 原理和工作流程 | 受控组件每次输入触发 `setState` → 组件重渲染 → 新 `value` 写回 DOM，React 内部用 value tracker 记录 DOM 值以避免重复设置造成光标跳动；只传 `value` 不传 `onChange` 时 React 会将其设为只读并告警。`defaultValue` / `defaultChecked` 仅在首次挂载生效，之后 prop 变化不会同步到 DOM。性能优化方向：state 下沉到字段级组件、`useDeferredValue` / `useTransition` 降优先级、`React.memo` 拆分字段、改用非受控 + ref、使用 `react-hook-form`。 |
+| 缺点 | 受控组件每次按键都触发重渲染，字段多或 state 提升过高时输入卡顿；非受控组件状态不受 React 掌控，无法做实时校验与联动，`defaultValue` 后续变化不生效容易踩坑；受控 / 非受控混用时状态来源分散，提交时需用 `FormData` 与 state 分别读取。 |
+
+---
+
 ## 本章学习自检
 
 本节为辅助内容，无五维表格。

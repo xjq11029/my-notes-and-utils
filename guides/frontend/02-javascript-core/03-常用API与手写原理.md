@@ -8,6 +8,8 @@
 
 ## 一、防抖（Debounce）与节流（Throttle）
 
+> **本主题权威章节**（其他模块的同主题内容均指向此处）。
+
 ### 1.1 核心概念
 
 **防抖**和**节流**都是优化高频事件触发性能的手段，但策略不同：
@@ -585,6 +587,8 @@ elements.button = null;
 
 ## 七、内存泄漏场景
 
+> **本主题权威章节**（其他模块的同主题内容均指向此处）。
+
 ### 7.1 常见内存泄漏场景
 
 | 泄漏场景 | 原因 | 示例 | 解决方案 |
@@ -656,6 +660,18 @@ element = null; // WeakMap 中的条目可以被 GC 回收
 - [ ] 能区分纯函数与非纯函数并举例说明
 - [ ] 能理解 compose 与 pipe 的函数组合思想
 - [ ] 能区分声明式与命令式编程风格
+- [ ] 能列举 Proxy 的 13 种 trap 及其拦截的操作
+- [ ] 能解释 `Reflect` 相比 `Object` 的三个优势，并说出 `receiver` 参数的作用
+- [ ] 能写出 `Proxy.revocable` 的使用方式与典型场景
+- [ ] 能说出 Vue 3 用 Proxy 替代 `Object.defineProperty` 的至少 4 个理由
+- [ ] 能列举 Proxy 的局限（私有字段、原始值、不变式、性能、身份比较）
+- [ ] 能手写一个同时满足可迭代协议与迭代器协议的对象
+- [ ] 能解释生成器 `next()` / `return()` / `throw()` 的行为与 `yield*` 委托
+- [ ] 能说出 `for...of` 提前退出时调用 `return()` 的时机与用途
+- [ ] 能使用 `async function*` + `for await...of` 处理异步迭代
+- [ ] 能完整描述 Heap Snapshot 三快照法的步骤与"为什么要拍三次"
+- [ ] 能说出 Detached DOM 的三种识别方法
+- [ ] 能按"观测 → 分类 → 复现 → 拍摄 → 溯源 → 修复 → 验证"描述内存泄漏定位流程
 
 ---
 
@@ -1006,4 +1022,562 @@ console.log(getEvenDoubledDeclarative(numbers)); // [4, 8, 12, 16, 20]
 1. **可预测性**：纯函数保证相同输入始终产生相同输出，易于测试和调试。
 2. **可维护性**：每个函数职责单一、无副作用，修改一处不影响其他地方。
 3. **可组合性**：通过 compose/pipe 将小函数组合成复杂逻辑，代码复用率极高。
+
+---
+
+## 补充：Proxy、迭代器与内存排查方法论
+
+> 本节补齐三个高频但前文未覆盖的主题：`Proxy` / `Reflect` 元编程、迭代器与生成器协议、DevTools Memory 内存排查方法论。前两者是框架底层原理（Vue 3 响应式、redux-saga）的基础，后者是内存泄漏章节的实操延伸。
+
+### 1. Proxy 与 Reflect 原理
+
+#### 1.1 核心概念
+
+**`Proxy`** 是 ES6 提供的**元编程**能力：它包装一个目标对象（`target`），通过处理器（`handler`）中定义的**陷阱（trap）**拦截对目标对象的底层操作（读属性、写属性、`in`、`delete`、`new` 等）。
+
+```javascript
+const proxy = new Proxy(target, handler);
+// target：被代理的目标对象（可以是对象、数组、函数）
+// handler：定义各种 trap 的对象，未定义的 trap 走默认行为
+```
+
+**`Reflect`** 是一个内置对象，提供 13 个与 trap **一一对应**的静态方法，用于在 trap 中执行被拦截操作的**默认行为**。它常与 `Proxy` 配合使用，是"转发默认行为"的标准写法。
+
+#### 1.2 底层原理：13 种 trap
+
+| # | Trap | 拦截的操作 | 方法签名 |
+|:---:|------|-----------|---------|
+| 1 | `get` | 读取属性 | `(target, property, receiver)` |
+| 2 | `set` | 写入属性 | `(target, property, value, receiver)` |
+| 3 | `has` | `in` 操作符 | `(target, property)` |
+| 4 | `deleteProperty` | `delete` 操作符 | `(target, property)` |
+| 5 | `ownKeys` | `Object.keys` / `getOwnPropertyNames` / `getOwnPropertySymbols` / `Reflect.ownKeys` / `for...in` | `(target)` |
+| 6 | `getOwnPropertyDescriptor` | `Object.getOwnPropertyDescriptor` | `(target, property)` |
+| 7 | `defineProperty` | `Object.defineProperty` / `Object.defineProperties` | `(target, property, descriptor)` |
+| 8 | `getPrototypeOf` | `Object.getPrototypeOf` / `instanceof` / `__proto__` | `(target)` |
+| 9 | `setPrototypeOf` | `Object.setPrototypeOf` | `(target, prototype)` |
+| 10 | `isExtensible` | `Object.isExtensible` | `(target)` |
+| 11 | `preventExtensions` | `Object.preventExtensions` / `Object.seal` / `Object.freeze` | `(target)` |
+| 12 | `apply` | 函数调用（`target` 必须是可调用对象） | `(target, thisArg, argumentsList)` |
+| 13 | `construct` | `new` 操作（`target` 必须是构造函数） | `(target, argumentsList, newTarget)` |
+
+> 记忆技巧：13 种 trap 恰好覆盖了 `Reflect` 的 13 个方法，也覆盖了 `Object` 上所有"内部方法"（`[[Get]]`、`[[Set]]`、`[[HasProperty]]` 等）暴露出来的接口。
+
+**`Reflect` 相比 `Object` 的三个优势**：
+
+1. **返回值更合理**：`Reflect.defineProperty` / `Reflect.set` / `Reflect.deleteProperty` 返回布尔值表示成功与否；而 `Object.defineProperty` 失败时直接抛 `TypeError`。
+2. **参数顺序统一**：所有方法都是 `(target, ...)` 开头，便于封装转发；而 `Object` 的方法签名各不相同（`Object.defineProperty(obj, key, desc)` 与 `Object.getOwnPropertyDescriptor(obj, key)`）。
+3. **`receiver` 参数**：`Reflect.get(target, key, receiver)` / `Reflect.set(...)` 支持指定 `receiver`，从而正确转发原型链上访问器（getter / setter）中的 `this`。
+
+```javascript
+// Reflect 是"函数式"的 Object：用返回值替代抛异常，便于条件判断
+const ok = Reflect.defineProperty(obj, 'a', { value: 1 });
+if (!ok) {
+  // 处理失败，而不是捕获异常
+}
+
+// Reflect.ownKeys 一次性拿到字符串键 + Symbol 键 + 不可枚举键
+const obj2 = { a: 1, [Symbol('s')]: 2 };
+console.log(Reflect.ownKeys(obj2));        // ['a', Symbol(s)]
+console.log(Object.keys(obj2));            // ['a']（只有可枚举的字符串键）
+```
+
+**`receiver` 参数的作用**：当通过代理访问一个**继承来的 getter** 时，getter 内部的 `this` 应当指向代理对象，否则 getter 内部对属性的访问会绕过代理，导致拦截失效（Vue 3 的依赖收集正是依赖这一点）。
+
+```javascript
+const target = {
+  _count: 0,
+  get count() {
+    return this._count;   // this 指向谁，决定了 _count 的读取能否被代理拦截
+  },
+};
+
+const proxy = new Proxy(target, {
+  get(t, key, receiver) {
+    console.log('拦截 get:', key);
+    return Reflect.get(t, key, receiver);   // 传 receiver，让 getter 中的 this 指向 proxy
+  },
+});
+
+console.log(proxy.count);
+// 输出：拦截 get: count → 拦截 get: _count → 0
+
+// 如果写成 Reflect.get(t, key)（不传 receiver）：
+// getter 中的 this 是 target，_count 的读取绕过代理，
+// 只会打印一次 "拦截 get: count"，依赖收集会漏掉 _count
+```
+
+#### 1.3 可撤销代理（`Proxy.revocable`）
+
+`Proxy.revocable(target, handler)` 返回 `{ proxy, revoke }`。调用 `revoke()` 后代理失效，任何操作都会抛 `TypeError`。
+
+```javascript
+const { proxy, revoke } = Proxy.revocable({ name: 'Alice' }, {});
+
+console.log(proxy.name);   // 'Alice'
+revoke();
+// proxy.name;             // TypeError: Cannot perform 'get' on a proxy that has been revoked
+
+// 典型用途：把对象临时交给第三方库，用完立即收回访问权
+function withTempAccess(resource, task) {
+  const { proxy, revoke } = Proxy.revocable(resource, {});
+  try {
+    return task(proxy);
+  } finally {
+    revoke();   // 无论成功失败都收回权限
+  }
+}
+```
+
+#### 1.4 实战应用：Vue 3 为什么用 Proxy 替代 `Object.defineProperty`
+
+Vue 2 用 `Object.defineProperty` 逐个劫持属性的 `get` / `set`，Vue 3 改用 `Proxy` 代理整个对象。核心差异如下：
+
+| 对比维度 | Vue 2（`Object.defineProperty`） | Vue 3（`Proxy`） |
+|---------|--------------------------------|-----------------|
+| 新增属性 | **无法监听**，必须用 `Vue.set` / `$set` | 自动监听，直接赋值即可响应 |
+| 删除属性 | **无法监听**，必须用 `Vue.delete` / `$delete` | 自动监听 `delete` |
+| 数组索引赋值 / 修改 `length` | **无法监听**，只能重写 `push` / `pop` 等 7 个数组方法 | 自动监听 |
+| `Map` / `Set` / `WeakMap` / `WeakSet` | 不支持 | 原生支持 |
+| 初始化开销 | 必须递归遍历所有属性逐个劫持，属性越多越慢 | **惰性代理**，访问到嵌套对象时才递归代理 |
+| 拦截能力 | 只能拦截 `get` / `set` | 13 种 trap，覆盖 `in`、`delete`、`ownKeys` 等 |
+| 浏览器兼容 | ES5，可兼容 IE9+ | ES6，**无法 polyfill**（Vue 3 因此不支持 IE11）（历史兼容场景，2026 年新项目按现代浏览器基线） |
+
+```javascript
+/**
+ * 简化版响应式系统：用 Proxy 的 get / set / deleteProperty 实现
+ * 依赖收集 + 派发更新（真实 Vue 3 使用 targetMap + effect 栈，此处为教学简化版）
+ */
+let activeEffect = null;
+
+function effect(fn) {
+  activeEffect = fn;
+  fn();                 // 立即执行一次，触发 get 完成依赖收集
+  activeEffect = null;
+}
+
+function reactive(target) {
+  const depsMap = new Map();   // key -> Set<effect>
+
+  return new Proxy(target, {
+    get(t, key, receiver) {
+      // 依赖收集：记录当前正在执行的 effect
+      if (activeEffect) {
+        let deps = depsMap.get(key);
+        if (!deps) depsMap.set(key, (deps = new Set()));
+        deps.add(activeEffect);
+      }
+      // 用 receiver 保证 getter 中的 this 指向代理，嵌套属性也能被拦截
+      const value = Reflect.get(t, key, receiver);
+      // 惰性代理：只在访问到嵌套对象时才递归创建代理
+      return typeof value === 'object' && value !== null ? reactive(value) : value;
+    },
+
+    set(t, key, value, receiver) {
+      const oldValue = t[key];
+      const result = Reflect.set(t, key, value, receiver);
+      if (oldValue !== value) {
+        // 派发更新：通知该 key 对应的所有 effect 重新执行
+        depsMap.get(key)?.forEach(fn => fn());
+      }
+      return result;   // set trap 必须返回布尔值，返回 false 在严格模式下抛 TypeError
+    },
+
+    deleteProperty(t, key) {
+      const hadKey = Object.prototype.hasOwnProperty.call(t, key);
+      const result = Reflect.deleteProperty(t, key);
+      if (hadKey && result) {
+        depsMap.get(key)?.forEach(fn => fn());
+      }
+      return result;
+    },
+  });
+}
+
+// 使用示例
+const state = reactive({ count: 0 });
+effect(() => console.log('count =', state.count));
+state.count++;        // 打印 "count = 1"（自动触发更新）
+state.newField = 1;   // Vue 2 需要 $set，Proxy 方案自动监听
+delete state.count;   // Vue 2 需要 $delete，Proxy 方案自动监听
+```
+
+#### 1.5 Proxy 的局限
+
+| 局限 | 说明 | 影响 |
+|------|------|------|
+| **无法拦截内部私有访问** | class 的私有字段 `#x` 完全不可拦截（规范规定私有字段访问不触发 trap）；闭包中保存的变量访问也不经过代理 | 使用 `#private` 的类无法被完整代理 |
+| **无法代理原始值** | `new Proxy('str', {})` 抛 `TypeError`，`target` 必须是对象 | 需要包装成对象才能代理 |
+| **必须满足不变式（invariants）** | trap 返回值必须与 `target` 真实状态一致，否则抛 `TypeError`。例如 `target` 不可扩展时 `ownKeys` 必须返回全部键 | 不当实现会直接报错，而非静默失败 |
+| **性能开销** | 每次属性访问多一层函数调用，比原生访问慢；代理层级越深越明显 | 不适合高频访问的热路径（如逐帧遍历大数组） |
+| **身份比较问题** | `proxy !== target`，作为 `Map` / `Set` 的键时会与 `target` 视为不同键 | 需要统一使用代理对象作为键 |
+| **`this` 指向问题** | 直接调用代理上的方法时 `this` 是代理；若方法内部访问 `#private` 字段会抛 `TypeError` | 私有字段 + Proxy 组合需要 `bind` 或改写为闭包变量 |
+| **无法 polyfill** | ES6 特性，IE 完全不支持 | 这是 Vue 3 放弃 IE11 支持的原因之一（历史兼容场景，2026 年新项目按现代浏览器基线） |
+
+```javascript
+// 不变式违反示例：target 不可扩展，ownKeys 不能报告不存在的键
+const frozen = Object.freeze({ a: 1 });
+const badProxy = new Proxy(frozen, {
+  ownKeys() {
+    return ['a', 'b'];   // 'b' 不存在，违反不变式
+  },
+});
+// Object.keys(badProxy);   // TypeError: 'ownKeys' on proxy: trap returned extra keys...
+
+// 私有字段 + Proxy 的典型报错
+class Counter {
+  #count = 0;
+  increment() {
+    return ++this.#count;   // this 必须是真正的实例
+  }
+}
+const counterProxy = new Proxy(new Counter(), {});
+// counterProxy.increment();
+// TypeError: Cannot read private member #count from an object whose class did not declare it
+// 解决：new Proxy(instance, { get: (t, k) => (typeof t[k] === 'function' ? t[k].bind(t) : t[k]) })
+```
+
+> 📖 **参考链接**：
+> - [MDN - Proxy](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Proxy)
+> - [MDN - Reflect](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Reflect)
+
+---
+
+### 2. 迭代器与生成器协议
+
+#### 2.1 核心概念
+
+| 协议 | 要求 | 说明 |
+|------|------|------|
+| **可迭代协议**（Iterable） | 对象实现 `[Symbol.iterator]()`，返回一个迭代器 | 使对象能被 `for...of`、展开运算符、解构消费 |
+| **迭代器协议**（Iterator） | 对象有 `next()` 方法，返回 `{ value, done }` | 可选实现 `return(value)` 与 `throw(error)` |
+| **异步可迭代协议** | 对象实现 `[Symbol.asyncIterator]()` | 配合 `for await...of` 使用 |
+
+**内置可迭代对象**：`Array`、`String`、`Map`、`Set`、`TypedArray`、`arguments`、`NodeList`、生成器对象。**普通对象不是可迭代对象**（没有实现 `Symbol.iterator`）。
+
+#### 2.2 底层原理
+
+**`for...of` 的执行流程**：
+
+1. 调用 `obj[Symbol.iterator]()` 获取迭代器
+2. 反复调用 `iterator.next()`，把返回的 `value` 赋给循环变量
+3. `done` 为 `true` 时退出循环
+4. **提前退出（`break` / `return` / 抛异常）时，会调用迭代器的 `return()` 方法**用于资源清理
+
+**生成器函数（`function*`）的机制**：
+
+- 调用生成器函数**不会执行函数体**，而是返回一个**生成器对象**；该对象同时是迭代器和可迭代对象
+- 执行到 `yield` 时**暂停**并交出一个值；下次 `next(v)` 时从暂停处恢复，且 `v` 会成为**上一个 `yield` 表达式的求值结果**（双向通信）
+- `yield*` 把执行**委托**给另一个可迭代对象，逐个产出其值，并把该可迭代对象的**返回值**作为 `yield*` 表达式的值
+- `return(v)`：在暂停处注入 `return`，触发 `finally` 块，返回 `{ value: v, done: true }`
+- `throw(e)`：在暂停处抛出错误，若生成器内部未捕获则传播到调用方
+- 生成器内部 `return v` 时，返回 `{ value: v, done: true }`
+
+**消费可迭代对象的 API**：`for...of`、`for await...of`、展开运算符 `[...x]`、数组解构 `const [a, b] = x`、`Array.from(x)`、`new Map(entries)`、`new Set(arr)`、`Promise.all(iterable)`、`yield*`。
+
+**手写可迭代对象**：
+
+```javascript
+/**
+ * 手写可迭代对象：同时实现可迭代协议与迭代器协议
+ */
+const range = {
+  from: 1,
+  to: 5,
+
+  [Symbol.iterator]() {
+    let current = this.from;      // 闭包保存迭代状态
+    const last = this.to;
+
+    return {
+      next() {
+        return current <= last
+          ? { value: current++, done: false }
+          : { value: undefined, done: true };
+      },
+      // 让迭代器自身也可迭代：这样 [...range] 与连续 for...of 都能工作
+      [Symbol.iterator]() { return this; },
+    };
+  },
+};
+
+console.log([...range]);              // [1, 2, 3, 4, 5]
+console.log(Array.from(range));       // [1, 2, 3, 4, 5]
+const [first, second] = range;        // 解构同样消费迭代器协议
+console.log(first, second);           // 1 2
+```
+
+**生成器与 `next()` 双向通信**：
+
+```javascript
+function* gen() {
+  console.log('开始执行');
+  const a = yield 1;          // 第一次 next() 执行到这里暂停，返回 { value: 1 }
+  console.log('收到 a =', a); // a 来自第二次 next(v) 的实参
+  const b = yield 2;
+  console.log('收到 b =', b);
+  return a + b;               // 生成器内 return 的值作为最后一次的 value
+}
+
+const it = gen();
+it.next();       // 打印 "开始执行"，返回 { value: 1, done: false }
+it.next(10);     // 打印 "收到 a = 10"，返回 { value: 2, done: false }
+it.next(20);     // 打印 "收到 b = 20"，返回 { value: 30, done: true }
+it.next();       // { value: undefined, done: true } —— done 后固定返回该结果
+```
+
+**`yield*` 委托**：
+
+```javascript
+function* inner() {
+  yield 'a';
+  yield 'b';
+  return 'inner-done';        // 该返回值会成为 yield* 表达式的结果
+}
+
+function* outer() {
+  const result = yield* inner();   // 委托：依次产出 'a'、'b'
+  console.log('inner 的返回值：', result);   // 'inner-done'
+  yield 'c';
+}
+
+console.log([...outer()]);
+// 打印 "inner 的返回值：inner-done"
+// 输出 ['a', 'b', 'c']
+```
+
+**`return()` / `throw()` 与资源清理**：
+
+```javascript
+function* cleanup() {
+  try {
+    yield 1;
+    yield 2;
+  } finally {
+    console.log('执行清理逻辑');   // 无论正常结束还是提前终止都会执行
+  }
+}
+
+// 1. 显式调用 return()：注入 return，触发 finally
+const g1 = cleanup();
+g1.next();            // { value: 1, done: false }
+g1.return(99);        // 打印 "执行清理逻辑"，返回 { value: 99, done: true }
+
+// 2. throw()：在暂停处抛出错误，finally 仍会执行，错误传播到调用方
+const g2 = cleanup();
+g2.next();
+try {
+  g2.throw(new Error('外部注入的错误'));
+} catch (e) {
+  console.log('捕获到：', e.message);
+}
+
+// 3. for...of 提前 break：自动调用迭代器的 return()
+for (const v of cleanup()) {
+  if (v === 1) break;   // 打印 "执行清理逻辑"
+}
+```
+
+**异步迭代（`Symbol.asyncIterator`）**：
+
+```javascript
+/**
+ * 异步生成器：async function* 产出的对象实现 Symbol.asyncIterator
+ */
+async function* fetchPages(urls) {
+  for (const url of urls) {
+    const res = await fetch(url);
+    yield res.json();          // 每次 yield 产出一个 Promise
+  }
+}
+
+// 消费：for await...of 会自动 await 每个 next() 的结果
+for await (const page of fetchPages(['/api/p1', '/api/p2'])) {
+  console.log(page);
+}
+
+// 手动消费：next() 返回 Promise<{ value, done }>
+const asyncIt = fetchPages(['/api/p1'])[Symbol.asyncIterator]();
+const { value, done } = await asyncIt.next();
+```
+
+#### 2.3 实战应用
+
+| 场景 | 说明 |
+|------|------|
+| 惰性求值 / 无限序列 | 生成器按需产出，不会一次性占用内存（如分页加载、ID 生成器） |
+| 可中断的遍历 | 用 `next()` 手动控制推进节奏，适合动画帧、游戏循环 |
+| 递归结构遍历 | 用 `yield*` 递归委托遍历树，代码接近深度优先搜索的自然写法 |
+| 异步流程控制 | redux-saga、早期 `co` 库都基于生成器实现"用同步写法写异步逻辑" |
+| 自定义数据结构 | 为链表、树、矩阵实现 `Symbol.iterator`，使其支持 `for...of` 与展开运算符 |
+
+```javascript
+/**
+ * 用 yield* 递归遍历树：无需手动维护栈
+ */
+function* walk(node) {
+  yield node.value;
+  for (const child of node.children || []) {
+    yield* walk(child);        // 递归委托给子树的迭代器
+  }
+}
+
+const tree = {
+  value: 1,
+  children: [
+    { value: 2, children: [{ value: 4 }] },
+    { value: 3 },
+  ],
+};
+
+console.log([...walk(tree)]);   // [1, 2, 4, 3]
+```
+
+#### 2.4 面试常见问法
+
+- **什么是可迭代对象？** 实现了 `[Symbol.iterator]()` 并返回迭代器的对象。数组、字符串、`Map`、`Set`、`arguments`、`NodeList` 都是内置可迭代对象，**普通对象不是**。
+- **`for...of` 和 `for...in` 的区别？** `for...of` 走迭代器协议，遍历**值**；`for...in` 遍历**可枚举属性键**（字符串键，且会沿原型链查找）。
+- **普通对象为什么不能用 `for...of`？** 没有实现 `Symbol.iterator`。可以改用 `Object.entries(obj)` / `Object.values(obj)`，或手动为对象实现 `Symbol.iterator`。
+- **生成器函数和普通函数的区别？** 调用生成器函数不执行函数体，而是返回生成器对象；可通过 `next` / `return` / `throw` 双向通信；支持暂停与恢复，天然适合惰性求值。
+- **`yield` 和 `return` 的区别？** `yield` 可以多次暂停并交出值，生成器仍可继续；`return` 直接结束生成器，其值作为 `{ value, done: true }`。
+- **`next()` 的参数有什么作用？** 作为**上一个 `yield` 表达式**的求值结果；第一次 `next()` 的实参会被丢弃（此时没有"上一个 `yield`"）。
+- **迭代器的 `return()` 什么时候被调用？** `for...of` 提前退出（`break` / `return` / 抛异常）或显式调用时；用于资源清理，在生成器内部表现为执行 `finally` 块。
+- **如何让一个对象支持展开运算符？** 实现 `Symbol.iterator`。展开运算符消费的是可迭代协议，不是迭代器协议。
+
+#### 2.5 避坑指南
+
+| 常见错误 | 现象 | 原因 | 解决方案 |
+|---------|------|------|---------|
+| 普通对象直接用 `for...of` | `TypeError: obj is not iterable` | 普通对象未实现 `Symbol.iterator` | 用 `Object.keys` / `entries` / `values` 转换，或为对象实现 `Symbol.iterator` |
+| 迭代器未实现 `Symbol.iterator` | 迭代器无法被展开运算符消费 | 展开运算符要求参数是**可迭代对象**，而非仅迭代器 | 在迭代器上补 `[Symbol.iterator]() { return this; }` |
+| 首次 `next()` 传参 | 参数"凭空消失" | 第一次 `next` 没有对应的 `yield` 表达式接收 | 首次调用不传参，或改用外部变量初始化 |
+| `done` 之后继续 `next()` | 结果与预期不符 | 规范要求 `done` 后持续返回 `{ value: undefined, done: true }` | 迭代器实现中固定返回该结果 |
+| 提前退出时资源未释放 | 连接、定时器泄漏 | 未实现 `return()` 或生成器内没有 `try/finally` | 用生成器 + `try/finally`，或手动实现 `return()` |
+| 把生成器对象当可复用迭代器 | 第二次遍历结果为空 | 生成器对象是**一次性**的，遍历完即 `done` | 每次遍历重新调用生成器函数获取新对象 |
+
+> 📖 **参考链接**：
+> - [MDN - 迭代协议](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Iteration_protocols)
+> - [MDN - function*](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Statements/function*)
+
+---
+
+### 3. DevTools Memory 内存排查方法论
+
+#### 3.1 核心概念
+
+Chrome DevTools 的 **Memory** 面板提供三种分析工具，配合 **Performance Monitor** 形成完整的内存排查链路：
+
+| 工具 | 特点 | 适用场景 |
+|------|------|---------|
+| **Heap Snapshot**（堆快照） | 记录某一时刻堆中所有对象的完整信息 | 精确定位泄漏对象与引用链 |
+| **Allocation instrumentation on timeline**（分配时间线） | 记录每次内存分配及其调用栈，开销大 | 短时间、需要精确调用栈的排查 |
+| **Allocation sampling**（分配采样） | 按间隔采样，开销小 | 长时间录制，找出"分配大户" |
+
+**关键指标**：
+
+- **Shallow Size**：对象自身占用的内存，不含其引用的对象
+- **Retained Size**：释放该对象后可回收的**总内存**（含其独占引用的所有对象）——判断泄漏影响看这个
+- **Distance**：从 GC 根到该对象的最短引用层级
+- **Detached DOM tree**：节点已从文档树移除，但 JS 仍持有引用，导致整棵子树无法回收
+
+#### 3.2 底层原理：Heap Snapshot 三快照法
+
+**为什么必须拍三次？** 单张快照无法区分"**一次性缓存**"和"**真正的泄漏**"。缓存只在第一次操作时增长，第二次不再增长；泄漏则每次操作都留下无法回收的对象。三快照法用"**两次增量**"过滤掉缓存噪音。
+
+**操作步骤**：
+
+1. 打开页面，完成基础操作后，点击 Memory 面板左上角的**垃圾桶图标**（Collect garbage）强制 GC，拍摄 **Snapshot 1**（基线）
+2. 执行**一次**可疑操作（打开并关闭弹窗 / 路由往返切换一次），再次强制 GC，拍摄 **Snapshot 2**
+3. **重复同样的操作**，再次强制 GC，拍摄 **Snapshot 3**
+4. 在 Snapshot 3 顶部的视图下拉框中选择 **Comparison**，与 Snapshot 2 对比；或直接在 **Summary** 视图查看 `# Delta` / `Size Delta` 列
+5. **判定规则**：只有在两次增量中都**持续增长**的 Constructor 才是泄漏
+6. 选中可疑 Constructor，展开 **Retainers**（引用持有者）面板，**从下往上**追溯引用链直到 GC 根（`Window` / `Document` / 全局变量），找到"是谁在持有它"
+
+```javascript
+// ===== 在 DevTools Console 中执行（需保持 DevTools 打开）=====
+
+// 1. 统计当前存活的 DOM 元素对象数量
+//    反复执行可疑操作后若数量只增不减，即为泄漏
+queryObjects(HTMLElement).length;
+
+// 2. 统计已经脱离文档树的"孤儿节点"数量（detached DOM）
+queryObjects(HTMLElement).filter(el => !document.contains(el)).length;
+```
+
+#### 3.3 Allocation Timeline 与 Detached DOM 识别
+
+**Allocation instrumentation on timeline**：录制期间，**蓝条**表示新分配且仍存活的内存，**灰条**表示已被回收的分配。
+
+- 蓝条持续堆积且不回落 → 存在泄漏
+- 点击蓝条可查看分配时的**函数调用栈**，直接定位到代码行
+- 缺点：记录每次分配，开销大，只适合短时间录制
+
+**Allocation sampling**：按间隔采样，开销小，适合长时间录制；结果按函数维度汇总内存分配量，用于找出"分配大户"（注意：分配多不等于泄漏）。
+
+**Detached DOM 识别方法**：
+
+| 方法 | 操作 | 判断依据 |
+|------|------|---------|
+| Heap Snapshot 搜索 | 在 Summary 视图的过滤框中输入 `Detached` | 出现 `Detached HTMLDivElement` 等条目即为孤儿节点 |
+| Console API | 执行 `queryObjects(HTMLElement).filter(el => !document.contains(el)).length` | 反复操作后数值持续增长 |
+| Performance Monitor | 观察 `DOM Nodes` 计数 | 操作后不回落、持续增长 |
+| Retainers 面板 | 选中 detached 节点后展开引用链 | 定位持有引用的 JS 变量 / Map / 闭包 |
+
+```javascript
+// 用 WeakMap 存储 DOM 关联数据：键是弱引用，DOM 被回收时数据自动释放
+const dataCache = new WeakMap();
+
+function bindData(element, data) {
+  dataCache.set(element, data);   // 不会阻止 element 被 GC 回收
+}
+
+// 反例：用 Map 或直接挂在元素属性上，都会形成强引用
+const badCache = new Map();       // 必须手动 delete 才能释放，否则一直持有
+
+// 反例：缓存 DOM 引用后未清理，造成 detached DOM
+const refs = {
+  button: document.getElementById('submit'),
+};
+document.body.removeChild(document.getElementById('submit'));   // DOM 已移除
+// 但 refs.button 仍持有引用 → 该节点及整棵子树无法回收
+refs.button = null;               // 必须手动解除引用
+```
+
+#### 3.4 内存泄漏定位流程（闭环）
+
+| 步骤 | 操作 | 产出 |
+|:---:|------|------|
+| 1. 观测 | 打开 **Performance Monitor**，观察 JS heap size、DOM Nodes、JS event listeners 三条曲线 | 确认是否存在持续增长 |
+| 2. 分类 | 按增长的指标判断泄漏类型 | DOM Nodes → detached DOM / 未移除节点；Event Listeners → 监听未移除；JS heap → 闭包 / 缓存 / 定时器 / 大对象 |
+| 3. 复现 | 确定最小复现操作（打开-关闭弹窗、路由切换、列表增删） | 可稳定复现的操作序列 |
+| 4. 拍摄 | 用**三快照法**拍摄并对比 | 锁定 Delta 持续为正的 Constructor |
+| 5. 溯源 | 查看 **Retainers** 链，从下往上追到 GC 根 | 定位持有引用的根路径（全局变量 / 闭包 / 监听 / 定时器 / Map） |
+| 6. 修复 | 移除监听、清理定时器、置 `null`、改用 `WeakMap`、在卸载钩子中清理 | 代码修复 |
+| 7. 验证 | 重复步骤 1-2，确认曲线不再持续上升 | 泄漏已消除 |
+
+#### 3.5 面试常见问法
+
+- **怎么排查内存泄漏？** 先用 Performance Monitor 观察曲线判断泄漏类型（DOM / 监听 / JS heap），再用 Memory 面板的三快照法定位对象，通过 Retainers 链找到持有引用的根路径，修复后复测验证。
+- **为什么要拍三次快照？** 单次快照无法区分"一次性缓存"和"真泄漏"；只有两次增量都持续增长才是泄漏。
+- **什么是 Retained Size？为什么比 Shallow Size 更重要？** Retained Size 是释放该对象后能回收的总内存（含其独占引用的对象），直接反映泄漏的实际影响；Shallow Size 只反映对象自身。
+- **什么是 Detached DOM？** 节点已从文档树移除，但 JS 仍持有引用，导致整棵子树无法回收。常见于把 DOM 缓存到变量或 `Map` 后未清理。
+- **Allocation Timeline 和 Allocation Sampling 怎么选？** 需要精确调用栈、短时间排查用 Timeline；长时间、低开销监控用 Sampling。
+- **为什么 `console.log` 会导致"假泄漏"？** DevTools 的 console 会保留打印对象的强引用，使对象无法回收；排查前应清空 console。
+- **修复后怎么验证？** 重复同样操作并观察 Performance Monitor 曲线，或再拍快照对比 Delta 是否归零。
+
+#### 3.6 避坑指南
+
+| 常见错误 | 现象 | 原因 | 解决方案 |
+|---------|------|------|---------|
+| 只拍一张快照就下结论 | 把正常缓存误判为泄漏 | 单张快照无法区分缓存与泄漏 | 用三快照法，比较两次增量 |
+| 快照前未强制 GC | 快照中全是待回收的临时对象，噪音极大 | 未触发 GC | 每次拍摄前点击垃圾桶图标（Collect garbage） |
+| 排查时保留 `console.log` | 对象始终被 DevTools 持有，看起来像泄漏 | console 持有对象的强引用 | 排查前清空 console，生产环境移除日志 |
+| 只看 Shallow Size | 找不到真正的泄漏点 | 泄漏影响由 Retained Size 体现 | 按 Retained Size 排序，结合 Retainers 链分析 |
+| 只盯 JS heap 指标 | 漏掉 detached DOM 问题 | detached DOM 的内存占用主要体现在 DOM 计数上 | 同时观察 JS heap、DOM Nodes、Event Listeners 三条曲线 |
+| 用 `Map` 缓存 DOM 关联数据 | DOM 移除后数据无法释放 | `Map` 的键是强引用 | 改用 `WeakMap` / `WeakSet` |
+| 在热路径上频繁创建大对象 | GC 频繁触发，页面卡顿 | 短生命周期对象大量产生，新生代压力大 | 复用对象、避免循环内创建闭包与临时数组 |
+
+> 📖 **参考链接**：
+> - [Chrome DevTools - 解决内存问题](https://developer.chrome.com/docs/devtools/memory-problems)
+> - [MDN - WeakMap](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/WeakMap)
 4. **并发友好**：无共享状态、无副作用，天然适合并行执行，无需担心竞态条件。

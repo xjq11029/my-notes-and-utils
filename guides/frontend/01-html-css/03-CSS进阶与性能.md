@@ -263,6 +263,8 @@ html {
 
 ## 三、回流（Reflow）与重绘（Repaint）
 
+> **本主题权威章节**：[完整讲解见 04-browser/01-浏览器渲染与V8原理.md](../04-browser/01-浏览器渲染与V8原理.md)；此处从 CSS 渲染视角展开要点。
+
 ### 3.1 概念与区别
 
 ```
@@ -2537,6 +2539,515 @@ body {
 
 ---
 
+## 补充：CSS 现代布局与工程化实践
+
+> 本节补齐 CSS 在工程实践中高频出现、但前文未覆盖的五块内容：逻辑属性（国际化）、流体排版（无媒体查询的响应式）、无障碍动效、滚动条定制、样式方案选型。
+
+### 1. CSS 逻辑属性与 RTL 国际化
+
+#### 1.1 核心概念
+
+**CSS 逻辑属性**（Logical Properties）是用"**书写方向**"而非"物理方向"来描述位置的属性。传统属性用 `left` / `right` / `top` / `bottom` 描述物理方位，逻辑属性改用两条轴来描述：
+
+- **inline 轴**：文本流的方向（水平书写模式下即水平方向，与文字行方向一致）
+- **block 轴**：文本块堆叠的方向（水平书写模式下即垂直方向）
+
+| 物理属性 | 逻辑属性 | 说明 |
+|---------|---------|------|
+| `margin-left` / `margin-right` | `margin-inline-start` / `margin-inline-end` | 行内轴的起止两端 |
+| `margin-top` / `margin-bottom` | `margin-block-start` / `margin-block-end` | 块轴的起止两端 |
+| `padding-*` | `padding-inline-*` / `padding-block-*` | 同上规则 |
+| `border-left` | `border-inline-start` | 边框也可逻辑化 |
+| `width` / `height` | `inline-size` / `block-size` | 尺寸的逻辑写法 |
+| `top` / `left` / `right` / `bottom` | `inset-block-start` / `inset-inline-start` / `inset-inline-end` / `inset-block-end` | `inset` 是四者的物理简写，`inset-inline` / `inset-block` 是逻辑简写 |
+| `text-align: left/right` | `text-align: start/end` | 文本对齐同样支持逻辑值 |
+| `border-top-left-radius` | `border-start-start-radius` | 圆角也提供逻辑写法 |
+
+#### 1.2 底层原理
+
+逻辑属性**不是新属性**，而是**映射到物理属性**的语法糖：浏览器在样式解析阶段根据当前元素的 `writing-mode` 与 `direction`，把 `margin-inline-start` 解析成 `margin-left` 或 `margin-right`。
+
+因此有两个关键结论：
+
+1. **逻辑属性与对应的物理属性是同一个属性**。同一声明块里先写物理、后写逻辑（或反之），后写的会覆盖前者，**不会叠加**。
+2. **方向切换是自动的**。当 `direction: rtl`（阿拉伯语、希伯来语）或 `writing-mode: vertical-rl`（竖排）时，inline / block 轴的含义随书写模式改变，布局自动镜像，无需维护两套 CSS。
+
+```css
+/* ===== 反例：物理属性写法，切换 RTL 后布局错乱 ===== */
+.card {
+  margin-left: 16px;          /* 阿拉伯语环境下仍在左侧，应该镜像到右侧 */
+  padding-right: 12px;
+  border-left: 4px solid #4f46e5;  /* 装饰性竖线跑到了错误的一侧 */
+  text-align: left;
+}
+
+/* ===== 正例：逻辑属性写法，自动适配 LTR / RTL ===== */
+.card {
+  margin-inline-start: 16px;             /* LTR 下为左，RTL 下自动为右 */
+  padding-inline-end: 12px;
+  border-inline-start: 4px solid #4f46e5;
+  text-align: start;                     /* 自动跟随书写方向 */
+}
+
+/* 简写：margin-inline: <start> <end> */
+.list-item {
+  margin-inline: 16px 24px;   /* start = 16px，end = 24px */
+  padding-block: 8px;         /* block-start 与 block-end 同为 8px */
+}
+
+/* 竖排书写模式：inline / block 两轴自动互换，同一份 CSS 直接可用 */
+.vertical-text {
+  writing-mode: vertical-rl;
+  inline-size: 200px;         /* 竖排下这是"高度"方向的尺寸 */
+  block-size: 60px;
+}
+```
+
+```html
+<!-- 通过 dir 属性切换书写方向，逻辑属性无需任何额外 CSS 即可镜像 -->
+<html dir="rtl" lang="ar">
+```
+
+> **核心价值**：逻辑属性让"一套 CSS 支持多语言书写方向"成为可能。对于出海项目，用逻辑属性写布局的成本与物理属性完全相同，却省掉了整套 RTL 覆盖样式（传统方案是引入 `rtl.css` 或使用 `[dir="rtl"] .card { margin-right: 16px; margin-left: 0 }` 全量镜像）。
+
+**面试常见问法**：
+
+- **逻辑属性和物理属性的关系是什么？** 逻辑属性是语法糖，运行时映射到物理属性，两者是同一个属性，因此会相互覆盖而不是叠加。
+- **`margin-inline: 10px 20px` 展开后是什么？** `margin-inline-start: 10px; margin-inline-end: 20px`。
+- **哪些属性无法逻辑化？** `transform: translateX()`、`background-position: left`、`float: left` 这类仍带物理方向语义的值，需要手动处理；`float` 已新增 `inline-start` / `inline-end` 逻辑值。
+
+**易错点**：
+
+| 常见错误 | 现象 | 原因 | 解决方案 |
+|---------|------|------|---------|
+| 物理属性与逻辑属性混用 | 某个方向的样式"莫名其妙"失效 | 两者映射到同一物理属性，后声明覆盖前者 | 同一组件内统一使用一套写法 |
+| 用 `translateX` 做 RTL 适配 | 滑动方向在 RTL 下反向 | `translateX` 是物理方向，不随 `direction` 变化 | 改用 `translate` 或根据 `direction` 取反 |
+| 以为逻辑属性能解决所有国际化问题 | 数字、图标、时间格式仍不正确 | 逻辑属性只管布局方向，不管内容本地化 | 布局用逻辑属性，内容用 `Intl` API 处理 |
+| 忽略浏览器兼容基线 | 旧浏览器整块样式失效 | 逻辑属性需要 Chrome 87+ / Firefox 66+ / Safari 14.1+ | 作为渐进增强使用，或由构建工具自动降级 |
+
+> 📖 **参考链接**：
+> - [MDN - CSS 逻辑属性与值](https://developer.mozilla.org/zh-CN/docs/Web/CSS/CSS_logical_properties_and_values)
+> - [MDN - writing-mode](https://developer.mozilla.org/zh-CN/docs/Web/CSS/writing-mode)
+
+---
+
+### 2. 流体排版：`clamp()` / `min()` / `max()`
+
+#### 2.1 核心概念
+
+CSS 比较函数（Comparison Functions）让尺寸可以随视口**连续变化**，从而用一条声明替代一组媒体查询：
+
+| 函数 | 语义 | 等价表达式 |
+|------|------|-----------|
+| `min(a, b, ...)` | 取**最小**值 | — |
+| `max(a, b, ...)` | 取**最大**值 | — |
+| `clamp(MIN, VAL, MAX)` | 把 `VAL` 限制在 `[MIN, MAX]` 区间内 | `max(MIN, min(VAL, MAX))` |
+
+#### 2.2 底层原理
+
+`clamp()` 的规范定义就是 `max(MIN, min(VAL, MAX))`：先取 `VAL` 与 `MAX` 的较小值（封顶），再与 `MIN` 取较大值（保底）。这带来一个重要推论：**当 `MIN > MAX` 时，结果是 `MIN`**（因为 `max` 在最后一步），所以书写时务必保证 `MIN <= MAX`。
+
+另一个常被忽略的点：**在 `min()` / `max()` / `clamp()` 内部可以直接写数学表达式，不需要再套一层 `calc()`**。
+
+```css
+/* ===== 1. 响应式字号：小屏 1rem，大屏最多 1.75rem，中间连续过渡 ===== */
+.title {
+  /* 推荐：rem + vw 混合，兼顾无障碍缩放与视口自适应 */
+  font-size: clamp(1rem, 0.5rem + 1.5vw, 1.75rem);
+}
+
+/* 不推荐：纯 vw 字号在用户调整浏览器默认字号时不会放大，损害可访问性 */
+.title-bad {
+  font-size: clamp(16px, 3vw, 28px);
+}
+
+/* ===== 2. 内部可直接写表达式，无需 calc() ===== */
+.container {
+  /* 等价于 clamp(16px, calc(4vw + 8px), 48px) */
+  padding-inline: clamp(16px, 4vw + 8px, 48px);
+  /* 等价于 max(320px, min(90vw, 1200px)) */
+  inline-size: min(90vw, 1200px);
+}
+
+/* ===== 3. min() / max() 的典型用法 ===== */
+.sidebar {
+  inline-size: min(320px, 30%);      /* 侧栏不超过 320px，也不超过父容器的 30% */
+}
+
+.hero {
+  min-block-size: max(400px, 50vh);  /* 首屏至少 400px 高 */
+}
+
+/* ===== 4. 与 Grid 结合：无媒体查询的响应式栅格 ===== */
+.auto-grid {
+  display: grid;
+  /* 列宽在 240px 到 1fr 之间自适应，自动决定每行放几列 */
+  grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
+  gap: clamp(12px, 2vw, 24px);
+}
+```
+
+> **核心价值**：`clamp()` 用一行声明替代了传统的 `@media` 断点阶梯（例如 `font-size: 16px` → `@media (min-width: 768px) { font-size: 20px }` → `@media (min-width: 1200px) { font-size: 28px }`）。它不仅代码更短，而且尺寸在断点之间是**连续变化**的，不会出现"跨过断点后字号突跳"的观感问题。
+
+**面试常见问法**：
+
+- **`clamp()` 的三个参数分别是什么？** 最小值、首选值（preferred）、最大值；等价于 `max(MIN, min(VAL, MAX))`。
+- **`clamp()` 和媒体查询怎么选？** 尺寸需要随视口连续变化时用 `clamp()`；需要在特定断点改变**布局结构**（如三栏变单栏）时仍要用媒体查询。两者互补。
+- **为什么响应式字号推荐 `rem + vw` 混合？** 纯 `vw` 字号不随用户调整浏览器默认字号而变化，违反 WCAG 的可缩放要求；混入 `rem` 后，用户放大默认字号时最小值会同步放大。
+- **`clamp(2rem, 1rem, 3rem)` 的结果是多少？** `2rem`。因为 `max(MIN, ...)` 在最后一步生效，`MIN > MAX` 时结果恒为 `MIN`。
+
+**易错点**：
+
+| 常见错误 | 现象 | 原因 | 解决方案 |
+|---------|------|------|---------|
+| `MIN > MAX` | 尺寸恒定不变 | `clamp()` 等价于 `max(MIN, min(VAL, MAX))`，`MIN` 最终胜出 | 检查参数顺序，保证 `MIN <= MAX` |
+| 纯 `vw` 做字号 | 用户放大浏览器字号无效 | `vw` 与视口绑定，不响应默认字号变化 | 首选值用 `rem + vw` 混合表达式 |
+| 在 `min()` 内又套 `calc()` | 代码冗余但能运行 | 未了解比较函数内部已支持数学表达式 | 直接写 `min(90vw, 1200px)` 或 `clamp(1rem, 4vw + 8px, 3rem)` |
+| 用 `clamp()` 替代所有断点 | 移动端布局结构未变，只是元素变小 | `clamp()` 只控制尺寸，不改变布局结构 | 布局结构变化仍用媒体查询或 Container Queries |
+
+> 📖 **参考链接**：
+> - [MDN - clamp()](https://developer.mozilla.org/zh-CN/docs/Web/CSS/clamp)
+> - [MDN - min()](https://developer.mozilla.org/zh-CN/docs/Web/CSS/min)
+
+---
+
+### 3. `prefers-reduced-motion` 无障碍动效适配
+
+#### 3.1 核心概念
+
+`prefers-reduced-motion` 是一个 CSS 媒体特性，用于读取用户在操作系统层面的"减弱动态效果"偏好（macOS：辅助功能 → 显示 → 减少动态效果；Windows：设置 → 辅助功能 → 视觉效果 → 动画效果；iOS / Android 同样有对应开关）。
+
+| 取值 | 含义 |
+|------|------|
+| `no-preference` | 用户未表达偏好（默认值，可省略不写） |
+| `reduce` | 用户希望减少非必要的动效 |
+
+#### 3.2 底层原理与为什么需要它
+
+大幅度的位移动画、视差滚动、缩放、旋转会刺激**前庭系统**，可能引发前庭功能障碍用户的眩晕、恶心、头痛。WCAG 2.1 的 **2.3.3 Animation from Interactions**（AAA 级）明确要求：由交互触发的动效应当可以被禁用，除非该动效对功能至关重要。
+
+因此正确的做法不是"禁用所有动效"，而是**按风险分级削弱**：
+
+- **高风险**（应当移除）：视差滚动、大幅位移、缩放、旋转、自动播放的循环动画
+- **低风险**（可以保留）：透明度淡入淡出、颜色过渡、边框颜色变化
+
+```css
+/* ===== 方案 1：全局"削弱"兜底（安全网，放在样式表最后）===== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    /* 保留极短时长而非 0，确保 transitionend / animationend 事件仍会触发 */
+    animation-duration: 0.01ms !important;
+    /* 阻止 infinite 循环动画，否则动画仍会高频重放 */
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    /* 关闭平滑滚动，滚动跳跃对前庭敏感用户更友好 */
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ===== 方案 2（推荐）：定向削弱，保留低风险动效 ===== */
+.hero-banner {
+  transition: transform 0.6s ease, opacity 0.6s ease;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-banner {
+    /* 去掉位移与缩放，只保留淡入——既照顾无障碍又保留状态反馈 */
+    transform: none !important;
+    transition: opacity 0.3s ease;
+  }
+}
+
+/* ===== 方案 3：反向写法，仅在用户未表达偏好时才启用动效 ===== */
+@media (prefers-reduced-motion: no-preference) {
+  .card {
+    transition: transform 0.3s ease;
+  }
+  .card:hover {
+    transform: translateY(-4px);
+  }
+}
+```
+
+```javascript
+// JavaScript 侧读取与监听：适用于 Canvas / WebGL / 第三方动画库
+const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+// 1. 初始化：根据偏好决定动画参数
+function setupAnimation(reduced) {
+  const duration = reduced ? 0 : 600;
+  const easing = reduced ? 'linear' : 'cubic-bezier(0.4, 0, 0.2, 1)';
+  return { duration, easing };
+}
+
+let config = setupAnimation(motionQuery.matches);
+
+// 2. 监听系统设置变化，用户中途切换开关时实时响应
+motionQuery.addEventListener('change', (event) => {
+  config = setupAnimation(event.matches);
+});
+```
+
+> **核心价值**：`prefers-reduced-motion` 是"渐进增强"思路在无障碍领域的体现——默认提供完整动效体验，仅在用户明确表达偏好时降级。它与 `prefers-color-scheme`、`prefers-contrast` 同属"用户偏好媒体特性"，是国际化产品的合规基线。
+
+**面试常见问法**：
+
+- **`prefers-reduced-motion` 解决什么问题？** 为前庭功能障碍等对动效敏感的用户提供减弱动效的能力，对应 WCAG 2.3.3。
+- **为什么用 `0.01ms` 而不是 `0`？** `transition-duration: 0s` 时浏览器可能不派发 `transitionend` 事件，设为 `0.01ms` 可保留事件语义，同时视觉上等同于瞬时完成。
+- **为什么要重置 `animation-iteration-count`？** 否则 `animation: spin 1s infinite` 这类无限动画在时长被压到 `0.01ms` 后仍会以极高频率重放，反而更刺眼，同时浪费 CPU。
+- **在 React 中怎么用？** 用 `window.matchMedia('(prefers-reduced-motion: reduce)')` 封装成 `useReducedMotion` Hook，第三方库 framer-motion 已内置该支持。
+
+**易错点**：
+
+| 常见错误 | 现象 | 原因 | 解决方案 |
+|---------|------|------|---------|
+| 全局把动效时长设为 0 | 依赖 `transitionend` 的逻辑失效 | `0s` 不触发过渡事件 | 使用 `0.01ms` 而非 `0s` |
+| 只压时长未压循环次数 | 无限动画高频重放 | `animation-iteration-count: infinite` 未被重置 | 同时设置 `animation-iteration-count: 1` |
+| 完全禁用所有动效 | 用户失去状态反馈（如加载中、成功提示） | 把"减弱"理解为"禁用" | 分级处理：移除位移/缩放/视差，保留透明度与颜色过渡 |
+| 忘记 `scroll-behavior` | 锚点跳转仍是平滑滚动，长距离滚动引起不适 | 平滑滚动也属于动效 | 在 `reduce` 分支中重置为 `auto` |
+
+> 📖 **参考链接**：
+> - [MDN - prefers-reduced-motion](https://developer.mozilla.org/zh-CN/docs/Web/CSS/@media/prefers-reduced-motion)
+> - [WCAG 2.3.3 Animation from Interactions](https://www.w3.org/WAI/WCAG21/Understanding/animation-from-interactions.html)
+
+---
+
+### 4. 滚动条定制与兼容写法
+
+#### 4.1 两套 API 的由来
+
+滚动条样式长期存在**两套互不兼容的 API**，这是历史遗留问题：
+
+| 方案 | 标准属性 / 伪元素 | 支持情况 | 能力 |
+|------|-----------------|---------|------|
+| 标准方案 | `scrollbar-width`、`scrollbar-color`、`scrollbar-gutter` | Firefox 64+、Chrome 121+、Safari 18.2+（`scrollbar-width` / `scrollbar-color`） | 只能设置宽度档位与两个颜色，**能力有限但标准统一** |
+| WebKit 方案 | `::-webkit-scrollbar` 及系列伪元素 | Chrome、Safari、Edge（Firefox 不支持） | 可精细控制圆角、悬停色、轨道、按钮，**能力强但非标准** |
+
+```css
+/* ===== 方案 1：标准属性 ===== */
+.scroll-area {
+  scrollbar-width: thin;              /* auto（默认） | thin | none */
+  scrollbar-color: #94a3b8 #f1f5f9;   /* 滑块颜色 轨道颜色 */
+  /* 始终预留滚动条槽位，避免内容出现滚动条时发生布局跳动（CLS） */
+  scrollbar-gutter: stable;
+}
+
+/* ===== 方案 2：WebKit 伪元素 ===== */
+.scroll-area::-webkit-scrollbar {
+  width: 8px;          /* 纵向滚动条宽度 */
+  height: 8px;         /* 横向滚动条高度 */
+}
+
+.scroll-area::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+.scroll-area::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 4px;
+}
+
+.scroll-area::-webkit-scrollbar-thumb:hover {
+  background: #64748b;   /* 悬停反馈：标准属性无法实现 */
+}
+
+.scroll-area::-webkit-scrollbar-corner {
+  background: transparent;  /* 横向与纵向滚动条交汇的角落 */
+}
+```
+
+#### 4.2 兼容写法：不要两套同时生效
+
+**关键陷阱**：在 Chrome 中一旦声明了 `scrollbar-width` 或 `scrollbar-color`，`::-webkit-scrollbar` 系列的样式就会被忽略。因此两套写法**不能无脑堆叠**，需要显式分流：
+
+```css
+/* ===== 推荐做法：用 @supports selector() 分流 ===== */
+/* Firefox 不支持 ::-webkit-scrollbar，因此该分支只在 Firefox 生效 */
+@supports not selector(::-webkit-scrollbar) {
+  .scroll-area {
+    scrollbar-width: thin;
+    scrollbar-color: #94a3b8 #f1f5f9;
+  }
+}
+
+/* Chrome / Safari / Edge 走 WebKit 伪元素，获得圆角与悬停态 */
+.scroll-area::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.scroll-area::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 4px;
+}
+```
+
+**无障碍提醒**：`scrollbar-width: none` 或 `::-webkit-scrollbar { display: none }` 会完全隐藏滚动条。滚动条是"内容可滚动"的重要视觉提示，隐藏后用户可能根本不知道页面还有内容，因此：
+
+- 只在自定义滚动容器（如带箭头的横向卡片列表、代码块）上隐藏，**不要**在页面主滚动区域隐藏；
+- 隐藏后应通过渐隐遮罩、箭头按钮或 `scroll-snap` 提供替代的滚动提示；
+- 必须保证键盘（`Tab` 聚焦后方向键滚动）与触摸手势仍然可用。
+
+**面试常见问法**：
+
+- **怎么自定义滚动条？** 两套 API：标准属性 `scrollbar-width` / `scrollbar-color`（能力有限、跨浏览器），以及 WebKit 伪元素 `::-webkit-scrollbar` 系列（能力强、Firefox 不支持）。
+- **为什么两套写法不能同时写？** Chrome 中标准属性一旦声明就会覆盖 WebKit 伪元素样式，需要用 `@supports selector(::-webkit-scrollbar)` 分流。
+- **`scrollbar-gutter: stable` 有什么用？** 始终预留滚动条占位，避免内容从"无滚动条"变为"有滚动条"时宽度突变导致的布局跳动（CLS 指标）。
+- **隐藏滚动条有什么风险？** 失去"可滚动"的视觉提示，降低可发现性；必须提供替代提示并保证键盘可操作。
+
+**易错点**：
+
+| 常见错误 | 现象 | 原因 | 解决方案 |
+|---------|------|------|---------|
+| 同时写标准属性与 WebKit 伪元素 | 精细样式（圆角、悬停色）不生效 | Chrome 中标准属性优先，WebKit 伪元素被忽略 | 用 `@supports not selector(::-webkit-scrollbar)` 分流 |
+| 用 `overflow: overlay` 隐藏占位 | 样式不生效 | `overflow: overlay` 已被废弃 | 改用 `scrollbar-gutter: stable` |
+| 在页面主滚动区隐藏滚动条 | 用户不知道页面可滚动 | 移除了唯一的滚动提示 | 仅在自定义滚动容器中隐藏，并提供替代提示 |
+| 在 `<body>` 上设置 `::-webkit-scrollbar` | 某些场景不生效 | 滚动容器可能是 `<html>` 或外层元素 | 明确滚动容器后再设置，必要时同时作用于 `html` 与 `body` |
+
+> 📖 **参考链接**：
+> - [MDN - scrollbar-width](https://developer.mozilla.org/zh-CN/docs/Web/CSS/scrollbar-width)
+> - [MDN - ::-webkit-scrollbar](https://developer.mozilla.org/en-US/docs/Web/CSS/::-webkit-scrollbar)
+
+---
+
+### 5. CSS 方案选型：CSS Modules / CSS-in-JS / 原子化 / 零运行时
+
+#### 5.1 四类方案的定位
+
+| 方案 | 代表工具 | 样式何时产生 | 运行时开销 | 动态样式能力 | 类型安全 | SSR / RSC 兼容 |
+|------|---------|------------|:---:|:---:|:---:|:---:|
+| CSS Modules | 构建工具内置（Vite / webpack） | 构建时生成唯一类名 | 无 | 弱（需借助 CSS 变量或 `data-*` 属性） | 一般（需额外 `.d.ts` 声明） | 天然兼容 |
+| CSS-in-JS（运行时） | styled-components、emotion | 运行时序列化并注入 `<style>` | **有**（每次渲染计算样式、插入样式表） | 强（可直接读取 props 与 theme） | 强 | RSC 不兼容；SSR 需提取关键 CSS |
+| 原子化（utility-first） | Tailwind CSS、UnoCSS | 构建时扫描源码按需生成 | 无 | 中（依赖条件类名拼接） | 弱（类名字符串） | 天然兼容 |
+| 零运行时（编译期） | vanilla-extract、Linaria、StyleX | 构建时生成静态 `.css` 文件 | 无 | 中（构建期生成多个类名 + CSS 变量） | 强（TS 类型推导） | 天然兼容 |
+
+#### 5.2 各类方案的核心机制
+
+**CSS Modules**：构建工具把 `.module.css` 中的类名编译成带哈希的唯一类名（如 `.title` → `._title_1a2b3`），从而实现组件级作用域隔离；`:global()` 用于逃出作用域；`composes` 用于样式复用。
+
+```css
+/* card.module.css */
+.card {
+  padding: 16px;
+  border-radius: 8px;
+}
+.title {
+  composes: card;          /* 复用 .card 的样式 */
+  font-weight: 600;
+}
+/* :global 显式声明全局样式 */
+:global(.no-scroll) {
+  overflow: hidden;
+}
+```
+
+```jsx
+import styles from './card.module.css';
+
+// 动态样式：类名切换（推荐）或 CSS 变量（更灵活）
+export function Card({ active, accent }) {
+  return (
+    <div
+      className={`${styles.card} ${active ? styles.active : ''}`}
+      style={{ '--accent': accent }}
+    >
+      <h3 className={styles.title}>标题</h3>
+    </div>
+  );
+}
+```
+
+**CSS-in-JS（运行时）**：样式写在 JS 中，通过 `styled` 的标签模板语法或 `css` 函数返回组件 / 类名，运行时把样式序列化后插入 `<style>` 标签。优势是样式可以直接读取 props 与 theme；代价是每次渲染都要做样式序列化与哈希计算，并维护一张运行时样式表。
+
+```jsx
+import styled from 'styled-components';
+
+const Button = styled.button`
+  padding: ${({ size }) => (size === 'large' ? '12px 24px' : '8px 16px')};
+  background: ${({ $primary }) => ($primary ? '#4f46e5' : '#e5e7eb')};
+  color: ${({ $primary }) => ($primary ? '#fff' : '#111')};
+  border-radius: 6px;
+`;
+
+// emotion 提供 babel 插件在编译期做静态提取，可显著降低运行时开销
+```
+
+**原子化（Tailwind）**：构建时扫描源码中的类名，只为实际用到的原子类生成 CSS，产物极小且天然去重；设计令牌通过 `tailwind.config.js` 的 `theme` 统一约束。
+
+```jsx
+// 类名即样式；动态值需要通过完整类名映射，不能拼接字符串
+const sizes = {
+  sm: 'px-3 py-1.5 text-sm',
+  lg: 'px-6 py-3 text-base',
+};
+
+export function Button({ size = 'sm', children }) {
+  return (
+    <button className={`rounded-md font-medium bg-indigo-600 text-white ${sizes[size]}`}>
+      {children}
+    </button>
+  );
+}
+```
+
+**零运行时（vanilla-extract）**：用 TypeScript 写样式，构建期编译成静态 `.css` 文件，因此既保留了类型安全与组合能力，又没有运行时开销。
+
+```ts
+// button.css.ts
+import { style, styleVariants } from '@vanilla-extract/css';
+
+export const base = style({
+  borderRadius: 6,
+  fontWeight: 500,
+});
+
+// 变体在构建期展开为多个静态类名
+export const tone = styleVariants({
+  primary: [base, { background: '#4f46e5', color: '#fff' }],
+  neutral: [base, { background: '#e5e7eb', color: '#111' }],
+});
+```
+
+#### 5.3 选型依据
+
+选型时按以下优先级依次判断：
+
+1. **是否需要在运行时根据任意 props 计算样式？** 需要且逻辑复杂 → 运行时 CSS-in-JS；只需要"切换预设变体" → 零运行时方案 + CSS 变量即可，不必付出运行时代价。
+2. **是否有 SSR / React Server Components？** 有 → 优先零运行时（CSS Modules / Tailwind / vanilla-extract）。运行时 CSS-in-JS 依赖 `useInsertionEffect`、Context 等客户端能力，在 RSC 中不可用。
+3. **是否追求极致性能与包体积？** 追求 → 零运行时。运行时方案会把样式逻辑打进 JS 包，且每次渲染都有额外计算。
+4. **是否需要强设计系统约束？** 需要 → Tailwind（`theme` 即设计令牌）或 vanilla-extract（类型安全的令牌）。
+5. **团队熟悉度与迁移成本？** 老项目增量改造 → CSS Modules 或 Tailwind 都能按文件粒度渐进接入；全新项目且团队无强偏好 → Tailwind + CSS Modules 组合是当前最主流的稳妥选择。
+6. **是否与既有 CSS 生态（BEM、第三方库覆盖）协作？** 需要覆盖第三方组件库样式 → 保留一层全局 CSS + `@layer` 管理层级。
+
+> **趋势提示**：随着 React Server Components 的普及，**运行时 CSS-in-JS 正在退潮**，社区主流转向"零运行时"路线（Tailwind、CSS Modules、vanilla-extract、Linaria、StyleX）；styled-components 已宣布进入维护模式，新项目评估时建议优先考虑零运行时方案。
+
+**面试常见问法**：
+
+- **CSS Modules 和 CSS-in-JS 的本质区别？** 前者在构建期生成唯一类名，无运行时开销但动态能力弱；后者在运行时生成样式，动态能力强但有运行时开销且与 RSC 不兼容。
+- **Tailwind 的 CSS 体积会不会很大？** 不会。它按源码扫描结果生成 CSS，未使用的类不会出现在产物中，同时因为原子类高度复用，总体积通常小于手写 CSS。
+- **Tailwind 为什么不能拼接类名？** 构建时是**静态字符串扫描**，`'text-' + size` 拼出的类名无法被扫描到，因此不会生成对应 CSS。需要完整类名映射表或 `safelist`。
+- **什么是零运行时 CSS？** 在构建期把样式编译成静态 CSS 文件（vanilla-extract / Linaria / StyleX），浏览器只需解析 CSS，运行时没有样式计算与注入成本。
+- **你会怎么为一个新项目选样式方案？** 先看是否有 SSR / RSC 与动态样式需求，再看性能要求与团队熟悉度，最后结合设计系统约束做决定；多数场景下 Tailwind + CSS Modules 组合已足够。
+
+**易错点**：
+
+| 常见错误 | 现象 | 原因 | 解决方案 |
+|---------|------|------|---------|
+| 在 RSC 中使用运行时 CSS-in-JS | 构建报错或样式丢失 | RSC 不支持 `useInsertionEffect`、Context 等客户端能力 | 改用 CSS Modules / Tailwind / vanilla-extract |
+| 在 Tailwind 中拼接类名 | 样式不生效 | 构建期静态扫描无法识别拼接结果 | 用完整类名映射表或 `safelist` 声明 |
+| 运行时 CSS-in-JS 未做 SSR 提取 | 首屏闪烁（FOUC） | 样式在客户端 JS 执行后才注入 | 配置关键 CSS 提取（如 emotion 的 `extractCritical`） |
+| 混用多套方案且无边界 | 样式覆盖关系混乱、体积膨胀 | 缺少统一约束 | 明确分工：原子类写布局与常规样式，CSS Modules 写复杂组件，全局 CSS 只保留重置与令牌 |
+
+> 📖 **参考链接**：
+> - [CSS Modules 官方文档](https://github.com/css-modules/css-modules)
+> - [Tailwind CSS 官方文档](https://tailwindcss.com/docs/utility-first)
+> - [vanilla-extract 官方文档](https://vanilla-extract.style/)
+
+---
+
 ## 本章学习自检
 
 完成本章学习后，应该能够：
@@ -2572,6 +3083,14 @@ body {
 - [ ] 使用 `@property` 定义自定义属性类型，实现自定义属性动画
 - [ ] 理解 View Transitions API 的基本用法（SPA 和 MPA）
 - [ ] 了解 Popover API 和 Anchor Positioning 的基本用法和核心价值
+- [ ] 使用 CSS 逻辑属性（`margin-inline` / `padding-block` / `inset`）编写可自动适配 RTL 的布局
+- [ ] 用 `clamp()` 实现无需媒体查询的流体排版，并说明为什么推荐 `rem + vw` 混合
+- [ ] 说出 `clamp()` 等价于 `max(MIN, min(VAL, MAX))` 带来的两个书写注意事项
+- [ ] 使用 `prefers-reduced-motion` 实现无障碍动效降级，并解释为什么用 `0.01ms` 而非 `0s`
+- [ ] 区分滚动条定制的标准属性与 WebKit 伪元素两套 API，并写出 `@supports` 分流写法
+- [ ] 说出隐藏滚动条的可访问性风险及替代方案
+- [ ] 对比 CSS Modules / CSS-in-JS / 原子化 / 零运行时四类方案，并给出选型依据
+- [ ] 解释为什么运行时 CSS-in-JS 与 React Server Components 不兼容
 
 ---
 

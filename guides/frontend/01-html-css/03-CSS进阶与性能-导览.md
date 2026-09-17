@@ -56,7 +56,7 @@
 | 能做什么 | 统一管理主题色、间距单位、圆角大小等全局样式；实现主题切换（明暗模式）；支持 JavaScript 运行时动态修改变量值。 |
 | 怎么用 | `:root { --primary-color: #4A90D9; }`，`.button { background: var(--primary-color); }`，`document.documentElement.style.setProperty('--primary-color', newColor)` |
 | 原理和工作流程 | CSS 变量具有继承性，子元素可以覆盖父变量值；值在计算时被替换，浏览器在样式计算阶段解析变量。可以配合 `calc()` 进行动态计算，实现灵活的尺寸计算。 |
-| 缺点 | IE 浏览器完全不支持；旧版本浏览器需要降级处理；调试工具支持不如普通 CSS 属性完善。 |
+| 缺点 | IE 浏览器完全不支持；旧版本浏览器需要降级处理；调试工具支持不如普通 CSS 属性完善。（历史兼容场景，2026 年新项目按现代浏览器基线） |
 
 ---
 
@@ -313,6 +313,60 @@
 | 怎么用 | Popover：`<div popover>` 声明弹出层 + `popovertarget` 属性绑定按钮；JS 控制：`showPopover()` / `hidePopover()` / `togglePopover()`；Anchor：`anchor-name: --my-anchor` 定义锚点，`top: anchor(bottom)` 定位 |
 | 原理和工作流程 | Popover 将元素提升到"顶层"（top layer），位于所有 z-index 之上，浏览器自动处理点击外部关闭和 ESC 关闭；`popover="auto"` 时多个 popover 互斥；Anchor Positioning 通过 CSS 计算锚点元素的边界框，将目标元素定位到锚点的指定边或中心 |
 | 缺点 | 浏览器兼容性有限（Popover：Chrome 114+、Edge 114+、Safari 17+；Anchor Positioning：Chrome 125+、Edge 125+）；两个 API 均为较新标准，生产环境使用需注意回退方案 |
+
+---
+
+## 补充：CSS 现代布局与工程化实践
+
+### 补1 CSS 逻辑属性与 RTL 国际化
+
+| 维度 | 内容 |
+|------|------|
+| 是什么 | 用"书写方向"而非"物理方向"描述位置的属性体系：inline 轴（文本流方向）与 block 轴（块堆叠方向）。`margin-inline-start`、`padding-block`、`border-inline-start`、`inline-size` / `block-size`、`inset-inline-start` 等是典型代表。 |
+| 能做什么 | 一套 CSS 自动适配 LTR / RTL 与竖排书写模式，替代传统的全量 RTL 镜像样式；出海项目无需维护 `rtl.css` 覆盖层。 |
+| 怎么用 | `margin-inline: 16px 24px`（start / end）；`padding-block: 8px`；`inline-size: 200px` 替代 `width`；`border-inline-start: 4px solid`；`text-align: start`；配合 `<html dir="rtl">` 或 `writing-mode: vertical-rl` 自动镜像。 |
+| 原理和工作流程 | 逻辑属性不是新属性，而是映射到物理属性的语法糖：浏览器在样式解析阶段根据元素的 `writing-mode` 与 `direction` 把 `margin-inline-start` 解析为 `margin-left` 或 `margin-right`。因此逻辑属性与对应物理属性是**同一个属性**，同一规则块中后声明者覆盖前者，不会叠加。 |
+| 缺点 | `transform: translateX()`、`background-position: left` 等仍带物理方向语义，无法自动镜像，需手动处理；浏览器基线要求 Chrome 87+ / Firefox 66+ / Safari 14.1+；逻辑属性只解决布局方向，不解决数字、日期、图标等内容本地化问题。 |
+
+### 补2 流体排版：`clamp()` / `min()` / `max()`
+
+| 维度 | 内容 |
+|------|------|
+| 是什么 | CSS 比较函数：`min()` 取最小值、`max()` 取最大值、`clamp(MIN, VAL, MAX)` 把首选值限制在区间内，使尺寸随视口连续变化而无需媒体查询。 |
+| 能做什么 | 用一行声明替代一组字号断点阶梯，且断点之间连续过渡不突跳；控制容器内边距、侧栏宽度、首屏最小高度；配合 `minmax(min(240px, 100%), 1fr)` 实现无媒体查询的响应式栅格。 |
+| 怎么用 | 响应式字号：`font-size: clamp(1rem, 0.5rem + 1.5vw, 1.75rem)`；容器内边距：`padding-inline: clamp(16px, 4vw + 8px, 48px)`；最大宽度：`inline-size: min(90vw, 1200px)`；最小高度：`min-block-size: max(400px, 50vh)`。 |
+| 原理和工作流程 | `clamp(MIN, VAL, MAX)` 的规范定义就是 `max(MIN, min(VAL, MAX))`：先用 `MAX` 封顶，再用 `MIN` 保底。由此推出两个书写要点：`MIN > MAX` 时结果恒为 `MIN`（`max` 在最后一步生效）；`min()` / `max()` / `clamp()` 内部**已支持数学表达式**，无需再套一层 `calc()`。 |
+| 缺点 | 只控制尺寸，不改变布局结构，三栏变单栏仍需媒体查询或 Container Queries；纯 `vw` 字号不随用户调整浏览器默认字号而放大，损害可访问性，因此首选值推荐 `rem + vw` 混合；参数顺序写错会导致样式恒定不变且难以察觉。 |
+
+### 补3 `prefers-reduced-motion` 无障碍动效适配
+
+| 维度 | 内容 |
+|------|------|
+| 是什么 | 读取用户操作系统"减弱动态效果"偏好的媒体特性，取值 `no-preference`（默认，可省略）与 `reduce`，对应 WCAG 2.1 的 2.3.3 Animation from Interactions。 |
+| 能做什么 | 为前庭功能障碍等对动效敏感的用户削弱或移除动效；按风险分级处理：移除视差、大幅位移、缩放、旋转与无限循环动画，保留透明度与颜色过渡等低风险反馈。 |
+| 怎么用 | 兜底写法：`@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; } }`；定向写法：在 `reduce` 分支中只重置 `transform` 并保留 `opacity` 过渡；JS 侧用 `window.matchMedia('(prefers-reduced-motion: reduce)')` 并监听 `change` 事件。 |
+| 原理和工作流程 | 操作系统把用户的"减少动态效果"开关暴露为媒体特性，浏览器在样式匹配阶段读取。动效时长设为 `0.01ms` 而非 `0s`，是为了让 `transitionend` / `animationend` 事件仍能正常派发；同时必须重置 `animation-iteration-count`，否则 `infinite` 循环动画在时长被压缩后仍会高频重放。 |
+| 缺点 | 完全禁用所有动效会使用户失去加载中、操作成功等状态反馈，属于过度降级；需要逐组件按风险分级，无法靠一条全局规则完美覆盖；第三方动画库（Canvas / WebGL）不会自动响应，需要 JS 侧接入。 |
+
+### 补4 滚动条定制与兼容写法
+
+| 维度 | 内容 |
+|------|------|
+| 是什么 | 两套互不兼容的滚动条样式 API：标准属性 `scrollbar-width` / `scrollbar-color` / `scrollbar-gutter`，以及 WebKit 伪元素 `::-webkit-scrollbar` 及其系列（`-thumb` / `-track` / `-corner`）。 |
+| 能做什么 | 统一全站滚动条视觉风格；实现细滚动条、圆角滑块、悬停变色；用 `scrollbar-gutter: stable` 预留滚动条槽位，避免内容从"无滚动条"变"有滚动条"时发生布局跳动（CLS）。 |
+| 怎么用 | 标准属性：`scrollbar-width: thin; scrollbar-color: #94a3b8 #f1f5f9;`（滑块颜色在前、轨道颜色在后）；WebKit：`::-webkit-scrollbar { width: 8px }`、`::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 4px }`；分流写法：`@supports not selector(::-webkit-scrollbar) { .scroll-area { scrollbar-width: thin; scrollbar-color: #94a3b8 #f1f5f9; } }`。 |
+| 原理和工作流程 | 标准属性由 Firefox 64+ 与 Chrome 121+ 支持，能力有限但跨浏览器；WebKit 伪元素由 Chrome / Safari / Edge 支持，能力更强但 Firefox 完全不支持。**关键陷阱**：在 Chrome 中一旦声明 `scrollbar-width` 或 `scrollbar-color`，`::-webkit-scrollbar` 系列样式就会被忽略，因此两套写法必须用 `@supports selector()` 显式分流，不能无脑堆叠。 |
+| 缺点 | 隐藏滚动条（`scrollbar-width: none` 或 `::-webkit-scrollbar { display: none }`）会移除"内容可滚动"的视觉提示，降低可发现性，只适合自定义滚动容器并需提供替代提示；`overflow: overlay` 已废弃，应改用 `scrollbar-gutter`；滚动容器可能是 `<html>` 或外层元素，作用目标不明确时样式不生效。 |
+
+### 补5 CSS 方案选型：CSS Modules / CSS-in-JS / 原子化 / 零运行时
+
+| 维度 | 内容 |
+|------|------|
+| 是什么 | 四种主流样式方案的对比：CSS Modules（构建期唯一类名）、运行时 CSS-in-JS（styled-components / emotion）、原子化（Tailwind / UnoCSS）、零运行时（vanilla-extract / Linaria / StyleX）。 |
+| 能做什么 | 按"是否需要运行时动态样式、是否有 SSR / RSC、是否追求零运行时、是否有强设计系统约束、团队熟悉度"五个维度选出合适方案；CSS Modules 做组件级隔离；Tailwind 快速构建并约束设计令牌；vanilla-extract 兼顾类型安全与零运行时。 |
+| 怎么用 | CSS Modules：`.module.css` + `composes` 复用 + `:global()` 逃出作用域；CSS-in-JS：用 `styled` 的标签模板语法读取 props 与 theme，emotion 可配 babel 插件做静态提取；Tailwind：`tailwind.config.js` 的 `theme` 定义令牌，动态值用完整类名映射表而非字符串拼接；vanilla-extract：`style()` / `styleVariants()` 在构建期生成静态 CSS。 |
+| 原理和工作流程 | CSS Modules 在构建期把类名编译成带哈希的唯一名实现隔离；运行时 CSS-in-JS 在运行时序列化样式并注入 `<style>`，因此能读取 props，但每次渲染都有样式计算与注入成本；Tailwind 在构建期静态扫描源码中的类名字符串，只为实际用到的原子类生成 CSS；零运行时方案在构建期编译成静态 `.css`，浏览器只需解析 CSS，运行时零开销。 |
+| 缺点 | 运行时 CSS-in-JS 有运行时开销、包体积增大，且依赖 `useInsertionEffect` / Context，**与 React Server Components 不兼容**，SSR 需额外提取关键 CSS（否则首屏闪烁）；CSS Modules 动态样式能力弱，需借助 CSS 变量或 `data-*`；Tailwind 类名冗长、无法拼接类名（静态扫描限制）、学习成本高；零运行时方案需构建工具插件集成、生态相对较小。**趋势**：RSC 普及推动运行时 CSS-in-JS 退潮，社区主流转向零运行时方案，styled-components 已宣布进入维护模式。 |
 
 ---
 

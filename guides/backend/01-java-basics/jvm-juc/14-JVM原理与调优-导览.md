@@ -106,6 +106,26 @@
 | 原理和工作流程 | 一 top 找 CPU 高的 Java 进程。二 top -Hp 找该进程内 CPU 高的线程 tid。三 printf 将 tid 转 16 进制。四 jstack 打印线程栈 grep 16 进制 tid 找到对应线程栈。五分析栈定位正在执行的方法，常见死循环、正则回溯、频繁 GC、锁竞争。也可用 arthas profile 定位热点方法 |
 | 缺点 | 需多次采样；瞬时高 CPU 难抓；jstack 时间点需对齐；多线程复杂 |
 
+### 3.4 GC 日志解读与线上 GC/OOM 排查
+
+| 维度 | 内容 |
+|------|------|
+| 是什么 | 通过 GC 日志与配套工具定位线上 GC 频繁、停顿变长与各类 OOM 的排查方法 |
+| 能做什么 | 开启并滚动 GC 日志；逐字段解读 G1 日志；区分 ZGC 与 CMS 日志差异；判定 Young GC 与 Full GC 频繁；分类排查六种 OOM；组合使用 jstat jmap jstack jinfo MAT |
+| 怎么用 | `-Xlog:gc*:file=/logs/gc.log:time,uptime,level,tags:filecount=10,filesize=50m`；`jstat -gcutil <pid> 1000 30`；`jmap -dump:live,format=b,file=heap.hprof <pid>` |
+| 原理和工作流程 | 日志参数上 Xlog 的标签选问题域如 gc gc+heap gc+age gc+phases，装饰器 time 与 uptime 对齐时间轴，level 与 tags 便于过滤，filecount 与 filesize 做滚动。G1 日志按字段判读：Eden 回收后清零为正常，Old regions 增加说明有晋升，Humongous 长期不降说明大对象频繁，Metaspace 持续上涨是类加载器泄漏，堆前后值评估回收效率，停顿时长与 MaxGCPauseMillis 对比，Real 远大于 User 加 Sys 说明并行度不足。判定标准为 Young GC 超每分钟 10 次或单次停顿超 50ms、Full GC 超每小时 1 次或单次超 1s、Full GC 后老年代仍超 70% 不回落、GCT 占比超 5%。Full GC 频繁按五步处置：jstat 观察趋势、判定泄漏还是容量不足、jmap dump 加 MAT 分析、检查静态集合与缓存无淘汰与元空间泄漏与 System.gc 等根因、修代码或调参后压测回归。OOM 分六类各有路径：堆溢出查大对象与引用链，元空间溢出查类加载器泄漏与动态代理，直接内存溢出查 DirectByteBuffer 与 Netty ByteBuf 是否 release，GC overhead limit exceeded 本质仍是堆不足，native thread 查线程池上限与 ulimit，StackOverflowError 查递归深度。三个反直觉点：Full GC 后占用不回落不一定是泄漏要看趋势，Real 远大于 User 加 Sys 是并行度不足，to-space exhausted 与 Evacuation Failure 应查晋升速率而非只调大 Survivor |
+| 缺点 | 日志量大需配套采集与滚动策略；dump 大文件分析慢且线上 dump 有停顿；需提前配置自动 dump 否则错过现场；容器环境下 CPU 与内存视图易失真；定位高度依赖经验 |
+
+### 3.5 Arthas 实战诊断
+
+| 维度 | 内容 |
+|------|------|
+| 是什么 | 阿里开源的 Java 诊断工具，不重启不改代码即可对线上 JVM 做方法级现场取证 |
+| 能做什么 | 安装与 attach；dashboard 看实时总览；thread 定位 CPU 热点与阻塞源头；jad 反编译已加载类；watch 看入参返回值异常；trace 看子调用耗时；monitor 做聚合统计；sc 查类加载器与来源；ognl 读写字段；heapdump 导堆；profiler 出火焰图 |
+| 怎么用 | `java -jar arthas-boot.jar <pid>` 或 `kubectl exec -it <pod> -- java -jar arthas-boot.jar 1`；`watch com.example.OrderService create '{params, returnObj}' -x 3` |
+| 原理和工作流程 | attach 通过 JVM 的 Attach API 挂载 agent 实现，失败常见于 JDK 版本不匹配、用户不一致、容器缺 /tmp 写权限或 PID 命名空间隔离。dashboard 输出分线程区与内存区，堆 usage 持续超 85% 且老年代接近占满说明内存压力大，某线程 %CPU 长期超 70% 且状态 RUNNABLE 说明存在热点。四个观察命令分工明确：watch 看单次调用的入参与返回值适合查传参与异常，trace 看方法内子调用耗时分布适合查慢在哪一行，monitor 做聚合统计适合查哪个方法整体慢，stack 看调用来源适合查谁在调。CPU 飙高案例走 dashboard 找热点线程到 thread 看栈到 profiler 出火焰图到 jad 反编译确认逻辑到 trace 验证耗时到修复后 monitor 对比 RT 六步。接口变慢案例走 monitor 定方法到 trace 定子调用到 watch 看入参返回到 thread -b 查锁竞争到定位持锁期间做网络调用到拆锁降粒度五步。注意 trace 开销较大需限次数、诊断完及时 stop、谨慎使用 redefine、与 APM 互补 |
+| 缺点 | trace 与 watch 在高 QPS 接口上会加剧延迟；会输出业务数据需符合数据安全规范；redefine 热替换风险高；增强字节码未 stop 会长期驻留；容器内 attach 受权限与命名空间限制 |
+
 ---
 
 ## 四、常见面试题（附答案）

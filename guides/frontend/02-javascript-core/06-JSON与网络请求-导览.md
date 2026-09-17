@@ -150,7 +150,7 @@
 |------|------|
 | 是什么 | Fetch 和 XHR 都是浏览器端的网络请求方案，Fetch 是现代化替代方案，XHR 是传统方案。 |
 | 能做什么 | 两者都能完成 HTTP 请求。Fetch 优势：Promise 风格、Request/Response 分离、更简洁的语法。XHR 优势：原生进度监听、原生超时设置、全浏览器兼容。 |
-| 怎么用 | 选择依据：需要进度监听 -> XHR；需要简洁语法和 Promise -> Fetch；需要拦截器 -> Axios；需要兼容 IE -> XHR。 |
+| 怎么用 | 选择依据：需要进度监听 -> XHR；需要简洁语法和 Promise -> Fetch；需要拦截器 -> Axios；（已过时）需要兼容 IE -> XHR（历史兼容场景，2026 年新项目按现代浏览器基线）。 |
 | 原理和工作流程 | Fetch 基于 Promise 和 Stream API；XHR 基于事件驱动模型。Fetch 的 `credentials` 默认 `same-origin`，XHR 默认携带同源 Cookie。 |
 | 缺点 | Fetch 在 404/500 时不 reject 是常见陷阱；Fetch 不原生支持超时和进度监听；XHR 的回调风格导致代码嵌套。 |
 
@@ -238,7 +238,7 @@
 |------|------|
 | 是什么 | 三种浏览器端 HTTP 请求方案：XHR 是传统回调方案，Fetch 是原生 Promise 方案，Axios 是第三方增强库。 |
 | 能做什么 | XHR：基础请求 + 进度监听 + 超时；Fetch：Promise 风格 + 流式读取；Axios：拦截器 + 实例 + 自动转换 + 全平台兼容。 |
-| 怎么用 | 选择依据：简单请求用 Fetch，需要拦截器/实例用 Axios，需要进度监听用 XHR，需要兼容 IE 用 XHR 或 Axios。 |
+| 怎么用 | 选择依据：简单请求用 Fetch，需要拦截器/实例用 Axios，需要进度监听用 XHR，（已过时）需要兼容 IE 用 XHR 或 Axios（历史兼容场景，2026 年新项目按现代浏览器基线）。 |
 | 原理和工作流程 | XHR 基于事件驱动，Fetch 基于 Promise + Stream，Axios 基于适配器模式（封装 XHR 和 Node.js http 模块）。Axios 在浏览器端底层仍使用 XHR。 |
 | 缺点 | XHR 回调地狱；Fetch 不 reject 非 2xx、不原生支持超时和进度；Axios 体积较大、学习成本较高。 |
 

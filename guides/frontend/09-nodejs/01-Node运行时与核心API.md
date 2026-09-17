@@ -1243,7 +1243,7 @@ pnpm dlx postject my-app.exe NODE_SEA_BLOB sea-prep.blob --sentinel-fuse NODE_SE
 
 > **学习导航**：
 > - 返回 [学习路线总览](../README.md)
-> - 本模块其他文件：[02-Web框架与BFF层](./02-Web框架与BFF层.md) | [03-Node.js笔面试题集](./03-Node.js笔面试题集.md)
+> - 本模块其他文件：[02-Web框架与BFF层](./02-Web框架与BFF层.md) | [03-Node.js笔面试题集](./03-Node.js笔面试题集.md) | [04-数据库与ORM](./04-数据库与ORM.md)
 > - 进阶学习：[企业后台管理系统](../10-project/01-企业后台管理系统实战.md)
 
 ---
@@ -1393,3 +1393,495 @@ pnpm add -D cross-env
 - 未捕获异常处理：process.on('uncaughtException')、process.on('unhandledRejection')
 - 优雅关闭：捕获 SIGTERM/SIGINT 信号、关闭数据库连接、停止接收新请求
 - 代码示例：完整的错误处理中间件 + 优雅关闭实现
+
+---
+
+## 补充：worker_threads 多线程
+
+### 1. Node.js 单线程模型的真实含义
+
+"Node.js 是单线程的"是一个简化说法。准确表述是：**JavaScript 代码的执行是单线程的，但 Node.js 进程本身不是单线程的。**
+
+| 组成 | 是否单线程 | 说明 |
+|------|-----------|------|
+| JavaScript 执行 | 单线程 | 所有 JS 代码（含回调）都在主线程的 V8 Isolate 中执行，同一时刻只有一段 JS 在跑 |
+| libuv 事件循环 | 单线程 | 事件循环本身运行在主线程 |
+| libuv 线程池 | 多线程 | 默认 4 个线程，处理文件 I/O、DNS 查询（`getaddrinfo`）、`zlib` 压缩、部分 `crypto` 运算 |
+| 网络 I/O | 不需要线程 | 使用操作系统原生异步 API（epoll / kqueue / IOCP） |
+| V8 后台线程 | 多线程 | 垃圾回收、JIT 编译的并行与并发标记等 |
+| Worker Threads | 多线程 | 显式创建的独立 V8 Isolate，各自有独立的 JS 执行环境 |
+
+所以"单线程"的真正含义是：**JS 主线程只有一个，任何 CPU 密集的 JS 计算都会阻塞它**，导致事件循环无法推进，所有 I/O 回调与定时器都被推迟。这正是需要 `worker_threads` 的根本原因。
+
+```javascript
+// 反例：CPU 密集计算阻塞事件循环
+const http = require('node:http')
+
+http
+  .createServer((req, res) => {
+    if (req.url === '/heavy') {
+      // 同步计算数秒：这段时间内事件循环完全停摆
+      let sum = 0
+      for (let i = 0; i < 5e9; i++) sum += i
+      res.end(String(sum))
+    } else {
+      res.end('ok')
+    }
+  })
+  .listen(3000)
+
+// 现象：/heavy 执行期间，访问 / 也会一起卡住
+```
+
+```bash
+# 用 libuv 线程池处理文件 I/O、压缩与部分加密运算，不占用 JS 主线程
+UV_THREADPOOL_SIZE=8 node app.js
+```
+
+### 2. `worker_threads` / `cluster` / `child_process` 的区别与选型
+
+| 维度 | `worker_threads` | `cluster` | `child_process` |
+|------|-----------------|-----------|-----------------|
+| 隔离级别 | 同一进程内的多个 V8 Isolate | 多进程（fork 主进程副本） | 多进程（可执行任意命令） |
+| 内存开销 | 低（可共享内存） | 高（每个进程独立堆） | 高（每个进程独立堆） |
+| 启动速度 | 快（几十毫秒量级） | 较慢（进程 fork + 重新初始化） | 最慢（可启动任意程序） |
+| 通信方式 | `postMessage` / `MessageChannel` / `SharedArrayBuffer` | 进程间 IPC（基于句柄传递的 `send`） | stdin / stdout / stderr 或 IPC channel |
+| 共享内存 | 支持（`SharedArrayBuffer`、Transferable） | 不支持 | 不支持 |
+| 崩溃影响 | 默认会拖垮整个进程（可通过监听 `error` 缓解） | 单进程崩溃不影响其他进程 | 完全隔离 |
+| 端口共享 | 不支持（需自行传递 handle） | 原生支持（多个进程监听同一端口） | 不支持 |
+| 适用场景 | CPU 密集计算（压缩、加密、图像处理、大 JSON 解析） | 提升 HTTP 服务吞吐（利用多核 + 端口复用） | 调用外部程序、完全隔离的沙箱任务 |
+
+**选型口诀**：
+
+- 要利用多核**提升 HTTP 服务吞吐** → `cluster`（或直接用 PM2 / K8s 多实例）。
+- 要卸载**CPU 密集计算**且希望低开销、能共享内存 → `worker_threads`。
+- 要执行**外部命令**或需要**强隔离**（不可信代码） → `child_process`。
+
+### 3. `Worker` 用法与 `parentPort` 通信
+
+主线程创建 `Worker`，Worker 通过 `parentPort` 与主线程双向通信。通信基于结构化克隆（structured clone），数据是**拷贝**而非引用。
+
+```javascript
+// main.js —— 主线程
+const { Worker } = require('node:worker_threads')
+const path = require('node:path')
+
+function runWorker(payload) {
+  return new Promise((resolve, reject) => {
+    // workerData 是创建时传入的初始数据（同样是拷贝）
+    const worker = new Worker(path.resolve(__dirname, 'worker.js'), {
+      workerData: payload
+    })
+
+    // message 事件接收 Worker 通过 parentPort.postMessage 发来的消息
+    worker.on('message', resolve)
+
+    // error 事件捕获 Worker 内未捕获的异常
+    worker.on('error', reject)
+
+    // exit 事件在线程结束时触发，code 为 0 表示正常退出
+    worker.on('exit', (code) => {
+      if (code !== 0) reject(new Error(`Worker 异常退出，code=${code}`))
+    })
+  })
+}
+
+runWorker({ n: 45 }).then((result) => {
+  console.log('计算结果：', result) // 主线程全程未被阻塞
+})
+```
+
+```javascript
+// worker.js —— Worker 线程
+const { parentPort, workerData, isMainThread, threadId } = require('node:worker_threads')
+
+// isMainThread 可用于编写"同一文件既是入口又是 Worker"的模块
+if (!isMainThread) {
+  console.log(`运行在 Worker 线程，threadId=${threadId}`)
+
+  function fib(n) {
+    return n < 2 ? n : fib(n - 1) + fib(n - 2)
+  }
+
+  // 从 workerData 读取初始数据，把结果回传主线程
+  parentPort.postMessage(fib(workerData.n))
+
+  // 长期通信用 on，只处理一条消息用 once
+  parentPort.once('shutdown', () => process.exit(0))
+}
+```
+
+`postMessage` 使用结构化克隆算法，因此**不能传递函数、`Symbol`、DOM 节点等不可克隆的对象**，否则会抛 `DataCloneError`。
+
+```javascript
+// 结构化克隆的限制：函数无法传递
+worker.postMessage({ fn: () => {} }) // 抛 DataCloneError
+
+// 正确做法：传数据，不传行为；行为在 Worker 内部定义
+worker.postMessage({ type: 'compress', payload: buffer })
+```
+
+### 4. `MessageChannel` 与 `SharedArrayBuffer` 的零拷贝共享
+
+默认的 `postMessage` 会**拷贝**数据：传一个 100MB 的 `Buffer` 意味着内存里同时存在两份，拷贝本身也要耗时。
+
+**方案一：`MessageChannel` + Transferable（转移所有权，零拷贝）**
+
+`ArrayBuffer` 是 Transferable 对象。把它放进 `postMessage` 的第二个参数（transferList）后，所有权被**转移**：发送方不再持有，接收方拿到同一块内存，不发生拷贝。
+
+```javascript
+// main.js —— 用 MessageChannel 转移 ArrayBuffer 所有权
+const { Worker, MessageChannel } = require('node:worker_threads')
+
+const worker = new Worker('./worker.js')
+
+// 创建一对互相连通的端口，一个留给主线程，一个交给 Worker
+const { port1, port2 } = new MessageChannel()
+
+// 把 port2 转移给 Worker（port2 本身也是 Transferable）
+worker.postMessage({ type: 'init', port: port2 }, [port2])
+
+const buffer = new ArrayBuffer(1024 * 1024 * 100) // 100MB
+
+// 关键：第二个参数是 transferList，转移所有权而不是拷贝
+port1.postMessage({ type: 'process', buffer }, [buffer])
+
+console.log(buffer.byteLength) // 0：所有权已转移，主线程不再持有这块内存
+
+port1.on('message', (msg) => {
+  console.log('处理完成', msg)
+})
+```
+
+```javascript
+// worker.js —— 接收转移过来的端口与 ArrayBuffer
+const { parentPort } = require('node:worker_threads')
+
+parentPort.on('message', (msg) => {
+  if (msg.type !== 'init') return
+
+  const { port } = msg
+
+  port.on('message', (data) => {
+    // 直接使用同一块内存，无拷贝
+    const view = new Uint8Array(data.buffer)
+    port.postMessage({ done: true, length: view.length })
+  })
+})
+```
+
+**方案二：`SharedArrayBuffer`（真正的共享内存）**
+
+多个线程同时读写同一块内存。因为不涉及所有权转移，主线程与 Worker 可以同时持有。
+
+```javascript
+// main.js —— 共享内存
+const { Worker } = require('node:worker_threads')
+
+const sab = new SharedArrayBuffer(4 * 1024) // 4KB 共享内存
+const view = new Int32Array(sab)
+
+const worker = new Worker('./counter.js', { workerData: { sab } })
+
+worker.on('message', () => {
+  console.log(view[0]) // Worker 已把结果写入共享内存，主线程直接可见
+})
+```
+
+```javascript
+// counter.js —— 在共享内存上累加
+const { workerData, parentPort } = require('node:worker_threads')
+
+const view = new Int32Array(workerData.sab)
+
+for (let i = 0; i < 1e6; i++) {
+  // 注意：普通读写不是原子的，多线程并发写同一位置会丢更新
+  view[0] += 1
+}
+
+parentPort.postMessage('done')
+```
+
+**并发安全**：`SharedArrayBuffer` 上的普通读写不是原子的，多线程同时写同一位置会产生竞态，需要用 `Atomics` 提供原子操作与等待 / 通知机制。
+
+```javascript
+// worker.js —— 用 Atomics 做原子操作与线程同步
+const { workerData, parentPort } = require('node:worker_threads')
+
+const view = new Int32Array(workerData.sab)
+
+// 原子加：等价于 view[0] += 1，但不会被其他线程的写入打断
+Atomics.add(view, 0, 1)
+
+// 原子读
+const current = Atomics.load(view, 0)
+
+// 线程同步：index 0 上的值仍为 0 时挂起等待，被唤醒后继续
+Atomics.wait(view, 0, 0)
+
+parentPort.postMessage(current)
+```
+
+```javascript
+// main.js —— 唤醒等待中的 Worker
+Atomics.store(view, 0, 1) // 先改值
+Atomics.notify(view, 0, 1) // 再唤醒 1 个在 index 0 上等待的线程
+```
+
+> **安全提示**：`SharedArrayBuffer` 在浏览器中需要跨源隔离（COOP / COEP）才能使用，也是 Spectre 类侧信道攻击的敏感对象。Node.js 中不受此限制，但同样要谨慎处理不可信数据。
+
+### 5. 线程池 `UV_THREADPOOL_SIZE` 与 Worker 的区别
+
+两者经常被混淆，但解决的问题不同：
+
+| 维度 | libuv 线程池（`UV_THREADPOOL_SIZE`） | `worker_threads` |
+|------|-----------------------------------|-----------------|
+| 谁在用 | Node.js 内部 API：`fs`、`dns.lookup`、`zlib`、`crypto`（部分） | 开发者显式创建的 Worker |
+| 能否执行 JS | **不能**，只执行 C++ 侧的阻塞调用 | 能，每个 Worker 有独立的 V8 Isolate |
+| 默认大小 | 4 | 无固定上限（受内存与 CPU 限制） |
+| 调整方式 | 环境变量 `UV_THREADPOOL_SIZE`，必须在进程启动前设置 | `new Worker()` 按需创建 |
+| 适用 | 加速文件 I/O、DNS、压缩、加密等已有异步 API | 卸载自定义的 CPU 密集 JS 计算 |
+
+```bash
+# 必须在启动 Node.js 之前设置，运行时修改无效
+UV_THREADPOOL_SIZE=8 node app.js
+```
+
+```javascript
+// 线程池大小受"同时执行的阻塞任务数"影响
+const fs = require('node:fs/promises')
+
+async function readMany(paths) {
+  // 并发发起 20 个文件读取，但线程池只有 4 个线程时会排队
+  return Promise.all(paths.map((p) => fs.readFile(p)))
+}
+```
+
+> **常见误区**：把 CPU 密集的 JS 计算写成 `async` 函数，就以为它不阻塞。`async` 只改变写法，不改变执行线程——`await` 之前的同步计算仍然占用主线程。要真正卸载，必须使用 `worker_threads`。
+
+### 6. CPU 密集任务的卸载实践
+
+**场景一：压缩（`zlib`）**
+
+`zlib` 的异步 API 已经使用 libuv 线程池，多数场景下直接用异步版本即可，不必自己开 Worker。
+
+```javascript
+// 优先方案：使用异步 API，自动走 libuv 线程池
+const zlib = require('node:zlib')
+const { promisify } = require('node:util')
+
+const gzip = promisify(zlib.gzip)
+
+async function compress(buffer) {
+  // 不阻塞 JS 主线程
+  return gzip(buffer, { level: 6 })
+}
+```
+
+**场景二：加密 / 哈希（`crypto`）**
+
+`crypto` 的异步 API（`pbkdf2`、`scrypt`、`randomFill` 等）同样走线程池；但**同步版本会阻塞主线程**，在登录接口中做高迭代次数的密码哈希时尤其危险。
+
+```javascript
+const crypto = require('node:crypto')
+const { promisify } = require('node:util')
+
+const pbkdf2 = promisify(crypto.pbkdf2)
+
+async function hashPassword(password, salt) {
+  // 走 libuv 线程池，不阻塞事件循环
+  // 迭代次数越高越安全，但越吃 CPU
+  const derived = await pbkdf2(password, salt, 600000, 32, 'sha256')
+  return derived.toString('hex')
+}
+```
+
+**场景三：图像处理（`sharp`）**
+
+`sharp` 底层是 libvips（C++），其异步 API 会把工作放到自己的线程池，不占用 JS 主线程，通常不需要额外的 Worker。
+
+```javascript
+const sharp = require('sharp')
+
+async function makeThumbnail(inputPath, outputPath) {
+  // libvips 在 C++ 侧多线程处理，JS 主线程只负责调度
+  await sharp(inputPath).resize(320).webp({ quality: 80 }).toFile(outputPath)
+}
+```
+
+**场景四：纯 JS 计算（必须自己开 Worker）**
+
+```javascript
+// worker-pool.js —— 可复用的 Worker 池，避免每次计算都重新创建线程
+const { Worker } = require('node:worker_threads')
+const os = require('node:os')
+
+class WorkerPool {
+  constructor(workerPath, size = Math.max(1, os.cpus().length - 1)) {
+    this.workerPath = workerPath
+    this.size = size
+    this.idle = [] // 空闲 Worker
+    this.queue = [] // 等待分配的任务
+    this.tasks = new Map() // 记录每个 Worker 当前正在处理的任务
+
+    for (let i = 0; i < size; i++) {
+      this.idle.push(this.createWorker())
+    }
+  }
+
+  createWorker() {
+    const worker = new Worker(this.workerPath)
+
+    // 一个 Worker 完成一项任务后，把结果回传并归还到空闲队列
+    worker.on('message', ({ result, error }) => {
+      const task = this.tasks.get(worker)
+      this.tasks.delete(worker)
+      this.idle.push(worker)
+
+      if (task) {
+        error ? task.reject(new Error(error)) : task.resolve(result)
+      }
+
+      this.dispatch() // 立刻尝试领取下一个任务
+    })
+
+    // Worker 崩溃时补一个新线程，避免池容量永久下降
+    worker.on('error', () => {
+      const task = this.tasks.get(worker)
+      this.tasks.delete(worker)
+      if (task) task.reject(new Error('Worker 执行失败'))
+
+      this.idle = this.idle.filter((w) => w !== worker)
+      this.idle.push(this.createWorker())
+      this.dispatch()
+    })
+
+    return worker
+  }
+
+  run(payload) {
+    return new Promise((resolve, reject) => {
+      this.queue.push({ payload, resolve, reject })
+      this.dispatch()
+    })
+  }
+
+  dispatch() {
+    while (this.idle.length > 0 && this.queue.length > 0) {
+      const worker = this.idle.pop()
+      const task = this.queue.shift()
+      this.tasks.set(worker, task)
+      // 复用同一个 Worker，只需 postMessage，不必重新创建线程
+      worker.postMessage(task.payload)
+    }
+  }
+
+  async destroy() {
+    await Promise.all(this.idle.map((w) => w.terminate()))
+    this.idle = []
+  }
+}
+
+module.exports = { WorkerPool }
+```
+
+```javascript
+// 使用 Worker 池
+const { WorkerPool } = require('./worker-pool')
+
+// 池大小默认取 CPU 核数 - 1，给主线程留出 CPU 时间
+const pool = new WorkerPool(require.resolve('./cpu-worker.js'))
+
+async function handleRequest(payload) {
+  // 并发提交多个任务，池会自动排队并复用线程
+  return pool.run(payload)
+}
+```
+
+```javascript
+// cpu-worker.js —— 只负责计算，不关心调度
+const { parentPort } = require('node:worker_threads')
+
+parentPort.on('message', (payload) => {
+  try {
+    const result = heavyCompute(payload)
+    parentPort.postMessage({ result })
+  } catch (err) {
+    // 把错误回传主线程，而不是让异常冒泡导致线程退出
+    parentPort.postMessage({ error: err.message })
+  }
+})
+
+function heavyCompute(payload) {
+  // 这里放真正 CPU 密集的纯 JS 逻辑
+  return payload.items.reduce((acc, n) => acc + Math.sqrt(n), 0)
+}
+```
+
+### 7. Worker 的开销与复用策略
+
+**创建成本**：一个 `Worker` 需要初始化新的 V8 Isolate（堆、内置对象、JIT 状态），创建耗时在几十毫秒量级，内存开销从几 MB 起。因此**不要为每个请求创建一个 Worker**。
+
+| 策略 | 说明 | 适用 |
+|------|------|------|
+| 一次性 Worker | 每次任务新建、结束即 `terminate()` | 低频、长时间的重任务（如一次性报表生成） |
+| Worker 池 | 预创建固定数量（通常为 CPU 核数 - 1），复用线程 | 高频、短任务（如接口中的计算卸载） |
+| 常驻 Worker | 启动时创建，进程生命周期内不销毁 | 需要维护内部状态（如缓存的索引结构） |
+
+**其他要点**：
+
+- **消息传递成本**：`postMessage` 的结构化克隆对大对象开销显著，能用 Transferable / `SharedArrayBuffer` 就用。
+- **错误处理**：Worker 内未捕获的异常会触发 `error` 事件，若不处理会拖垮主进程；Worker 内也应使用 `try/catch` 并回传错误信息。
+- **优雅退出**：用 `worker.terminate()` 强制结束（会中断正在执行的 JS），或先 `postMessage` 通知 Worker 自行清理后再退出。
+- **不要在 Worker 里做 I/O 密集任务**：I/O 已由事件循环与 libuv 处理，放进 Worker 只会增加通信开销。
+- **内存成倍增长**：每个 Worker 有独立的堆，创建过多会导致内存成倍增长，池大小必须受控。
+
+```javascript
+// 优雅关闭：先通知，超时后强制终止
+async function shutdownWorker(worker, timeoutMs = 1000) {
+  const exited = new Promise((resolve) => worker.once('exit', resolve))
+
+  // 通知 Worker 自行清理资源
+  worker.postMessage({ type: 'shutdown' })
+
+  // 竞速：正常退出优先，超时则强制终止
+  const result = await Promise.race([
+    exited,
+    new Promise((resolve) => setTimeout(() => resolve('timeout'), timeoutMs))
+  ])
+
+  if (result === 'timeout') {
+    await worker.terminate()
+  }
+}
+```
+
+### 8. 面试常见问法
+
+**Q1：Node.js 是单线程的吗？**
+回答要点：不完全是。JavaScript 代码的执行是单线程的（只有一个主线程的 V8 Isolate），但 Node.js 进程本身是多线程的——libuv 有默认 4 个线程的线程池处理文件 I/O、DNS、`zlib` 与部分 `crypto` 运算，网络 I/O 使用操作系统原生异步 API，V8 自身也有 GC 与 JIT 的后台线程。因此"单线程"的真正含义是"JS 主线程只有一个，CPU 密集的 JS 会阻塞事件循环"。
+
+**Q2：`worker_threads`、`cluster`、`child_process` 怎么选？**
+回答要点：要利用多核提升 HTTP 服务吞吐用 `cluster`（多进程 + 端口复用）；要卸载 CPU 密集计算且希望低开销、能共享内存用 `worker_threads`；要执行外部命令或需要强隔离用 `child_process`。三者的隔离级别与通信成本依次递增，内存开销也依次递增。
+
+**Q3：`postMessage` 会拷贝数据吗？怎么避免？**
+回答要点：会，默认使用结构化克隆算法做深拷贝。避免方式是用 Transferable 对象（如 `ArrayBuffer`）配合 transferList 转移所有权实现零拷贝，或用 `SharedArrayBuffer` 真正共享内存（需配合 `Atomics` 保证并发安全）。注意结构化克隆无法传递函数、`Symbol` 等不可克隆对象。
+
+**Q4：`UV_THREADPOOL_SIZE` 和 `worker_threads` 有什么区别？**
+回答要点：libuv 线程池由 Node.js 内部 API 使用，**不能执行 JS**，只处理 C++ 侧的阻塞调用，默认 4 个线程，通过启动前的环境变量调整；`worker_threads` 是开发者显式创建、每个都有独立 V8 Isolate 的线程，能执行 JS，用于卸载自定义的 CPU 密集计算。两者解决的问题不同。
+
+**Q5：Worker 创建有开销吗？应该怎么用？**
+回答要点：有。每个 Worker 要初始化新的 V8 Isolate，创建耗时在几十毫秒量级、内存开销从几 MB 起，因此不能为每个请求创建。高频短任务应该用 Worker 池（预创建 CPU 核数 - 1 个并复用），低频长任务可以一次性创建，需要维护内部状态的用常驻 Worker。
+
+### 9. 易错点
+
+| 易错点 | 现象 | 原因 | 解决方案 |
+|--------|------|------|----------|
+| 把 CPU 密集计算写成 `async` 就以为不阻塞 | 接口依然超时 | `async` 只改变写法，不改变执行线程，`await` 之前的同步计算仍占用主线程 | 用 `worker_threads` 真正卸载 |
+| 为每个请求创建 Worker | 响应变慢、内存暴涨 | 每个 Worker 都要初始化新的 V8 Isolate | 使用 Worker 池并复用线程 |
+| `postMessage` 传大对象 | 主线程卡顿、内存翻倍 | 结构化克隆做深拷贝 | 用 Transferable 转移所有权或 `SharedArrayBuffer` |
+| 在 `SharedArrayBuffer` 上做普通读写 | 计数结果偏小、数据错乱 | 普通读写不是原子的，存在竞态 | 用 `Atomics.add` / `Atomics.load` 等原子操作 |
+| Worker 内异常未处理 | 整个进程退出 | Worker 的未捕获异常触发 `error` 事件，未监听会拖垮进程 | Worker 内 `try/catch` 并回传错误，同时监听 `error` 事件 |
+| 把 I/O 任务放进 Worker | 性能反而变差 | I/O 已由事件循环与 libuv 处理，放进 Worker 只增加通信开销 | I/O 用异步 API，Worker 只放 CPU 密集的纯 JS 计算 |
+| 运行时修改 `UV_THREADPOOL_SIZE` | 配置不生效 | 该环境变量在进程启动时读取 | 在启动命令前设置，如 `UV_THREADPOOL_SIZE=8 node app.js` |
+| Worker 池容量按 CPU 核数满配 | 主线程被挤占，响应变慢 | 主线程也需要 CPU 时间 | 池大小设为 CPU 核数 - 1 或更小 |

@@ -116,6 +116,16 @@
 | 原理和工作流程 | kubelet 周期性执行探针，livenessProbe 检查容器是否存活，失败则按重启策略重启容器；readinessProbe 检查是否就绪，失败则从 Service 端点移除不接收流量；startupProbe 检查启动是否完成，完成前 liveness 和 readiness 不生效，防止慢启动应用被误杀 |
 | 缺点 | livenessProbe 检查外部依赖会导致重启雪崩；未设 initialDelaySeconds 启动期被误杀；探针配置过于敏感引起频繁重启 |
 
+### 3.4 CI/CD 流水线集成
+
+| 维度 | 内容 |
+|------|------|
+| 是什么 | 把代码提交、测试、镜像构建、推送与 K8s 滚动发布串成自动化流程的工程实践，以 GitLab CI 为主线、Jenkins 为对照 |
+| 能做什么 | 提交即触发测试与构建；按 commit SHA 打镜像标签；多环境配置隔离；kubectl 滚动更新与回滚；质量门禁拦截问题版本；集中管理密钥 |
+| 怎么用 | 仓库内写 `.gitlab-ci.yml`（stages: test/build/deploy）；`docker build -t $IMAGE:$CI_COMMIT_SHORT_SHA .`；`kubectl set image deployment/order-service order-service=$IMAGE:$TAG`；`kubectl rollout status` 验证；失败用 `kubectl rollout undo --to-revision=N` 回滚 |
+| 原理和工作流程 | 流水线分三阶段：test 阶段执行 `mvn verify` 并上传单测报告，覆盖率或静态扫描不达标即中断；build 阶段用多阶段 Dockerfile 构建镜像（编译在 maven 镜像内完成，先 COPY pom.xml 再 COPY src 以复用层缓存），按 commit 短 SHA 打标签并推送到镜像仓库；deploy 阶段由 kubectl 执行 `set image` 触发 Deployment 滚动更新，新 ReplicaSet 按 maxSurge/maxUnavailable 逐步替换旧 Pod，readinessProbe 通过后才接入流量，`rollout status` 阻塞等待收敛。多环境用 Namespace + Kustomize overlay/Helm values 隔离，同一镜像从 dev 逐级晋级到 prod。密钥由 CI/CD Variables（Masked+Protected）注入为 K8s Secret，流水线用独立 ServiceAccount 与最小 RBAC 权限操作集群 |
+| 缺点 | 流水线脚本本身需维护，配置错误会导致发布中断；镜像标签与回滚依赖严格的版本策略，用 latest 会让回滚失效；多环境配置隔离增加 YAML 维护量；密钥经流水线传递需额外的权限与审计设计；流水线耗时随测试与镜像扫描增加而变长 |
+
 ---
 
 ## 四、常见面试题

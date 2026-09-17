@@ -158,6 +158,40 @@
 
 ---
 
+## 补充：Proxy、迭代器与内存排查方法论
+
+### 补1 Proxy 与 Reflect 原理
+
+| 维度 | 内容 |
+|------|------|
+| 是什么 | `Proxy` 是 ES6 的元编程能力，通过 `handler` 中的陷阱（trap）拦截对目标对象的底层操作；`Reflect` 提供与 13 种 trap 一一对应的静态方法，用于在 trap 中执行默认行为。 |
+| 能做什么 | 拦截属性读写、`in`、`delete`、`ownKeys`、函数调用与 `new` 等 13 类操作；实现响应式系统（Vue 3）、数据校验、访问日志、只读视图、可撤销的临时访问权限。 |
+| 怎么用 | `new Proxy(target, handler)`；`Proxy.revocable(target, handler)` 返回 `{ proxy, revoke }`，`revoke()` 后任何操作抛 `TypeError`；在 trap 中用 `Reflect.get(t, key, receiver)` / `Reflect.set(t, key, value, receiver)` 转发默认行为；`set` trap 必须返回布尔值。 |
+| 原理和工作流程 | 13 种 trap 分别为 `get`、`set`、`has`、`deleteProperty`、`ownKeys`、`getOwnPropertyDescriptor`、`defineProperty`、`getPrototypeOf`、`setPrototypeOf`、`isExtensible`、`preventExtensions`、`apply`、`construct`。`Reflect` 相比 `Object` 有三个优势：返回布尔值而非抛异常、参数顺序统一为 `(target, ...)`、支持 `receiver`。`receiver` 决定访问器（getter / setter）中的 `this` 指向——传 `receiver` 才能让 getter 内部的属性访问也经过代理，这正是 Vue 3 依赖收集不漏项的关键。Vue 3 改用 Proxy 的原因：可监听新增 / 删除属性与数组索引赋值（Vue 2 需 `$set` / `$delete`）、支持 `Map` / `Set`、惰性代理使初始化开销与属性数量解耦、拦截能力从 2 种扩展到 13 种。 |
+| 缺点 | 无法拦截 class 私有字段 `#x` 与闭包内变量访问；无法代理原始值；trap 返回值必须满足不变式（如 target 不可扩展时 `ownKeys` 必须返回全部键），否则抛 `TypeError`；每次属性访问多一层函数调用，热路径上有明显性能开销；`proxy !== target`，作为 `Map` / `Set` 键时与 target 视为不同键；调用代理上的方法时 `this` 是代理，访问 `#private` 字段会报错；无法 polyfill，IE 完全不支持。 |
+
+### 补2 迭代器与生成器协议
+
+| 维度 | 内容 |
+|------|------|
+| 是什么 | 可迭代协议要求对象实现 `[Symbol.iterator]()` 并返回迭代器；迭代器协议要求对象有 `next()` 方法且返回 `{ value, done }`，可选实现 `return(value)` 与 `throw(error)`；`Symbol.asyncIterator` 对应异步迭代协议。 |
+| 能做什么 | 让自定义数据结构支持 `for...of`、展开运算符、解构、`Array.from`；实现惰性求值与无限序列；递归遍历树结构；可中断的遍历；用生成器实现异步流程控制（redux-saga、早期 `co` 库）。 |
+| 怎么用 | 手写可迭代对象：实现 `[Symbol.iterator]()` 返回带 `next()` 的对象，并补 `[Symbol.iterator]() { return this; }` 使迭代器自身也可迭代；生成器：`function* gen() { const a = yield 1; return a; }`，`next(v)` 的实参成为上一个 `yield` 表达式的值；`yield* inner()` 委托给另一个可迭代对象并接收其返回值；异步迭代：`async function* fetchPages() { yield await fetch(url) }` 配合 `for await...of`。 |
+| 原理和工作流程 | `for...of` 的执行流程是：调用 `[Symbol.iterator]()` 取迭代器 → 反复 `next()` 取值 → `done` 为 true 时退出；**提前退出（`break` / `return` / 抛异常）时会调用迭代器的 `return()`** 用于资源清理。生成器函数调用时不执行函数体，而是返回同时是迭代器与可迭代对象的生成器对象；执行到 `yield` 暂停并交出值，下次 `next(v)` 从暂停处恢复且 `v` 成为上一个 `yield` 的结果；`return(v)` 在暂停处注入 `return` 并触发 `finally`，`throw(e)` 在暂停处抛出错误。内置可迭代对象包括数组、字符串、`Map`、`Set`、`TypedArray`、`arguments`、`NodeList`，**普通对象不是可迭代对象**。 |
+| 缺点 | 普通对象无法直接 `for...of`，需 `Object.entries` 转换或手动实现协议；生成器对象是**一次性**的，遍历完即 `done`，重复遍历必须重新调用生成器函数；首次 `next()` 的实参会被丢弃；迭代器若未实现 `Symbol.iterator` 则无法被展开运算符消费；忘记实现 `return()` 或缺少 `try/finally` 会导致提前退出时资源泄漏。 |
+
+### 补3 DevTools Memory 内存排查方法论
+
+| 维度 | 内容 |
+|------|------|
+| 是什么 | Chrome DevTools Memory 面板提供的三种分析工具（Heap Snapshot 堆快照、Allocation instrumentation on timeline 分配时间线、Allocation sampling 分配采样），配合 Performance Monitor 形成完整的内存泄漏排查链路。 |
+| 能做什么 | 精确定位泄漏对象与引用链；区分"一次性缓存"与"真正泄漏"；识别 Detached DOM tree；判断泄漏类型（DOM Nodes / Event Listeners / JS heap）并闭环修复与验证。 |
+| 怎么用 | 三快照法：强制 GC 拍 Snapshot 1（基线）→ 执行一次可疑操作后强制 GC 拍 Snapshot 2 → 重复同样操作后强制 GC 拍 Snapshot 3 → 用 Comparison 视图对比 Snapshot 2 与 3，只有两次增量都持续增长才是泄漏 → 选中可疑 Constructor 展开 Retainers 链追溯到 GC 根。Detached DOM 识别：Snapshot 中搜索 `Detached`、Console 执行 `queryObjects(HTMLElement).filter(el => !document.contains(el)).length`、观察 Performance Monitor 的 DOM Nodes 计数。 |
+| 原理和工作流程 | 单张快照无法区分缓存与泄漏，因此必须用"两次增量"过滤噪音——缓存只在第一次操作时增长，泄漏则每次操作都留下无法回收的对象。关键指标中 **Shallow Size** 是对象自身占用，**Retained Size** 是释放该对象后可回收的总内存（含其独占引用的对象），判断泄漏影响看 Retained Size；**Distance** 是从 GC 根到该对象的最短引用层级。Allocation Timeline 用蓝条表示新分配且仍存活的内存、灰条表示已回收，蓝条持续堆积即为泄漏，点击可查看分配时的函数调用栈（开销大，适合短时排查）；Allocation Sampling 按间隔采样，开销小，适合长时间录制与找出"分配大户"。定位流程为：观测曲线 → 按指标分类泄漏类型 → 确定最小复现操作 → 三快照法锁定对象 → Retainers 链溯源 → 修复（移除监听、清理定时器、置 `null`、改用 `WeakMap`）→ 复测验证。 |
+| 缺点 | Heap Snapshot 文件较大且分析耗时，需要人工阅读 Retainers 链；Allocation Timeline 记录每次分配，开销大，只适合短时间录制；DevTools 打开时 `console.log` 会持有对象的强引用，制造"假泄漏"干扰判断；排查依赖 DevTools 保持打开，无法在生产环境直接使用；Performance Monitor 只能提示"有增长"，无法直接指出代码位置。 |
+
+---
+
 ## 本章学习自检
 
 本节为辅助内容，无五维表格。

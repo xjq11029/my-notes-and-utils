@@ -25,6 +25,8 @@
 
 ### 2.1 浏览器事件循环（Event Loop）
 
+> **本主题权威章节**（其他模块的同主题内容均指向此处）。
+
 JavaScript 是单线程语言，但能处理异步操作，靠的就是事件循环机制。
 
 **两个核心队列：**
@@ -669,6 +671,14 @@ A：XSS 是攻击者将恶意脚本注入页面，在用户浏览器执行，目
 - [ ] 理解 CSRF 原理和防御措施，尤其是 SameSite Cookie
 - [ ] 知道点击劫持的原理和防御方法
 - [ ] 能正确配置 CSP 头来限制资源加载来源
+- [ ] 会用 `navigator.storage.estimate()` 查询用量与配额，理解它为什么只是估计值
+- [ ] 理解 `navigator.storage.persist()` 的作用与各浏览器的授权策略
+- [ ] 能说出各存储方案的容量量级，以及淘汰策略的粒度与 LRU 依据
+- [ ] 会处理 `QuotaExceededError`（localStorage 同步抛出、IndexedDB 事务 abort）
+- [ ] 能说清 IndexedDB 三种事务模式与事务自动提交的时机
+- [ ] 会建索引、用游标与 `IDBKeyRange` 做范围查询，并知道 `continue()` 的必要性
+- [ ] 会写版本升级逻辑（`onupgradeneeded` 增量迁移）并处理多标签页 `onblocked`
+- [ ] 能对比 IndexedDB 与 localStorage 的选型依据
 
 ---
 
@@ -1067,3 +1077,432 @@ ws.onmessage = (event) => {
 | 生产环境使用 ws:// | 数据明文传输，存在中间人攻击风险 | 使用非加密协议 | 生产环境必须使用 `wss://` |
 | 未处理服务端主动关闭 | 客户端仍尝试发送消息，但连接已断开 | 未监听 `onclose` 或未正确处理关闭码 | 在 `onclose` 中根据 `event.code` 判断是否需要重连 |
 | 消息量大时未压缩 | 带宽占用高，延迟增加 | 未对消息体进行压缩 | 对大型消息体使用压缩算法（如 per-message-deflate 扩展），或使用二进制格式代替 JSON |
+
+---
+
+## 补充：存储配额与持久化
+
+### 1. 概念定义
+
+- **配额（quota）**：浏览器为每个源（origin）分配的存储额度上限。
+- **用量（usage）**：当前源已经占用的字节数。
+- **持久化存储（persistent storage）**：一种「不会被浏览器在磁盘压力下自动清理」的存储状态，通过 `navigator.storage.persist()` 申请。
+- **淘汰（eviction）**：磁盘空间紧张时，浏览器清理某些源的全部本地数据的行为。
+- **QuotaExceededError**：写入超出配额时抛出的 `DOMException`。
+
+同一个源下的 localStorage、sessionStorage、IndexedDB、Cache Storage、OPFS 共享**同一个配额池**。
+
+### 2. 底层原理
+
+- **`navigator.storage.estimate()`**：返回 `Promise<{ quota, usage, usageDetails? }>`，`usage` 为已用字节数、`quota` 为可用上限的估计值。为了防止通过存储数值做指纹追踪，浏览器会对结果**取整/桶化**（Chrome 会归整到较大的粒度），所以它只是估计值，不能用来做精确的容量判断。部分浏览器（如 Chrome）还会额外提供 `usageDetails`。
+- **`navigator.storage.persist()` / `persisted()`**：前者申请持久化并返回 `Promise<boolean>`，后者查询当前状态。授权策略由浏览器决定：Chrome 依据站点参与度、是否安装为 PWA、是否有通知权限等启发式规则**自动授予**（不弹窗）；Firefox 会**弹窗询问用户**；Safari 有自己的规则。持久化的唯一意义就是**免于被 eviction 清理**。
+- **淘汰策略**：默认的 best-effort 存储会在磁盘压力下被清理，清理粒度是**整个源**（要么全部保留、要么全部清除），选择依据是 **LRU（Least Recently Used，最久未使用的源优先被清）**。所以「用户数据只存在浏览器里」是不可靠的。
+- **Safari 的额外限制（ITP）**：对脚本可写入的存储（localStorage、IndexedDB、Cache 等）实施 7 天无交互清理（Safari 13.1+ 引入，后续版本有调整）。
+- **配额上限量级**（各浏览器数值随版本调整，这里只给量级与相对关系，精确值以 MDN 与浏览器官方文档为准）：
+
+| 存储 | 容量量级 | 说明 |
+|------|---------|------|
+| Cookie | 单条约 4KB，单域名数量有限（几十个） | 每次请求自动携带，只适合存会话标识 |
+| localStorage / sessionStorage | 约 5MB / 源 | 同步 API，只存字符串 |
+| IndexedDB / Cache Storage / OPFS | 共享源配额 | Chrome 全浏览器池约为磁盘的 80%、单源约为磁盘的 60%；Firefox 单组（eTLD+1）约为磁盘的 10%、全局约 50%；Safari 初始约 1GB，超出后需用户授权 |
+
+- **QuotaExceededError 的表现形式**：
+  - `localStorage.setItem` **同步抛出** `DOMException`（`name === "QuotaExceededError"`，`code === 22`）；
+  - IndexedDB 的写入超限会让**事务被 abort**，请求的 `error` 是 `QuotaExceededError`；
+  - Cache API / OPFS 写入同样会抛出该错误；
+  - Safari 无痕模式下 localStorage 配额为 0，`setItem` 会直接抛 `QuotaExceededError`。
+
+### 3. 代码示例
+
+```javascript
+// ========== 1. 查询用量与配额 ==========
+async function reportStorage() {
+  // 注意：StorageManager 只在安全上下文（HTTPS / localhost）可用
+  if (!navigator.storage?.estimate) {
+    console.warn("当前浏览器不支持 StorageManager.estimate()");
+    return;
+  }
+
+  const { quota = 0, usage = 0 } = await navigator.storage.estimate();
+  const usedMB = (usage / 1024 / 1024).toFixed(2);
+  const quotaGB = (quota / 1024 / 1024 / 1024).toFixed(2);
+  const percent = quota ? ((usage / quota) * 100).toFixed(2) : "0.00";
+  console.log(`已用 ${usedMB} MB / 配额约 ${quotaGB} GB（${percent}%）`);
+
+  // 结果被浏览器取整过，只能当量级参考
+}
+
+reportStorage();
+```
+
+```javascript
+// ========== 2. 申请持久化存储 ==========
+async function ensurePersistent() {
+  if (!navigator.storage?.persist) return false;
+
+  // 先看是否已经是持久化状态
+  if (await navigator.storage.persisted()) {
+    console.log("已经是持久化存储");
+    return true;
+  }
+
+  // Chrome 按启发式规则直接给出结果（不弹窗）；Firefox 会弹窗询问用户
+  const granted = await navigator.storage.persist();
+  console.log(
+    granted
+      ? "已获得持久化存储，磁盘压力下不会被自动清理"
+      : "仍是 best-effort 存储，磁盘紧张时可能被整体清理",
+  );
+  return granted;
+}
+
+// 典型调用时机：用户开启"离线可用"、导入重要数据之后
+document.querySelector("#enable-offline")?.addEventListener("click", ensurePersistent);
+```
+
+```javascript
+// ========== 3. localStorage 超限处理 ==========
+function safeSetItem(key, value) {
+  try {
+    localStorage.setItem(key, value);
+    return true;
+  } catch (err) {
+    // 配额超限、Safari 无痕模式（配额为 0）都会走到这里
+    if (err instanceof DOMException && (err.name === "QuotaExceededError" || err.code === 22)) {
+      // 策略一：清掉过期 / 低优先级的缓存后重试
+      clearLowPriorityCache();
+      try {
+        localStorage.setItem(key, value);
+        return true;
+      } catch {
+        // 策略二：降级，只保留必要的元数据，其余走内存
+        console.warn("本地存储已满，本次写入被丢弃");
+        return false;
+      }
+    }
+    throw err; // 其它错误（如禁用存储）继续抛出
+  }
+}
+```
+
+```javascript
+// ========== 4. IndexedDB 写入超限：事务被 abort ==========
+const tx = db.transaction("blobs", "readwrite");
+tx.objectStore("blobs").put(largeBlob);
+
+tx.onabort = () => {
+  const err = tx.error;
+  if (err?.name === "QuotaExceededError") {
+    console.error("磁盘配额不足，写入已中止，请清理旧数据或申请持久化存储");
+  }
+};
+
+tx.oncomplete = () => console.log("写入成功");
+```
+
+```javascript
+// ========== 5. 用"失败驱动"替代"容量预判" ==========
+// 不推荐：用 estimate() 判断"还能不能写"——quota 会随磁盘剩余空间变化，判断不可靠
+// 推荐：直接写，失败后再降级，并给出用户可理解的提示
+async function saveDraft(draft) {
+  try {
+    await idbPut("drafts", draft);
+  } catch (err) {
+    if (err?.name === "QuotaExceededError") {
+      await navigator.storage.persist(); // 尝试申请持久化
+      await cleanupOldDrafts();          // 清理最旧的草稿
+      await idbPut("drafts", draft);     // 重试一次
+    } else {
+      throw err;
+    }
+  }
+}
+```
+
+### 4. 面试常见问法
+
+- **Q1：怎么查询当前源的存储用量和配额？**
+  A：`await navigator.storage.estimate()` 返回 `{ quota, usage }`。它是估计值（浏览器为防指纹会取整），且只在安全上下文可用，不能用来做精确的容量判断。
+
+- **Q2：`persist()` 有什么作用？浏览器怎么决定给不给？**
+  A：申请「持久化存储」，被授予后数据不会被浏览器在磁盘压力下自动清理。Chrome 按站点参与度、PWA 安装状态、通知权限等启发式规则自动授予；Firefox 会弹窗询问用户。
+
+- **Q3：浏览器在磁盘紧张时会怎么清理数据？粒度是什么？**
+  A：清理 best-effort 存储，粒度是**整个源**（全留或全清），按 LRU 选择最久未使用的源。Safari 还对脚本可写存储有 7 天无交互清理。因此关键数据必须同步到服务端。
+
+- **Q4：localStorage 满了会怎样？怎么处理？**
+  A：`setItem` 会同步抛出 `QuotaExceededError`。处理方式是 try/catch 后清理低优先级缓存并重试，仍失败则降级（内存兜底或提示用户），同时考虑申请 `persist()`。
+
+- **Q5：各存储方案的容量上限分别是什么量级？**
+  A：Cookie 单条约 4KB、单域名几十个；localStorage / sessionStorage 约 5MB 每源；IndexedDB、Cache Storage、OPFS 共享源配额（Chrome 单源约为磁盘的 60%，Firefox 单组约 10%，Safari 初始约 1GB 后需授权）。
+
+- **Q6：为什么说 estimate() 的返回值是「估计值」？**
+  A：浏览器为了防指纹追踪会对数值做取整/桶化，同时 `quota` 会随磁盘剩余空间动态变化，所以只能当量级参考。
+
+### 5. 易错点
+
+| 易错点 | 现象 | 原因 | 解决方案 |
+|--------|------|------|----------|
+| 把 `estimate()` 的数值当精确值 | 容量判断出错 | 浏览器为防指纹会取整，`quota` 还会动态变化 | 只当量级参考，用「写入失败再降级」的失败驱动策略 |
+| 以为 localStorage 一定不会丢 | 用户数据莫名消失 | best-effort 存储会被 LRU 淘汰，Safari 还有 7 天无交互清理 | 关键数据同步到服务端；必要时申请 `persist()` |
+| 只给 localStorage 加 try/catch | IndexedDB / Cache 写入失败无人处理 | IDB 的超限表现为事务 abort | 监听 `transaction.onabort` 与 `request.onerror` |
+| 在 Safari 无痕模式依赖 localStorage | `setItem` 直接抛 `QuotaExceededError` | 无痕模式下配额为 0 | 用内存兜底或直接降级提示 |
+| 期望 `persist()` 一定返回 true | 忽略返回值，逻辑假设数据安全 | 授权由浏览器启发式规则决定，可能被拒 | 无论结果如何都要有降级方案 |
+| 用 localStorage 存大文件 | 直接超限 | 单源仅约 5MB | 大文件用 IndexedDB / Cache Storage / OPFS |
+| 淘汰粒度理解错 | 以为"只会清掉旧记录" | 淘汰以整个源为单位 | 把关键数据放服务端，本地只放可重建的缓存 |
+| 在非安全上下文调用 StorageManager | API 不存在 | 需要 HTTPS 或 localhost | 做能力检测并降级 |
+
+---
+
+## 补充：IndexedDB 事务与索引
+
+### 1. 概念定义
+
+- **对象仓库（object store）**：IndexedDB 中存放记录的容器，类似关系库里的「表」。
+- **事务（transaction）**：一组原子操作，三种模式 `readonly` / `readwrite` / `versionchange`。
+- **索引（index）**：按某个属性排序的辅助查找结构，用于按非主键字段查询与排序。
+- **游标（cursor）**：逐条遍历记录或索引项的迭代器。
+- **版本升级（`onupgradeneeded`）**：数据库结构变更的唯一入口。
+
+### 2. 底层原理
+
+**三种事务模式：**
+
+| 模式 | 能力 | 并发行为 |
+|------|------|---------|
+| `readonly` | 只读 | 多个只读事务可以并发执行 |
+| `readwrite` | 读写 | **同一对象仓库上的写事务会被串行化**，长事务会阻塞其他写入 |
+| `versionchange` | 建 / 删对象仓库与索引 | 由「以更高版本号调用 `indexedDB.open()`」自动触发，期间不允许其他事务并发 |
+
+**事务的生命周期（最容易踩坑的地方）：** 事务是**自动提交**的——当所有请求都完成、且「当前任务及其微任务」结束时没有新的请求入队，事务就提交并触发 `oncomplete`。关键推论：**在事务中 `await` 一个非 IndexedDB 的 Promise（如 `fetch`）之后，事务已经失活**，再用它就会抛 `TransactionInactiveError`。
+
+**请求与事件：** `get` / `add` / `put` / `delete` / `count` / `getAll` / `openCursor` 都返回 `IDBRequest`，结果通过 `onsuccess` / `onerror` 事件返回；事务本身有 `oncomplete` / `onerror` / `onabort`。事务内的请求按入队顺序串行执行。**请求成功不等于事务提交成功**，必须等 `oncomplete`。
+
+**键与索引：**
+
+- 内联键：`createObjectStore(name, { keyPath: "id" })`；外联键：`add(value, key)`；`autoIncrement: true` 在键缺失时生成递增键（若同时指定 `keyPath`，生成的键会写回对象）。
+- `createIndex(name, keyPath, { unique, multiEntry })`：`unique: true` 在键重复时抛 `ConstraintError`；`multiEntry: true` 会把数组值的每个元素各建一条索引项。
+
+**游标与范围：** `openCursor(range, direction)` 逐条遍历、`openKeyCursor` 只取键（更省内存）；`IDBKeyRange.only / bound / lowerBound / upperBound` 限定范围；direction 有 `next` / `nextunique` / `prev` / `prevunique`；游标上可 `update()` / `delete()`（需要 `readwrite` 事务），且**必须调用 `continue()` 才会推进**。
+
+**版本升级与多标签页：** 升级期间其他标签页的旧连接会收到 `versionchange` 事件，应在其中 `db.close()`；否则新页面会一直停在 `onblocked`。用 `open()` 打开一个低于当前版本的库会抛 `VersionError`。
+
+**与 localStorage 的选型对比：**
+
+| 维度 | localStorage | IndexedDB |
+|------|-------------|-----------|
+| API 形态 | 同步、字符串键值 | 异步、事件驱动（可用 `idb` 等库 Promise 化） |
+| 数据类型 | 仅字符串（对象需 JSON 序列化） | 结构化克隆支持的类型（对象、数组、`Date`、`RegExp`、`Blob`、`File`、`ArrayBuffer`、TypedArray、`Map`、`Set` 等） |
+| 容量 | 约 5MB | 共享源配额，量级远大于 5MB |
+| 事务 | 无 | 支持事务、索引、游标 |
+| 阻塞主线程 | 会（同步 API） | 不会（异步） |
+| 适用 | 少量配置、开关、主题 | 大量结构化数据、离线缓存、需要索引查询的场景 |
+
+### 3. 代码示例
+
+```javascript
+// ========== 1. 打开数据库 + 版本升级 ==========
+const DB_NAME = "notes";
+const DB_VERSION = 2;
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+    // 只有"数据库不存在"或"版本号高于当前"时才会触发
+    request.onupgradeneeded = (event) => {
+      const db = request.result;
+      const tx = request.transaction; // 这是一个 versionchange 事务
+      // event.oldVersion === 0 表示数据库是新建的
+
+      if (event.oldVersion < 1) {
+        // keyPath：用对象的 id 属性作主键；autoIncrement：缺失时自动生成
+        const store = db.createObjectStore("notes", { keyPath: "id", autoIncrement: true });
+        store.createIndex("by_tag", "tag", { unique: false });
+        store.createIndex("by_updated", "updatedAt", { unique: false });
+      }
+
+      if (event.oldVersion < 2) {
+        // 增量迁移：老库补建索引，不重建已有数据
+        tx.objectStore("notes").createIndex("by_title", "title", { unique: false });
+      }
+
+      console.log(`数据库已升级：${event.oldVersion} → ${event.newVersion}`);
+    };
+
+    request.onsuccess = () => {
+      const db = request.result;
+      // 其它标签页发起升级时，本连接必须让路，否则对方会一直 blocked
+      db.onversionchange = () => {
+        db.close();
+        console.warn("数据库已被其它标签页升级，当前连接已关闭，请刷新页面");
+      };
+      resolve(db);
+    };
+
+    request.onerror = () => reject(request.error);
+    request.onblocked = () => console.warn("升级被其它标签页的连接阻塞");
+  });
+}
+```
+
+```javascript
+// ========== 2. 事务的三种模式 ==========
+const db = await openDB();
+
+// readonly（默认）：只读，多个只读事务可并发
+const readTx = db.transaction(["notes"], "readonly");
+readTx.objectStore("notes").get(1);
+
+// readwrite：同一仓库上的写事务会被串行化，应尽量缩短事务时长
+const writeTx = db.transaction(["notes"], "readwrite");
+writeTx.objectStore("notes").put({ id: 1, title: "今天", tag: "life", updatedAt: Date.now() });
+
+// versionchange：只在版本升级流程中获得，用来建 / 删仓库与索引，
+// 一般不需要手动创建
+```
+
+```javascript
+// ========== 3. Promise 封装：注意事务的生命周期 ==========
+function requestToPromise(request) {
+  return new Promise((resolve, reject) => {
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+function txDone(tx) {
+  return new Promise((resolve, reject) => {
+    tx.oncomplete = () => resolve(); // 以 oncomplete 为准
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error);
+  });
+}
+
+// ✅ 正确：事务内的请求一次性入队，然后等事务完成
+async function addNote(note) {
+  const db = await openDB();
+  const tx = db.transaction("notes", "readwrite");
+  const store = tx.objectStore("notes");
+  store.add(note);  // 请求入队
+  store.count();    // 同一事务内继续入队
+  await txDone(tx); // 等 oncomplete 才算真正写入
+}
+
+// ❌ 错误：在事务中 await 非 IndexedDB 的 Promise，事务会先自动提交
+async function addNoteWrong(note) {
+  const db = await openDB();
+  const tx = db.transaction("notes", "readwrite");
+  const store = tx.objectStore("notes");
+  await fetch("/api/validate", { method: "POST", body: JSON.stringify(note) }); // 事务在这里已失活
+  store.add(note); // 💥 TransactionInactiveError
+}
+```
+
+```javascript
+// ========== 4. 索引查询：getAll 与游标两种写法 ==========
+async function queryByTag(tag) {
+  const db = await openDB();
+  const tx = db.transaction("notes", "readonly");
+  const index = tx.objectStore("notes").index("by_tag");
+
+  // 方式一：索引 + getAll（一次性取回，适合结果集不大）
+  return requestToPromise(index.getAll(IDBKeyRange.only(tag)));
+
+  // 方式二：索引 + 游标（逐条处理，内存友好）
+  // return new Promise((resolve, reject) => {
+  //   const result = [];
+  //   const cursorReq = index.openCursor(IDBKeyRange.only(tag), "next");
+  //   cursorReq.onsuccess = () => {
+  //     const cursor = cursorReq.result;
+  //     if (!cursor) return resolve(result); // 游标走完时 result 为 null
+  //     result.push(cursor.value);
+  //     cursor.continue();                   // 必须调用，否则只拿到第一条
+  //   };
+  //   cursorReq.onerror = () => reject(cursorReq.error);
+  // });
+}
+```
+
+```javascript
+// ========== 5. 范围查询与倒序取最近数据 ==========
+const range = IDBKeyRange.bound(100, 200);         // 闭区间 [100, 200]
+const only = IDBKeyRange.only("life");             // 等于
+const upper = IDBKeyRange.upperBound(200, true);   // 小于 200（true 表示排除边界）
+const lower = IDBKeyRange.lowerBound(100);         // 大于等于 100
+
+// 按更新时间索引倒序取最近 20 条
+async function latestNotes(limit = 20) {
+  const db = await openDB();
+  const tx = db.transaction("notes", "readonly");
+  const index = tx.objectStore("notes").index("by_updated");
+
+  return new Promise((resolve, reject) => {
+    const result = [];
+    const req = index.openCursor(null, "prev"); // null 表示全范围
+    req.onsuccess = () => {
+      const cursor = req.result;
+      if (!cursor || result.length >= limit) return resolve(result);
+      result.push(cursor.value);
+      cursor.continue();
+    };
+    req.onerror = () => reject(req.error);
+  });
+}
+```
+
+```javascript
+// ========== 6. add / put 的差异与常见错误码 ==========
+async function addUnique(store, value) {
+  return new Promise((resolve, reject) => {
+    const req = store.add(value); // add：主键已存在时报错；put：覆盖
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => {
+      const name = req.error?.name;
+      if (name === "ConstraintError") {
+        reject(new Error("主键或唯一索引冲突"));
+      } else if (name === "DataCloneError") {
+        reject(new Error("值无法被结构化克隆（例如包含了函数）"));
+      } else {
+        reject(req.error);
+      }
+    };
+  });
+}
+```
+
+### 4. 面试常见问法
+
+- **Q1：IndexedDB 事务有哪三种模式？分别用在什么场景？**
+  A：`readonly` 只读，可并发，用于查询；`readwrite` 读写，同一仓库上的写事务串行化，用于增删改；`versionchange` 由版本升级自动触发，用于创建/删除对象仓库与索引，期间不允许其他事务并发。
+
+- **Q2：事务什么时候提交？为什么 `await fetch()` 之后再用事务会报 `TransactionInactiveError`？**
+  A：事务在所有请求完成、且当前任务及其微任务结束时没有新请求入队就自动提交。`await fetch()` 会让出到宏任务，事务在此之前已提交并失活。正确做法是先把需要的数据取出来，再开新事务写入。
+
+- **Q3：索引和游标分别解决什么问题？**
+  A：索引让非主键字段的查询与排序变快（`createIndex`）；游标用于逐条遍历，内存友好，适合大结果集。`multiEntry` 支持数组值多键索引，`unique` 保证唯一性。
+
+- **Q4：版本升级怎么处理？多标签页同时打开时会怎样？**
+  A：在 `onupgradeneeded` 中做结构变更（建/删仓库与索引），用 `event.oldVersion` 做增量迁移；其他标签页的旧连接会收到 `versionchange` 事件，必须在其中 `db.close()`，否则新页面会停在 `onblocked`。
+
+- **Q5：IndexedDB 和 localStorage 怎么选？**
+  A：少量字符串配置用 localStorage（同步、简单）；大量结构化数据、需要索引查询、需要存二进制或不想阻塞主线程时用 IndexedDB。
+
+- **Q6：游标为什么必须调用 `continue()`？**
+  A：游标是手动推进的迭代器，处理完当前记录后必须调用 `continue()`（或 `advance()`）才会移到下一条，否则只会处理第一条就结束。
+
+### 5. 易错点
+
+| 易错点 | 现象 | 原因 | 解决方案 |
+|--------|------|------|----------|
+| 在事务中 `await` 非 IDB Promise | `TransactionInactiveError` | 事务在当前任务与微任务结束后自动提交 | 先取出所需数据，再开新事务写入；或拆成两个事务 |
+| 忘记 `cursor.continue()` | 只拿到第一条数据 | 游标需要手动推进 | 处理完当前项后调用 `continue()` / `advance()` |
+| 用 `add` 更新已有数据 | `ConstraintError` | `add` 在键冲突时报错 | 新增用 `add`，更新用 `put` |
+| 升级时其它标签页占用连接 | 新页面卡在 `onblocked` | 旧连接未关闭 | 在 `db.onversionchange` 中 `db.close()` |
+| 用 `open()` 打开低于当前版本的库 | `VersionError` | 版本号只能升不能降 | 统一维护版本常量；需要降级时先 `deleteDatabase` |
+| 在 `onupgradeneeded` 里做耗时操作 | 其它标签页被长时间阻塞 | versionchange 事务期间不允许并发事务 | 升级只做结构变更，数据迁移分批执行 |
+| 用 `getAll` 取超大结果集 | 内存峰值高、页面卡顿 | 结果集全部驻留内存 | 改用游标分批处理 |
+| 在 `readwrite` 事务里做重计算 | 其它写事务被阻塞 | 同一仓库的写事务串行化 | 缩短事务时长，把计算移到事务外 |
+| 存入函数 / DOM 节点 | `DataCloneError` | 只能存结构化克隆支持的类型 | 只存可序列化的数据（含 `Map` / `Set` / `Blob` / `ArrayBuffer` 等） |
+| 只看请求成功不看事务完成 | 以为写入成功其实被回滚 | 请求成功 ≠ 事务提交成功 | 以 `transaction.oncomplete` 为成功标志 |
+| 用内联键却额外传 key | `DataError` | `keyPath` 与显式 key 冲突 | 内联键与 `add(value, key)` 不要混用 |

@@ -324,6 +324,155 @@ spec:
 - readinessProbe 检查依赖服务是否可用（如数据库连接）
 - 给 livenessProbe 设置较长的 initialDelaySeconds，避免启动过程中被误杀
 
+### 3.4 CI/CD 流水线集成
+
+前面 3.1~3.3 讲的是"手工 `kubectl apply`"的部署方式，真实项目里从代码提交到 Pod 上线全流程应由 CI/CD 流水线自动完成：**提交代码 → 跑测试 → 构建镜像 → 推送镜像仓库 → 更新 Deployment → 验证滚动更新**。
+
+> **生活化类比：CI/CD 流水线 = 餐厅的中央厨房** —— 厨师长（开发者）把菜谱（代码）交给中央厨房（流水线），厨房不会直接端给客人，而是先按标准流程走一遍：验货（拉取代码）、试吃（自动化测试）、统一封装（构建镜像）、贴标签入库（推送镜像仓库，标签就是"生产批次号"）、再由配送员送到各门店（K8s 集群）按批次逐步替换旧菜（滚动更新）。如果哪一批菜口味不对（新版本异常），门店可以立刻换回上一批（`rollout undo`）。关键点在于：**门店（生产集群）永远不自己炒菜（不在生产机上编译）**，只接收标准化的成品（镜像），这样才能保证"我本地能跑"和"线上能跑"是同一份东西。
+
+**GitLab CI 与 Jenkins 对比：**
+
+| 维度 | GitLab CI（主线） | Jenkins |
+|------|------------------|---------|
+| 配置方式 | 仓库内 `.gitlab-ci.yml`，与代码同版本管理 | Jenkinsfile（流水线即代码）或 Web UI 配置 |
+| 执行器 | GitLab Runner（Docker/Shell/K8s Executor） | Master + Agent 节点，插件生态丰富 |
+| 与仓库集成 | 原生集成，提交/MR/标签自动触发 | 需配置 Webhook 触发 |
+| 密钥管理 | 项目级 CI/CD Variables（可设为 Masked/Protected） | Credentials 插件 + 凭据绑定 |
+| 维护成本 | SaaS 或自建，运维负担低 | 插件与版本升级维护成本高 |
+| 适用场景 | 代码托管在 GitLab 的团队，开箱即用 | 异构仓库（SVN/GitHub/多平台）或需要复杂自定义流程 |
+
+**完整流水线示例（`.gitlab-ci.yml`）：**
+
+```yaml
+stages: [test, build, deploy]
+
+variables:
+  IMAGE: registry.example.com/order-service
+  # 镜像标签策略：用 commit 短 SHA，天然唯一且可追溯到具体提交
+  TAG: $CI_COMMIT_SHORT_SHA
+
+# 阶段一：自动化测试与质量门禁
+unit-test:
+  stage: test
+  image: maven:3.9-eclipse-temurin-17
+  script:
+    - mvn -B clean verify          # 执行单测 + 集成测试，失败即中断流水线
+  artifacts:
+    reports:
+      junit: target/surefire-reports/TEST-*.xml
+
+# 阶段二：构建并推送镜像（Dockerfile 与流水线的衔接点）
+build-image:
+  stage: build
+  image: docker:24
+  services: [docker:24-dind]
+  script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" registry.example.com
+    - docker build -t "$IMAGE:$TAG" -t "$IMAGE:$CI_COMMIT_REF_SLUG" .
+    - docker push "$IMAGE:$TAG"
+    - docker push "$IMAGE:$CI_COMMIT_REF_SLUG"
+
+# 阶段三：滚动发布到 K8s
+deploy-prod:
+  stage: deploy
+  image: bitnami/kubectl:1.29
+  environment:
+    name: prod
+  rules:
+    - if: '$CI_COMMIT_TAG'        # 仅打 tag 时才发布生产
+  script:
+    - kubectl config use-context prod-cluster
+    - kubectl set image deployment/order-service order-service="$IMAGE:$TAG"
+    - kubectl rollout status deployment/order-service --timeout=120s
+```
+
+**Dockerfile 与流水线的衔接：**
+
+| 衔接点 | 做法 | 目的 |
+|--------|------|------|
+| 构建上下文 | 流水线中 `docker build` 的上下文就是仓库根目录 | Dockerfile 里的 `COPY pom.xml` / `COPY src` 才能命中，配合 `.dockerignore` 排除 target、.git |
+| 构建阶段划分 | 用多阶段构建，编译在 `maven` 镜像里完成 | 流水线节点无需预装 JDK/Maven，构建环境与本地一致 |
+| 跳过测试的位置 | Dockerfile 内 `mvn package -DskipTests` | 测试已在流水线 test 阶段执行，镜像内不重复跑，避免双重耗时 |
+| 缓存复用 | 先 `COPY pom.xml` 再 `COPY src` | 依赖不变时复用层缓存，构建耗时从数分钟降到数十秒 |
+| 版本注入 | `--build-arg VERSION=$TAG` 或构建时写入 build-info | 镜像内可查询构建来源，便于回溯问题版本 |
+
+**镜像标签策略（避免 `latest`）：**
+
+| 策略 | 示例 | 特点 |
+|------|------|------|
+| Git commit 短 SHA | `order-service:a1b2c3d` | 唯一、可追溯到提交，回滚时明确知道回到哪个版本（推荐） |
+| 语义化版本 | `order-service:1.4.2` | 可读性好，适合正式发布，需配合 tag 触发 |
+| 分支名 + 构建号 | `order-service:main-137` | 适合 dev/test 环境持续集成 |
+| 环境后缀 | `order-service:1.4.2-prod` | 便于区分同一版本在不同环境的镜像 |
+| `latest` | `order-service:latest` | **禁用**：内容随构建漂移，无法复现、无法精确回滚 |
+
+> **为什么必须禁用 `latest`**：Deployment 里写 `latest` 时，`imagePullPolicy` 默认会退化为 `Always`，每次重启都去拉一次镜像；更糟的是同一个 `latest` 在不同时间指向不同内容，"回滚"时拉到的可能还是最新版本，导致回滚失效、问题无法复现。标签一旦不可变，`kubectl rollout undo` 才有意义。
+
+**多环境（dev / test / prod）配置隔离：**
+
+| 隔离维度 | 做法 |
+|----------|------|
+| 命名空间 | 每个环境一个 Namespace（`dev` / `test` / `prod`），资源互不干扰 |
+| 配置文件 | 按环境拆分 Kustomize overlay（`overlays/dev`、`overlays/prod`）或 Helm values 文件 |
+| 非敏感配置 | 各环境独立的 ConfigMap，如日志级别、线程池大小、下游地址 |
+| 敏感配置 | 各环境独立的 Secret，绝不提交到 Git，由流水线从 CI 变量注入 |
+| 镜像来源 | 同一镜像（同一 commit SHA）逐级晋级：dev 验证通过后才 promote 到 prod，保证"测过的就是上的" |
+| 资源规格 | dev 用小 requests/limits 与 1 副本，prod 用 3 副本 + 反亲和性 + HPA |
+| 发布触发 | dev 每次提交自动发布，test 合并到 release 分支触发，prod 打 tag 且需人工审批 |
+
+**流水线中的自动化测试与质量门禁：**
+
+| 门禁 | 检查内容 | 失败后果 |
+|------|---------|---------|
+| 单元测试 | `mvn verify`，覆盖率低于阈值（如 60%）则失败 | 中断流水线，不进入构建阶段 |
+| 静态扫描 | SonarQube / SpotBugs 检查严重缺陷、代码重复率 | 严重级别问题阻塞合并 |
+| 依赖漏洞扫描 | OWASP Dependency-Check / Trivy 扫描依赖与镜像 | 高危漏洞禁止推送生产镜像 |
+| 镜像扫描 | 扫描基础镜像 CVE 与是否以 root 运行 | 阻断发布 |
+| 冒烟测试 | 发布后在 dev/test 环境跑核心接口用例 | 失败立即回滚 |
+
+**kubectl 滚动更新与回滚：**
+
+```bash
+# 触发滚动更新（只改镜像，其余 spec 不动，触发一次新的 revision）
+kubectl set image deployment/order-service order-service=registry.example.com/order-service:a1b2c3d
+
+# 观察滚动更新进度（阻塞直到完成或超时）
+kubectl rollout status deployment/order-service --timeout=120s
+
+# 查看历史版本（CHANGE-CAUSE 需在 apply 时加 --record 或写注解）
+kubectl rollout history deployment/order-service
+
+# 回滚到上一版本
+kubectl rollout undo deployment/order-service
+
+# 回滚到指定版本（先 history 确认序号）
+kubectl rollout undo deployment/order-service --to-revision=3
+
+# 暂停/恢复滚动更新（灰度时先暂停，验证后再继续）
+kubectl rollout pause deployment/order-service
+kubectl rollout resume deployment/order-service
+```
+
+> 回滚能成功的前提是**历史 ReplicaSet 还在**。`revisionHistoryLimit` 默认保留 10 个，若设得过小，久一点的问题版本就回不去了；同时 Deployment 的 Pod 模板一旦被大幅改动（如改 selector），旧 ReplicaSet 可能已不可用，回滚前务必用 `rollout history` 确认目标 revision。
+
+**流水线中的密钥管理：**
+
+| 方式 | 适用场景 | 要点 |
+|------|---------|------|
+| CI/CD Variables | 镜像仓库密码、集群 kubeconfig | 开启 Masked 防止日志泄露，Protected 限制只在受保护分支可用 |
+| K8s Secret | 应用运行期需要的数据库密码、API Key | 用 `kubectl create secret generic` 创建，Deployment 通过 `envFrom`/volume 引用，**不要写进 YAML 提交仓库** |
+| 外部密钥管理 | 合规要求高的生产环境 | 对接 Vault / 云厂商 KMS，用 External Secrets Operator 同步为 K8s Secret |
+| 集群凭据 | 流水线部署权限 | 为流水线单独建 ServiceAccount，按 Namespace 授予最小 RBAC 权限，避免使用集群管理员 kubeconfig |
+
+> **生活化类比：密钥管理 = 保险柜钥匙分级保管** —— 镜像仓库密码、数据库密码、集群凭据是三把不同的钥匙，绝不该写在纸条上贴门口（硬编码在 YAML）。正确做法是把它们放进保险柜（CI Variables / Secret），谁需要哪把就按最小权限单独授权（RBAC），并且用外部托管保险柜（Vault）定期换锁。日志是"公共走廊的监控录像"，所以密钥必须开启 Masked——不然等于把钥匙照片挂在走廊里。
+
+> 📖 **参考链接**：
+> - [Kubernetes 官方文档 - 滚动更新 Deployment](https://kubernetes.io/zh-cn/docs/concepts/workloads/controllers/deployment/#rolling-update-deployment) -- 滚动更新与回滚机制官方说明
+> - [Kubernetes 官方文档 - kubectl rollout](https://kubernetes.io/zh-cn/docs/reference/kubectl/generated/kubectl_rollout/) -- rollout status/history/undo/pause 命令参考
+> - [Kubernetes 官方文档 - Secret](https://kubernetes.io/zh-cn/docs/concepts/configuration/secret/) -- Secret 创建、挂载与安全最佳实践
+> - [Kubernetes 官方文档 - 为 Pod 配置服务账号](https://kubernetes.io/zh-cn/docs/tasks/configure-pod-container/configure-service-account/) -- ServiceAccount 与最小权限 RBAC
+> - [GitLab 官方文档 - CI/CD YAML 语法](https://docs.gitlab.com/ee/ci/yaml/) -- `.gitlab-ci.yml` 完整语法（stages/rules/artifacts/environment）
+
 ---
 
 ## 四、常见面试题

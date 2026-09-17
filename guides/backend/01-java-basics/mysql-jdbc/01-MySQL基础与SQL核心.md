@@ -469,7 +469,7 @@ ALTER TABLE t_user DROP INDEX idx_status_age;
 | 联合索引 | `INDEX(a,b,c)` | 遵循最左前缀原则 |
 | 全文索引 | `FULLTEXT` | 用于文本搜索 |
 
-> 索引底层为 B+ 树，详细原理见 [06-MySQL深度优化](./06-MySQL深度优化.md)。
+> 索引底层为 B+ 树，详细原理见 [06-MySQL深度优化](../../03-distributed-microservices/mysql-advanced/06-MySQL深度优化.md)。
 
 ```mermaid
 %%{init: {'themeVariables': {'fontSize': '16px'}}}%%
@@ -730,5 +730,5 @@ WHERE o.id IS NULL;
 
 > **学习导航**：
 > - 返回 [学习路线总览](../../README.md)
-> - 本模块其他文件：[02-JDBC核心原理](./02-JDBC核心原理.md) | [03-MyBatis原生框架](./03-MyBatis原生框架.md) | [04-Spring-Data-JPA深度](./04-Spring-Data-JPA深度.md) | [05-MyBatis-Plus实战](./05-MyBatis-Plus实战.md) | [06-MySQL深度优化](./06-MySQL深度优化.md) | [07-数据库笔面试题集](./07-数据库笔面试题集.md)
+> - 本模块其他文件：[02-JDBC核心原理](./02-JDBC核心原理.md) | [03-MyBatis原生框架](../../02-javaweb-monolith/mybatis/03-MyBatis原生框架.md) | [04-Spring-Data-JPA深度](../../02-javaweb-monolith/mybatis/04-Spring-Data-JPA深度.md) | [05-MyBatis-Plus实战](../../02-javaweb-monolith/mybatis/05-MyBatis-Plus实战.md) | [06-MySQL深度优化](../../03-distributed-microservices/mysql-advanced/06-MySQL深度优化.md) | [07-数据库笔面试题集](../../03-distributed-microservices/mysql-advanced/07-数据库笔面试题集.md)
 > - 实战应用：[电商订单实时统计分析平台](../../extensions/project/01-电商订单实时统计分析平台.md)

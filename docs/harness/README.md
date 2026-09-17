@@ -10,19 +10,114 @@
 
 | 文件 | 类型 | 说明 |
 |---|---|---|
-| `agent-harness-deep-dive.html` | 主交付物 | 单页自包含深度讲解，约 2.8 万字 |
-| `code/minimal_harness.py` | 配套代码 | 可运行的最小 Harness 演示，约 720 行 |
+| `agent-harness-deep-dive.html` | 长文 · 精读版 | 单页自包含交互式深度讲解，约 3 万字，11 章（0–10）+ 附录 |
+| `harness-from-principle-to-codex.md` | 长文 · 纯文本版 | 同一主题的 Markdown 长文，约 1430 行，11 节 + 附录；含精读版未覆盖的章节 |
+| `code/minimal_harness.py` | 配套代码 | 可运行的最小 Harness 演示，约 720 行，仅依赖标准库 |
+| `images/fig1–fig5.{png,svg}` | 配图 | 纯文本版引用的 5 张图（PNG 2× 供 Markdown 引用，SVG 矢量供二次编辑） |
+| `README.md` / `AGENTS.md` | 说明 | 本文件（完整文档）与面向 Agent 的简版说明 |
 
-### `agent-harness-deep-dive.html`
+> 两篇长文**主题重叠但定位不同**，是互补而非重复冗余——分工见下节。
+
+---
+
+## 两篇长文的分工
+
+两篇长文都覆盖"底层思想 → 第一性原理 → Codex 实现 → 案例对比"这条主线，但**侧重与载体不同**，按用途分工使用。
+
+| 维度 | `agent-harness-deep-dive.html`（精读版） | `harness-from-principle-to-codex.md`（纯文本版） |
+|---|---|---|
+| 定位 | 完整通读、交互式阅读 | 检索、摘录、diff、迁移到其他笔记系统 |
+| 载体 | 单文件 HTML（离线可用），左侧目录滚动高亮、代码一键复制、源码细节可折叠 | 纯 Markdown，无脚本依赖，任何编辑器可读 |
+| 篇幅 | 约 3 万字；11 章（0–10）+ 附录 | 约 1430 行；11 节 + 附录 |
+| 独特章节 | 12 组件结构解剖（§3）、动手实现 v0–v5（§4，与演示脚本配套）、七个架构决策（§7）、模型与脚手架协同设计（§8） | 术语谱系与演进史（§3）、Inner/Outer Harness 视角（§7）、可操作结论六步（§9）、来源可信度分级（§11）、一页速记 |
+| 配图 | 9 张内联 SVG（内嵌，不依赖 `images/`） | 5 张外链图片（`images/`）+ 附录保留原始 SVG 源码 |
+| 适合 | 想从头读到尾、需要图表与交互 | 想搜关键词、摘录、做二次整理 |
+
+> **两篇共有的第 10 章「生产化纵深：从能跑到跑得稳」**（7 个子节：评测与回归 / 成本与预算 / 安全攻击面 / 故障恢复与事务 / 长时运行运维 / 合规与审计 / RL 闭环）是两者内容重叠的部分——它回答的是"harness 要长期跑在生产里还缺哪几块"，属于全篇共同结论，故两篇都写、且逐条对齐。
+
+**怎么选**：想完整通读、看图表与交互 → 打开 HTML；想搜索关键词、摘录或复制到别处 → 用 Markdown。
+
+**引用关系**：两者互相独立、可单独阅读；仅 Markdown 版引用 `images/` 目录（见其"本文图表索引"），HTML 版所有图示均为内联 SVG，不依赖外部图片。
+
+---
+
+## `agent-harness-deep-dive.html`（精读版）
 
 - **深色主题**，自包含单文件——无 CDN、无外部字体、无外部 JS，双击即可离线打开
 - 左侧固定目录，滚动自动高亮当前章节
-- 9 张手写内联 SVG 图示
-- 28 张对比表、39 段代码（含一键复制）
+- **9 张手写内联 SVG 图示**、**31 张对比表**、**41 段代码**（含一键复制）
 - 源码细节放在可折叠区块里，保持主线阅读流畅
 - 关键数据做了**来源分级标注**：厂商官方 / 两个独立来源互证 / 单一来源（需谨慎）/ 二手报道
 
-### `code/minimal_harness.py`
+### 章节组织
+
+写作上刻意避开"从组件清单讲起"的常见做法——那种写法读者记不住，因为不知道每个组件是被什么问题逼出来的。
+
+| 章节 | 内容 |
+|---|---|
+| 0 | 先澄清术语：Harness 指什么 |
+| 1 | 底层思想：一个类比就能讲通 |
+| 2 | 第一性原理：为什么 harness 必然存在 |
+| 3 | 结构解剖：生产级 Harness 的 12 个组件 |
+| 4 | 动手实现：从零写一个最小 Harness |
+| 5 | Codex 是怎么做的 |
+| 6 | 横向案例对比 |
+| 7 | 七个架构决策 |
+| 8 | 模型与脚手架的协同设计 |
+| 9 | 常见误区与未来走向 |
+| 10 | 生产化纵深：从能跑到跑得稳（七个子节：评测 / 成本 / 安全 / 恢复 / 运维 / 合规 / RL 闭环） |
+| 附录 A | 术语对照表、参考资料、准确性说明 |
+
+### 核心结论
+
+- **Agent = Model + Harness**。模型负责判断"下一步该做什么"，harness 负责决定"这一步如何落到真实世界，以及是否放行"。
+- 长周期任务必然带来五个问题：**上下文腐化、错误累积、跨会话失忆、权限越界、无法自验**。harness 的每个组件都是为对冲其中之一而存在。
+- **Codex 采用了这套思想，并把它作为核心工程方法论**（OpenAI 于 2026 年 2 月连发两篇官方文章）。
+- 但 harness 不是越厚越好，也不是某一家的最好：模型与脚手架是共同演化的，正确的比较单位永远是 **Model + Harness**，而不是单独的模型 ID。
+
+---
+
+## `harness-from-principle-to-codex.md`（纯文本版）
+
+Markdown 长文，便于检索、引用与版本对比。含精读版未覆盖的内容：
+
+| 节 | 内容 |
+|---|---|
+| 1 | 一句话结论 |
+| 2 | 底层思想：为什么 Harness 必然出现 |
+| 3 | **术语谱系：Harness 从哪里来**（8 小节，含演进时间轴） |
+| 4 | 原理：Harness 到底在解决什么 |
+| 5 | 实现：Codex 的答案 |
+| 6 | 经典案例：四种截然不同的 Harness 哲学 |
+| 7 | **两种视角：Inner Harness 与 Outer Harness**（Böckeler 的 Guides / Sensors 框架） |
+| 8 | 常见误解澄清 |
+| 9 | **可操作结论**（六步落地） |
+| 10 | **生产化纵深：从能跑到跑得稳**（七个子节，工程化纵深） |
+| 11 | 参考来源（按可靠性分级） |
+| 附 | 一页速记；附录：图 1–5 的原始 HTML / SVG 源码片段 |
+
+### 本文图表索引
+
+五张图均已导出为独立图片文件，位于 `images/` 目录：
+
+| 图 | 所在章节 | PNG | SVG | 内容 |
+| --- | --- | --- | --- | --- |
+| 图 1 | § 2.1 | `fig1-principle.png` | `fig1-principle.svg` | 第一性原理：模型能力缺口与 Harness 补位 |
+| 图 2 | § 4.1 | `fig2-agent-loop.png` | `fig2-agent-loop.svg` | 核心机制：Codex agent loop |
+| 图 3 | § 3.8 | `fig3-timeline.png` | `fig3-timeline.svg` | 术语谱系：演进时间轴 |
+| 图 4 | § 5.4 | `fig4-prompt-cache.png` | `fig4-prompt-cache.svg` | Codex 实现：prompt 组装顺序与缓存边界 |
+| 图 5 | § 6 | `fig5-comparison.png` | `fig5-comparison.svg` | 案例对比：四种设计哲学 |
+
+**关于格式选择：**
+
+- **PNG** —— 2 倍分辨率（1360px 宽），由无头浏览器从 SVG 渲染。兼容所有 Markdown 渲染器与编辑器，是本档正文采用的引用格式。
+- **SVG** —— 矢量源文件，可无损缩放，便于二次编辑配色与文案。若你的编辑器支持 SVG 引用，可将上表对应路径替换引用。
+- 图 3、图 5 另附**可搜索的文本版表格**（分别位于 § 3.8 与 § 6），便于检索与复制。
+- 原始 HTML / SVG 代码片段保留在文末附录。
+
+---
+
+## `code/minimal_harness.py`（演示代码）
 
 用一个脚本化的 Mock LLM（**无需 API Key，可完全离线运行**）演示一件事：**模型一个字都没改，只替换外面的 harness，任务成功率就完全不同。**
 
@@ -42,12 +137,19 @@
 ## 目录结构
 
 ```
-2026-09-15-16-13-17/
-├── AGENTS.md                      # 面向 Agent 的工程说明（功能 + 目录结构）
-├── README.md                      # 本文件，完整项目文档
-├── agent-harness-deep-dive.html   # 主交付物：单页 HTML 深度讲解
-└── code/
-    └── minimal_harness.py         # 最小 Harness 演示代码
+harness/
+├── AGENTS.md                           # 面向 Agent 的工程说明（功能 + 目录结构）
+├── README.md                           # 本文件，完整项目文档
+├── agent-harness-deep-dive.html        # 长文 · 精读版（单页自包含交互式）
+├── harness-from-principle-to-codex.md  # 长文 · 纯文本版
+├── code/
+│   └── minimal_harness.py              # 最小 Harness 演示代码
+└── images/
+    ├── fig1-principle.{png,svg}        # 第一性原理：模型能力缺口与 Harness 补位
+    ├── fig2-agent-loop.{png,svg}       # 核心机制：Codex agent loop
+    ├── fig3-timeline.{png,svg}         # 术语谱系：演进时间轴
+    ├── fig4-prompt-cache.{png,svg}     # Codex 实现：prompt 组装顺序与缓存边界
+    └── fig5-comparison.{png,svg}       # 案例对比：四种设计哲学
 ```
 
 ---
@@ -56,7 +158,8 @@
 
 ### 阅读讲解
 
-直接双击 `agent-harness-deep-dive.html`，或用任意浏览器打开。无需联网、无需启动服务。
+- **精读版**：直接双击 `agent-harness-deep-dive.html`，或用任意浏览器打开。无需联网、无需启动服务。
+- **纯文本版**：用任意 Markdown 编辑器打开 `harness-from-principle-to-codex.md`；图片为相对路径引用，保持在仓库内即可正常显示。
 
 ### 运行演示代码
 
@@ -72,38 +175,13 @@ python minimal_harness.py --keep     # 保留临时工作区，便于逐个检�
 
 ---
 
-## 讲解内容的组织
-
-HTML 共 9 章 + 附录。写作上刻意避开"从组件清单讲起"的常见做法——那种写法读者记不住，因为不知道每个组件是被什么问题逼出来的。
-
-| 章节 | 内容 |
-|---|---|
-| 0 | 先澄清术语：Agent Harness ≠ Harness.io ≠ test harness |
-| 1 | 底层思想：冯·诺依曼架构同构（裸 LLM = 没有 RAM/磁盘/IO 的 CPU） |
-| 2 | 第一性原理：长周期任务的五个必然问题 |
-| 3 | 结构解剖：12 个组件，每个都映射回第 2 章的某个问题 |
-| 4 | 动手实现：从零写最小 Harness，v0–v5 逐版对照 |
-| 5 | Codex 实现：三层架构、apply_patch、上下文管理、**Prompt Cache 一等约束**、三层安全防线 |
-| 6 | 横向对比：Claude Code / LangGraph / Manus / Cursor / Aider / CrewAI / AutoGen |
-| 7 | 七个架构决策（单/多 Agent、ReAct vs Plan、上下文策略、验证、权限、工具作用域、harness 厚度） |
-| 8 | 模型与脚手架的协同设计（含实测数据与结论边界） |
-| 9 | 常见误区与未来走向 |
-| 附录 | 术语对照表、参考资料、准确性说明 |
-
-### 核心结论
-
-- **Agent = Model + Harness**。模型负责判断"下一步该做什么"，harness 负责决定"这一步如何落到真实世界，以及是否放行"。
-- 长周期任务必然带来五个问题：**上下文腐化、错误累积、跨会话失忆、权限越界、无法自验**。harness 的每个组件都是为对冲其中之一而存在。
-- **Codex 采用了这套思想，并把它作为核心工程方法论**（OpenAI 于 2026 年 2 月连发两篇官方文章）。
-- 但 harness 不是越厚越好，也不是某一家的最好：模型与脚手架是共同演化的，正确的比较单位永远是 **Model + Harness**，而不是单独的模型 ID。
-
----
-
 ## 数据来源分级
 
 本工程对关键数据做了可信度分级，修改时请维持这一约定：
 
-- **一手来源**：OpenAI《Harness Engineering》《Unlocking the Codex harness》、Anthropic《Effective harnesses for long-running agents》、Scale AI《HarnessOpt-Bench》
+- **一手来源**：OpenAI《Harness Engineering》《Unlocking the Codex harness》、Anthropic《Effective harnesses for long-running agents》
+- **标准**：OWASP GenAI Security Project《OWASP Top 10 for Agentic Applications 2026》（2025-12-09）、《State of Agentic AI Security and Governance 2.01》（2026-07-30）
+- **学术论文**：Scale AI《HarnessOpt-Bench》（`arXiv:2608.06301`）、《Harness Engineering: Anatomy, Architecture, and Evolution of Coding Agents — A Source-Code Study of Eleven Systems》（`arXiv:2609.00006`，内容快照 2026-07 / arXiv 发布 2026-09）
 - **源码分析**：Codex CLI Deep Dive、Codex 执行安全模型分析、apply_patch 拆解
 - **二手报道**：已明确标注"据公开资料"，且已剔除无法验证的性能数字
 
@@ -120,6 +198,11 @@ HTML 共 9 章 + 附录。写作上刻意避开"从组件清单讲起"的常见�
 - 代码块内的 `<` `>` `&` 必须转义为 `&lt;` `&gt;` `&amp;`
 - 新增章节需同步更新左侧 `nav.toc` 的锚点链接
 - 事实性数据必须标注来源与时间；单一来源无法交叉验证的需标注"据公开资料"
+
+### `harness-from-principle-to-codex.md`
+
+- 图表引用统一走 `images/` 相对路径；新增图需同步更新"本文图表索引"表与文末附录
+- 事实性数据维持来源分级标注；引用外部数字需可核验
 
 ### `code/minimal_harness.py`
 
@@ -156,6 +239,15 @@ HTML 共 9 章 + 附录。写作上刻意避开"从组件清单讲起"的常见�
 | **新发现的设计维度** | 全文未提及"推理预算的分配" | 补充：LangChain 发现全程 xhigh 推理（53.9%）**比 baseline（52.8%）还差**；有效方案是按阶段分配（规划 xhigh / 执行 high / 验证 xhigh）。已在 6.2 节和第 7 章补充 |
 | **交叉验证** | 核心论点缺少独立佐证 | "过早自我批准"这一失败模式被三个独立来源验证（Anthropic / LangChain / 本文第 4 章演示），已在第 4 章加交叉引用框 |
 | **归属修正** | Ralph Wiggum Loop 未给出提出者 | 补上 Geoffrey Huntley，并说明 LangChain 的 `PreCompletionChecklistMiddleware` 正是源于此 |
+
+### 第三轮：缺口补全（2026-09-17）
+
+| 类型 | 问题 | 处理 |
+|---|---|---|
+| **覆盖面缺口** | 两篇长文均未系统覆盖"工程化纵深"：评测与回归、成本与预算治理、安全攻击面分类、故障恢复与事务语义、长时运行运维、合规与审计、与 RL 的闭环 | 两篇各新增**第 10 章「生产化纵深：从能跑到跑得稳」**（10.1–10.7），HTML 精读版与 MD 纯文本版逐条对齐 |
+| **来源未核验** | 新章需引用的外部来源此前未核验，无法确定档位 | 核验后归入既有分级：OWASP《Top 10 for Agentic Applications 2026》（2025-12-09，ASI01–ASI10）与《State of Agentic AI Security and Governance 2.01》（2026-07-30）列为**标准**；Scale AI《HarnessOpt-Bench》确认为 `arXiv:2608.06301`，归入**学术论文** |
+| **表述不清** | 3.6 节称该论文为"2026 年 7 月 15 日"，但编号 `2609.00006` 的 `2609` 表示 2026 年 9 月，易被读作自相矛盾 | 核验后澄清：**2026-07 为内容快照期**，`2609` 对应其 **2026 年 9 月的 arXiv 发布**（系 2026 年 4 月版的大幅扩充第二版）；正文与参考来源均改为区分"快照期 / 发布期"的表述 |
+| **纪律一致性** | 新章含推演性内容，若不标注会与全文的来源分级纪律冲突 | 逐节标注档位：10.1–10.3 以学术与标准为主；10.4–10.6 区分"事实（源码分析 / 一手）"与"推演"；10.7 整节标注"设计推演，非已证实事实" |
 
 ---
 

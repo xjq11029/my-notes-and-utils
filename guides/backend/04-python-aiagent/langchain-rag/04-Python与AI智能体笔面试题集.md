@@ -571,6 +571,6 @@ Self-Consistency（自一致性）是一种后处理Prompt技巧：对同一个�
 **推荐学习顺序：**
 1. 巩固Python基础 → 2. 学习LangChain核心组件 → 3. 实现一个基础RAG问答系统 → 4. 学习Prompt工程技巧 → 5. 尝试构建简单Agent → 6. 深入系统设计和性能优化
 
-> 更多内容关注：[Python AI Agent 学习路径](./README.md)
+> 本模块其他文件：[02-LangChain与AI智能体核心](./02-LangChain与AI智能体核心.md) | [03-RAG检索增强生成实战](./03-RAG检索增强生成实战.md)
 
 > - 返回 [学习路线总览](../../README.md)

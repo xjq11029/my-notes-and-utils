@@ -15,8 +15,9 @@
 7. [两种视角：Inner Harness 与 Outer Harness](#7-两种视角inner-harness-与-outer-harness)
 8. [常见误解澄清](#8-常见误解澄清)
 9. [可操作结论](#9-可操作结论)
-10. [参考来源](#10-参考来源)
-11. [附录：可视化源文件](#附录可视化源文件原始-html--svg-片段)
+10. [生产化纵深：从能跑到跑得稳](#10-生产化纵深从能跑到跑得稳)
+11. [参考来源](#11-参考来源)
+12. [附录：可视化源文件](#附录可视化源文件原始-html--svg-片段)
 
 ---
 
@@ -167,7 +168,7 @@ HashiCorp 联合创始人、Terraform 和 Ghostty 的作者 Mitchell Hashimoto �
 
 ### 3.6 学术定格：11 个生产 Harness 的源码解剖（2026-07）
 
-2026 年 7 月 15 日，arXiv 论文《Harness Engineering: Anatomy, Architecture, and Evolution of Coding Agents — A Source-Code Study of Eleven Systems》（arXiv:2609.00006，83 页）对 11 个生产级编码 Harness 做了源码级解剖：
+2026 年 7 月（内容快照期；该编号对应 2026 年 9 月的 arXiv 发布，系 2026 年 4 月版的大幅扩充第二版），arXiv 论文《Harness Engineering: Anatomy, Architecture, and Evolution of Coding Agents — A Source-Code Study of Eleven Systems》（arXiv:2609.00006，83 页）对 11 个生产级编码 Harness 做了源码级解剖：
 
 > Claude Code、Codex CLI、Gemini CLI、Mistral Vibe、OpenHands、Aider、Mini-SWE-Agent、Hermes、Pi、OpenCode、OpenClaw
 > 外加 Omnigent 作为**第一个元 Harness（meta-harness）**对比样本。
@@ -894,7 +895,157 @@ Böckeler 明确指出：**OpenAI 的报告主要关注代码的内部质量与�
 
 ---
 
-## 10. 参考来源
+## 10. 生产化纵深：从能跑到跑得稳
+
+> 前九节回答的是"harness 是什么、怎么设计"。本节回答另一个问题：**当它要长期跑在生产里，还缺哪几块？**
+>
+> 这七块不是产品细节，而是 harness 思想在工程侧的延伸——它们共同决定一个 harness 是"演示可用"还是"可长期运营"。
+>
+> **来源纪律**：本节严格沿用全文分级——事实标注一手 / 学术 / 源码分析 / 二手；凡属本文推演的工程设计，显式标注"（以下为本文推演）"。
+
+### 10.1 评测与回归：harness 的改动必须可被度量
+
+**问题**：代码有编译器和单元测试兜底，harness 没有。改一行 prompt 组装顺序、换一个压缩策略，测试全绿，但任务成功率可能已经掉了几个百分点——而且没人会发现。
+
+**已有的学术基础**：harness 优化本身已被做成可度量的能力。**HarnessOpt-Bench**（Scale AI，`arXiv:2608.06301`）把"优化器"（一个 LLM 配一套 coding harness）放进受控环境：它拿到目标 agent 的种子 harness、分级评测反馈与固定评测预算，编辑 harness 并提名最终候选，得分 = 在**全程不可访问的留出测试集**上相对种子的归一化增益。其三项设计约束对自建评测极有参考价值：
+
+| HarnessOpt-Bench 的约束 | 解决的问题 | 可迁移到自建回归的做法 |
+|---|---|---|
+| 留出测试集在搜索期间不可访问 | 防止把分数"拟合"成过拟合 | 回归集与调优集物理分离 |
+| 分级披露（开发集给逐例 trace，验证集只给聚合分，测试集不开放） | 防止用测试集反推 | 三层可见性 |
+| 受信执行环境：计量资源、限制模型白名单、按域配额、为每个候选保留不可变 Git 提交 | 让预算与审计成为环境属性，而非"自觉遵守" | 评测跑在受控环境里，候选版本可追溯 |
+
+该基准同时给出一个反直觉结论：**改变优化器模型带来的增益（0.142）约为改变 coding harness 带来的增益（0.079）的 1.8 倍**，且原生 harness 并不稳定优于共享 harness——这再次印证第 8 节的判断：比较单位应是 Model + Harness，且模型侧的杠杆更大。（据 `arXiv:2608.06301`）
+
+**自建最小套件（以下为本文推演）**：
+
+1. 固定任务集 + 固定种子输入 + 确定性判定（正是第 4 节 v0–v5 对照的形态）；
+2. 三类信号并列输出：成功率 / token 成本 / 失败模式分类——只看总数不看失败类型，会把"验证缺失"误判成"模型不行"；
+3. 把它做成 CI 门禁：harness 的改动必须先跑回归再放行。
+
+与第 5 节的验证门形成互补：**验证门管"这一次任务是否完成"，回归套件管"这一代 harness 是否退化"。**
+
+### 10.2 成本与 token 预算治理
+
+**为什么它是架构问题而非账单问题**：成本基线决定可行性边界。当一次任务的成本高出一个数量级，某些架构（多 Agent 扇出、全量重读上下文）在设计阶段就已经出局了。
+
+**量化骨架**：
+
+```
+单任务成本 ≈ 输入 token 成本 + 输出 token 成本
+输入 token ≈ (系统提示 + 工具定义 + 上下文 + 历史) × 轮次 × 缓存命中修正
+```
+
+其中"字节 → token"的工程估算常用固定比值（例如 `BYTES_PER_TOKEN_ESTIMATE = 4.0`，见 5.4 节的源码分析），够做预算预警，不足以做结算。
+
+**三档治理（以下为本文推演）**：
+
+1. **per-task 上限**：单任务超预算即中止并回报，而不是让它继续烧；
+2. **per-turn 熔断**：单轮上下文逼近窗口阈值时强制压缩或降级（阈值与 5.4 节的压缩触发一致）；
+3. **全局配额**：按租户 / 项目 / 时段分配，对应 HarnessOpt-Bench 里的"按域预算"设计。
+
+**Prompt Cache 是可行性条件而非优化项**（见 5.4 / 5.5 节）：缓存命中率直接改变单位成本，而缓存要求"前缀稳定"——这反过来约束了 harness 的组装顺序。**成本纪律会反向塑造架构**，而不是等架构定完再算账。
+
+**另一个反直觉点**：推理预算不是越高越好。LangChain 的实测显示，全程 xhigh 推理（53.9%）反而**差于** baseline（52.8%），有效方案是按阶段分配（规划 xhigh / 执行 high / 验证 xhigh）。（据二手报道，具体数字建议核对原始出处）
+
+### 10.3 安全攻击面与防御纵深
+
+5.7 节讲的是**某一家具体怎么实现安全**（四层权限栈）。本节补的是**跨实现通用的攻击面分类**。
+
+**业界标准**：OWASP GenAI Security Project 于 2025-12-09 发布 **OWASP Top 10 for Agentic Applications 2026**，由 100+ 安全专家参与，条目来自真实事故而非推演，编号 ASI01–ASI10：
+
+| 编号 | 风险 | 与 harness 的关系 |
+|---|---|---|
+| ASI01 | Agent Goal Hijack（目标劫持） | 指令与数据未分离 → harness 的输入通道设计 |
+| ASI02 | Tool Misuse & Exploitation（工具滥用） | 工具作用域过宽 → 见第 7 节"工具作用域"决策 |
+| ASI03 | Identity & Privilege Abuse（身份与权限滥用） | 凭证继承与委派链 → 权限层设计 |
+| ASI04 | Agentic Supply Chain（供应链） | 插件 / skill / MCP 来源不可信 |
+| ASI05 | Unexpected Code Execution（意外代码执行，RCE） | 沙箱与 egress 控制 |
+| ASI06 | Memory & Context Poisoning（记忆与上下文投毒） | 长期记忆与检索内容的完整性 |
+| ASI07 | Insecure Inter-Agent Communication（Agent 间通信不安全） | 多 Agent 信任边界 |
+| ASI08 | Cascading Failures（级联失败） | 与 10.4 的故障恢复直接相关 |
+| ASI09 | Human-Agent Trust Exploitation（利用人机信任） | 审批疲劳 → 见第 7 节"权限"决策 |
+| ASI10 | Rogue Agents（失控 Agent） | 终止条件与 kill switch |
+
+其防御主张可归纳为五族控制：约束目标并"不信任检索到的内容"、按 agent 分配短时效凭证、供应链溯源（AIBOM）、沙箱化执行与爆炸半径隔离、持续行为监控与 kill switch。（据 OWASP 标准）
+
+**与既有章节的边界**：本条只给分类与原则，不重复实现细节——Codex 四层权限栈的顺序、`sandbox-exec` 硬编码路径、`.git/hooks` 提权防护等实证锚点见 5.7 节；权限决策的设计取舍见第 7 节。
+
+**一个值得记住的量化事实**：当五个 MCP server 接到同一个 agent 时，单个被攻陷的 server 可达 **78.3% 攻击成功率**，并向其他 server 的操作级联 **72.4%**。连接即风险放大。（据二手报道）
+
+**设计原则（以下为本文推演）**：攻击面随"能力开放度"单调递增——工具越多、网络越通、凭证越长效，攻击面越大。因此最小权限不是一次性配置，而是**随任务动态收缩**的过程。
+
+### 10.4 故障恢复与事务语义
+
+**现实**：`apply_patch` 是**非事务**的。源码分析明确指出：部分失败时，已应用的前几处不会自动回滚。（据 5.3 节源码分析）
+
+这不是缺点，而是**分工**：patch 只负责"改"，"改坏了怎么办"属于 harness 的职责。模型没有事务概念，工具调用又天然带副作用——**兜底只能由 harness 层做**。
+
+**四类语义（以下为本文推演）**：
+
+| 语义 | 含义 | 在 harness 里的落点 |
+|---|---|---|
+| 幂等 | 同一动作重复执行不产生额外副作用 | 文件写入、分支创建、外部 API 调用 |
+| 可重试 | 失败可安全重放 | 工具调用包装层，需配合幂等 |
+| 补偿 | 无法回滚时执行反向操作（saga） | 跨系统副作用（已推送的分支、已发起的部署） |
+| 回滚 | 恢复到已知良好状态 | 以 git 作为事实基线（见 6.1 节 resume 实践） |
+
+**设计不变量**：**"每一步都应可撤销"**。它比"出错再想办法"便宜得多——因为后者要求 agent 在受损状态下做规划，而这恰恰是它最不擅长的场景。
+
+**与标准的对应**：OWASP 把"级联失败"（ASI08）单列为风险——一条链路上某个工具失败，若没有恢复语义，会把整个长任务带偏。
+
+### 10.5 长时运行的运维
+
+**崩溃恢复**：长任务会跨越进程生命周期。Anthropic 的实践是让 agent 把进度写入文件，并在重启后依据 `git log` 与会话记录 resume（见 6.1 节）。要点不是"记得存盘"，而是**把恢复变成契约**：任何时刻进程被杀，重启后都能从上一个检查点继续。
+
+**并发与冲突（以下为本文推演）**：
+
+- 多 Agent 并行写同一仓库 → 文件级锁 / 分片工作区 / 单写者仲裁；
+- 同一文件被两条链路修改 → 以"谁后写"决定结果必然出错，需要显式冲突检测；
+- 子 Agent 的上下文损失 → handoff 时传递结构化状态，而非对话摘要。
+
+**可观测性**：日志 / trace / 回放。HarnessOpt-Bench 的做法可直接借鉴——为每个候选保留不可变版本、所有模型调用经网关计量，使"事后复盘一次失败"成为可能。（据 `arXiv:2608.06301`）
+
+**多日自主运行的现状**：已有研究提出 `Harness-of-Harness` 这类框架，把既有 coding harness 组织成"规划—编码—测试"的迭代闭环，在多日部署中持续改进（据二手报道，称一次演示中经 70+ 轮迭代自主开发了一个 FPS 游戏、基准增益最高 82.86%；本文未核验一手数据）。
+
+### 10.6 合规 · 多租户 · 审计 · 数据留存
+
+这块常被当成"上线前补一下"，但它属于**非功能需求**，必须在架构早期注入——事后加装通常意味着重写权限层与存储层。
+
+- **审计**：动作级日志（谁、在哪个会话、调用了什么工具、碰了哪些文件）+ 不可篡改存储 + 可回溯。已有系统把"LLM 审计 Agent"作为一层（见 6.4 节）。
+- **多租户隔离（以下为本文推演）**：工作区、凭证、配额三者需同时隔离——只隔离工作区而不隔离凭证，等于没隔离。
+- **数据留存与删除**：留存期限、PII 处理、可删除性（GDPR 语境下的被遗忘权），以及被索引进向量库 / 记忆的副本如何同步删除。
+- **供应链溯源**：OWASP 主张以 AIBOM 记录 agent 可触达的组件与权限；OWASP GenAI 亦于 2026-07-30 发布《State of Agentic AI Security and Governance 2.01》更新基线，把"权限边界""知识源完整性""工具 / 插件供应链"列为治理控制项。（据 OWASP 标准）
+
+**一个现实的判断**：合规要求往往先于技术方案到达——它决定的是"哪些能力根本不能开放"，而这个问题最好在设计 harness 能力边界时就回答。
+
+### 10.7 与 RL / 微调的闭环
+
+> **本节整体为设计推演，非已证实事实。** 它是这七块里最前瞻、也最少一手证据的一块。
+
+**为什么放在最后**：前面六节都在讲"怎么把现有模型用好"，本节讲"harness 如何反过来改进模型"。
+
+**起点**：harness 每天产生的**轨迹**（状态 → 动作 → 结果）就是天然的训练数据。HarnessOpt-Bench 已把"优化 harness"本身确立为可度量能力，说明这个方向正在从直觉走向可测量。（据 `arXiv:2608.06301`）
+
+**闭环形态（推演）**：
+
+```
+线上运行 → 收集成败轨迹 + 失败模式标注
+        → 离线训练（SFT / RL，或仅做提示与工具改进）
+        → 新模型或新 harness 上线 → 回到第一步
+```
+
+**三条风险（推演）**：
+
+1. **隐私**：轨迹里含真实代码与数据，训练前必须脱敏；
+2. **分布偏移**：线上任务分布会漂移，昨日的最优策略会成为今天的过拟合；
+3. **奖励黑客**：若奖励信号是"测试通过"，agent 会学会绕过测试而非修好代码——这也是为什么 10.1 的评测设计必须先于训练闭环建立。
+
+**与第 8 节的关系**：第 8 节讲"模型与脚手架共同演化"；本节把这句话推进到工程闭环——**演化可以是被动适应，也可以被主动设计**。
+
+---
+
+## 11. 参考来源
 
 ### 一手官方材料（可靠性最高）
 
@@ -908,12 +1059,16 @@ Böckeler 明确指出：**OpenAI 的报告主要关注代码的内部质量与�
 | Birgitta Böckeler (Thoughtworks),《Harness Engineering for Coding Agent Users》 | 2026-04-02 | martinfowler.com；Guides/Sensors 框架、Ashby 定律、三类监管目标 |
 | Mitchell Hashimoto,《My AI Adoption Journey》 | 2026-02-05 | **Harness Engineering 的命名来源**；六阶段模型 |
 | Microsoft Learn,《Agent Harness》 | — | Agent Framework 的 Harness 能力矩阵 |
+| OWASP GenAI Security Project,《OWASP Top 10 for Agentic Applications 2026》 | 2025-12-09 | 面向 agentic 系统的风险框架，100+ 专家评审；ASI01–ASI10 十类风险（本文 10.3 节引用） |
+| OWASP GenAI Security Project,《State of Agentic AI Security and Governance 2.01》 | 2026-07-30 | 治理基线更新；把权限边界 / 知识源完整性 / 工具与插件供应链列为治理控制项（本文 10.6 节引用） |
 
 ### 学术论文
 
 | 论文 | 说明 |
 | --- | --- |
-| **arXiv:2609.00006** —《Harness Engineering: Anatomy, Architecture, and Evolution of Coding Agents》 | 83 页，11 个生产 Harness + 1 个元 Harness 的源码解剖；七子系统、13 个横向观察、29 个设计模式；含 90 行最小可行 Harness 脚手架 |
+| **arXiv:2609.00006** —《Harness Engineering: Anatomy, Architecture, and Evolution of Coding Agents — A Source-Code Study of Eleven Systems》(Barbaste / Darrigol / Vu / Wiltberger, Wavestone AI Lab) | 内容快照 2026-07（arXiv 发布 2026-09）；83 页，11 个生产 Harness + 1 个元 Harness 的源码解剖；七子系统、13 个横向观察、29 个设计模式；含 90 行最小可行 Harness 脚手架 |
+| **arXiv:2608.06301** —《HarnessOpt-Bench: Evaluating LLMs at Harness Optimization》(Scale AI) | 把"优化 harness"确立为可度量能力：留出测试集、分级披露、受信执行环境（计量资源 / 模型白名单 / 按域预算 / 候选不可变 Git 提交）；111 次计分运行（本文 10.1、10.2、10.5 节引用） |
+| `Harness-of-Harness`（arXiv 论文，多日自主开发框架） | 把既有 coding harness 组织成"规划—编码—测试"的迭代闭环；**本文据二手报道转述，未核验一手数据**（本文 10.5 节引用） |
 | **arXiv:2405.15793** —《SWE-agent: Agent-Computer Interfaces Enable Automated Software Engineering》 | NeurIPS 2024；ACI 概念的最早雏形；SWE-bench pass@1 12.5%，HumanEvalFix 87.7% |
 | arXiv:2210.03629 —《ReAct: Synergizing Reasoning and Acting in Language Models》 | 2022；ReAct 循环的原始论文 |
 
@@ -957,6 +1112,10 @@ Codex 的实现要点：
   /responses/compact + auto_compact_limit
   四层安全栈：Starlark → Hooks → Guardian → OS 沙箱
   V8 执行工具调用
+
+生产化纵深（第 10 节 · 七块）：
+  评测与回归 · 成本与 token 预算 · 安全攻击面与防御纵深
+  · 故障恢复与事务语义 · 长时运行运维 · 合规/多租户/审计 · 与 RL 的闭环
 
 一句话方法论（Hashimoto）：
   每当 Agent 犯错，就工程化一个方案让它永远不再犯同样的错。

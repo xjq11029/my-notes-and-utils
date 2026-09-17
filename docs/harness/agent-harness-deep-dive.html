@@ -181,6 +181,14 @@ ol.refs li{margin:9px 0}
   <a class="lv1" href="#s7">7 · 七个架构决策</a>
   <a class="lv1" href="#s8">8 · 模型与脚手架的协同设计</a>
   <a class="lv1" href="#s9">9 · 误区与未来</a>
+  <a class="lv1" href="#s10">10 · 生产化纵深：从能跑到跑稳</a>
+  <a class="lv2" href="#s10-1">10.1 评测与回归</a>
+  <a class="lv2" href="#s10-2">10.2 成本与 token 预算治理</a>
+  <a class="lv2" href="#s10-3">10.3 安全攻击面与防御纵深</a>
+  <a class="lv2" href="#s10-4">10.4 故障恢复与事务语义</a>
+  <a class="lv2" href="#s10-5">10.5 长时运行的运维</a>
+  <a class="lv2" href="#s10-6">10.6 合规 · 多租户 · 审计</a>
+  <a class="lv2" href="#s10-7">10.7 与 RL / 微调的闭环</a>
   <a class="lv1" href="#appendix">附录 · 术语与资料</a>
 </nav>
 
@@ -2712,6 +2720,181 @@ GPT-5.6 Sol + OpenCode
 <p>这句话也可以换成更直白的版本：<b>真正决定上限的，不是一次生成是否惊艳，而是你是否建立了能长期自稳、可持续复利的 harness。</b></p>
 
 <p>所以下一次你的 agent 失败时，不要急着责怪模型。先看看 harness。</p>
+
+<hr>
+
+<h2 id="s10"><span class="num">10</span>生产化纵深：从能跑到跑得稳</h2>
+
+<div class="note">
+<span class="t">本节导言</span>
+<p>前九节回答的是"harness 是什么、怎么设计"。本节回答另一个问题：<strong>当它要长期跑在生产里，还缺哪几块？</strong></p>
+<p>这七块不是产品细节，而是 harness 思想在工程侧的延伸——它们共同决定一个 harness 是"演示可用"还是"可长期运营"。</p>
+<p><strong>来源纪律</strong>：本节严格沿用全文分级——事实标注一手 / 学术 / 源码分析 / 二手；凡属本文推演的工程设计，显式标注"（以下为本文推演）"。</p>
+</div>
+
+<h3 id="s10-1">10.1 评测与回归：harness 的改动必须可被度量</h3>
+
+<p><strong>问题</strong>：代码有编译器和单元测试兜底，harness 没有。改一行 prompt 组装顺序、换一个压缩策略，测试全绿，但任务成功率可能已经掉了几个百分点——而且没人会发现。</p>
+
+<p><strong>已有的学术基础</strong>：harness 优化本身已被做成可度量的能力。<strong>HarnessOpt-Bench</strong>（Scale AI，<code>arXiv:2608.06301</code>）把"优化器"（一个 LLM 配一套 coding harness）放进受控环境：它拿到目标 agent 的种子 harness、分级评测反馈与固定评测预算，编辑 harness 并提名最终候选，得分 = 在<strong>全程不可访问的留出测试集</strong>上相对种子的归一化增益。其三项设计约束对自建评测极有参考价值：</p>
+
+<div class="tw">
+<table>
+<thead><tr><th>HarnessOpt-Bench 的约束</th><th>解决的问题</th><th>可迁移到自建回归的做法</th></tr></thead>
+<tbody>
+<tr><td>留出测试集在搜索期间不可访问</td><td>防止把分数"拟合"成过拟合</td><td>回归集与调优集物理分离</td></tr>
+<tr><td>分级披露（开发集给逐例 trace，验证集只给聚合分，测试集不开放）</td><td>防止用测试集反推</td><td>三层可见性</td></tr>
+<tr><td>受信执行环境：计量资源、限制模型白名单、按域配额、为每个候选保留不可变 Git 提交</td><td>让预算与审计成为环境属性，而非"自觉遵守"</td><td>评测跑在受控环境里，候选版本可追溯</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>该基准同时给出一个反直觉结论：<strong>改变优化器模型带来的增益（0.142）约为改变 coding harness 带来的增益（0.079）的 1.8 倍</strong>，且原生 harness 并不稳定优于共享 harness——这再次印证第 8 节的判断：比较单位应是 Model + Harness，且模型侧的杠杆更大。<span class="pill">据 arXiv:2608.06301</span></p>
+
+<p><strong>自建最小套件（以下为本文推演）：</strong></p>
+
+<ol>
+<li>固定任务集 + 固定种子输入 + 确定性判定（正是第 4 节 v0–v5 对照的形态）；</li>
+<li>三类信号并列输出：成功率 / token 成本 / 失败模式分类——只看总数不看失败类型，会把"验证缺失"误判成"模型不行"；</li>
+<li>把它做成 CI 门禁：harness 的改动必须先跑回归再放行。</li>
+</ol>
+
+<p>与第 5 节的验证门形成互补：<strong>验证门管"这一次任务是否完成"，回归套件管"这一代 harness 是否退化"。</strong></p>
+
+<h3 id="s10-2">10.2 成本与 token 预算治理</h3>
+
+<p><strong>为什么它是架构问题而非账单问题</strong>：成本基线决定可行性边界。当一次任务的成本高出一个数量级，某些架构（多 Agent 扇出、全量重读上下文）在设计阶段就已经出局了。</p>
+
+<p><strong>量化骨架</strong>：</p>
+
+<div class="cb"><div class="hd"><span class="fn">单任务成本骨架</span></div><pre>单任务成本 ≈ 输入 token 成本 + 输出 token 成本
+输入 token ≈ (系统提示 + 工具定义 + 上下文 + 历史) × 轮次 × 缓存命中修正</pre></div>
+
+<p>其中"字节 → token"的工程估算常用固定比值（例如 <code>BYTES_PER_TOKEN_ESTIMATE = 4.0</code>，见 5.4 节的源码分析），够做预算预警，不足以做结算。</p>
+
+<p><strong>三档治理（以下为本文推演）：</strong></p>
+
+<ol>
+<li><strong>per-task 上限</strong>：单任务超预算即中止并回报，而不是让它继续烧；</li>
+<li><strong>per-turn 熔断</strong>：单轮上下文逼近窗口阈值时强制压缩或降级（阈值与 5.4 节的压缩触发一致）；</li>
+<li><strong>全局配额</strong>：按租户 / 项目 / 时段分配，对应 HarnessOpt-Bench 里的"按域预算"设计。</li>
+</ol>
+
+<p><strong>Prompt Cache 是可行性条件而非优化项</strong>（见 5.4 / 5.5 节）：缓存命中率直接改变单位成本，而缓存要求"前缀稳定"——这反过来约束了 harness 的组装顺序。<strong>成本纪律会反向塑造架构</strong>，而不是等架构定完再算账。</p>
+
+<p><strong>另一个反直觉点</strong>：推理预算不是越高越好。LangChain 的实测显示，全程 xhigh 推理（53.9%）反而<strong>差于</strong> baseline（52.8%），有效方案是按阶段分配（规划 xhigh / 执行 high / 验证 xhigh）。<span class="pill">据二手报道，具体数字建议核对原始出处</span></p>
+
+<h3 id="s10-3">10.3 安全攻击面与防御纵深</h3>
+
+<p>5.7 节讲的是<strong>某一家具体怎么实现安全</strong>（四层权限栈）。本节补的是<strong>跨实现通用的攻击面分类</strong>。</p>
+
+<p><strong>业界标准</strong>：OWASP GenAI Security Project 于 2025-12-09 发布 <strong>OWASP Top 10 for Agentic Applications 2026</strong>，由 100+ 安全专家参与，条目来自真实事故而非推演，编号 ASI01–ASI10：</p>
+
+<div class="tw">
+<table>
+<thead><tr><th>编号</th><th>风险</th><th>与 harness 的关系</th></tr></thead>
+<tbody>
+<tr><td>ASI01</td><td>Agent Goal Hijack（目标劫持）</td><td>指令与数据未分离 → harness 的输入通道设计</td></tr>
+<tr><td>ASI02</td><td>Tool Misuse &amp; Exploitation（工具滥用）</td><td>工具作用域过宽 → 见第 7 节"工具作用域"决策</td></tr>
+<tr><td>ASI03</td><td>Identity &amp; Privilege Abuse（身份与权限滥用）</td><td>凭证继承与委派链 → 权限层设计</td></tr>
+<tr><td>ASI04</td><td>Agentic Supply Chain（供应链）</td><td>插件 / skill / MCP 来源不可信</td></tr>
+<tr><td>ASI05</td><td>Unexpected Code Execution（意外代码执行，RCE）</td><td>沙箱与 egress 控制</td></tr>
+<tr><td>ASI06</td><td>Memory &amp; Context Poisoning（记忆与上下文投毒）</td><td>长期记忆与检索内容的完整性</td></tr>
+<tr><td>ASI07</td><td>Insecure Inter-Agent Communication（Agent 间通信不安全）</td><td>多 Agent 信任边界</td></tr>
+<tr><td>ASI08</td><td>Cascading Failures（级联失败）</td><td>与 10.4 的故障恢复直接相关</td></tr>
+<tr><td>ASI09</td><td>Human-Agent Trust Exploitation（利用人机信任）</td><td>审批疲劳 → 见第 7 节"权限"决策</td></tr>
+<tr><td>ASI10</td><td>Rogue Agents（失控 Agent）</td><td>终止条件与 kill switch</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>其防御主张可归纳为五族控制：约束目标并"不信任检索到的内容"、按 agent 分配短时效凭证、供应链溯源（AIBOM）、沙箱化执行与爆炸半径隔离、持续行为监控与 kill switch。<span class="pill">据 OWASP 标准</span></p>
+
+<p><strong>与既有章节的边界</strong>：本条只给分类与原则，不重复实现细节——Codex 四层权限栈的顺序、<code>sandbox-exec</code> 硬编码路径、<code>.git/hooks</code> 提权防护等实证锚点见 5.7 节；权限决策的设计取舍见第 7 节。</p>
+
+<p><strong>一个值得记住的量化事实</strong>：当五个 MCP server 接到同一个 agent 时，单个被攻陷的 server 可达 <strong>78.3% 攻击成功率</strong>，并向其他 server 的操作级联 <strong>72.4%</strong>。连接即风险放大。<span class="pill">据二手报道</span></p>
+
+<p><strong>设计原则（以下为本文推演）</strong>：攻击面随"能力开放度"单调递增——工具越多、网络越通、凭证越长效，攻击面越大。因此最小权限不是一次性配置，而是<strong>随任务动态收缩</strong>的过程。</p>
+
+<h3 id="s10-4">10.4 故障恢复与事务语义</h3>
+
+<p><strong>现实</strong>：<code>apply_patch</code> 是<strong>非事务</strong>的。源码分析明确指出：部分失败时，已应用的前几处不会自动回滚。<span class="pill">据 5.3 节源码分析</span></p>
+
+<p>这不是缺点，而是<strong>分工</strong>：patch 只负责"改"，"改坏了怎么办"属于 harness 的职责。模型没有事务概念，工具调用又天然带副作用——<strong>兜底只能由 harness 层做</strong>。</p>
+
+<p><strong>四类语义（以下为本文推演）：</strong></p>
+
+<div class="tw">
+<table>
+<thead><tr><th>语义</th><th>含义</th><th>在 harness 里的落点</th></tr></thead>
+<tbody>
+<tr><td>幂等</td><td>同一动作重复执行不产生额外副作用</td><td>文件写入、分支创建、外部 API 调用</td></tr>
+<tr><td>可重试</td><td>失败可安全重放</td><td>工具调用包装层，需配合幂等</td></tr>
+<tr><td>补偿</td><td>无法回滚时执行反向操作（saga）</td><td>跨系统副作用（已推送的分支、已发起的部署）</td></tr>
+<tr><td>回滚</td><td>恢复到已知良好状态</td><td>以 git 作为事实基线（见 6.1 节 resume 实践）</td></tr>
+</tbody>
+</table>
+</div>
+
+<p><strong>设计不变量</strong>：<strong>"每一步都应可撤销"</strong>。它比"出错再想办法"便宜得多——因为后者要求 agent 在受损状态下做规划，而这恰恰是它最不擅长的场景。</p>
+
+<p><strong>与标准的对应</strong>：OWASP 把"级联失败"（ASI08）单列为风险——一条链路上某个工具失败，若没有恢复语义，会把整个长任务带偏。</p>
+
+<h3 id="s10-5">10.5 长时运行的运维</h3>
+
+<p><strong>崩溃恢复</strong>：长任务会跨越进程生命周期。Anthropic 的实践是让 agent 把进度写入文件，并在重启后依据 <code>git log</code> 与会话记录 resume（见 6.1 节）。要点不是"记得存盘"，而是<strong>把恢复变成契约</strong>：任何时刻进程被杀，重启后都能从上一个检查点继续。</p>
+
+<p><strong>并发与冲突（以下为本文推演）：</strong></p>
+
+<ul>
+<li>多 Agent 并行写同一仓库 → 文件级锁 / 分片工作区 / 单写者仲裁；</li>
+<li>同一文件被两条链路修改 → 以"谁后写"决定结果必然出错，需要显式冲突检测；</li>
+<li>子 Agent 的上下文损失 → handoff 时传递结构化状态，而非对话摘要。</li>
+</ul>
+
+<p><strong>可观测性</strong>：日志 / trace / 回放。HarnessOpt-Bench 的做法可直接借鉴——为每个候选保留不可变版本、所有模型调用经网关计量，使"事后复盘一次失败"成为可能。<span class="pill">据 arXiv:2608.06301</span></p>
+
+<p><strong>多日自主运行的现状</strong>：已有研究提出 <code>Harness-of-Harness</code> 这类框架，把既有 coding harness 组织成"规划—编码—测试"的迭代闭环，在多日部署中持续改进。<span class="pill">据二手报道，称一次演示中经 70+ 轮迭代自主开发了一个 FPS 游戏、基准增益最高 82.86%；本文未核验一手数据</span></p>
+
+<h3 id="s10-6">10.6 合规 · 多租户 · 审计 · 数据留存</h3>
+
+<p>这块常被当成"上线前补一下"，但它属于<strong>非功能需求</strong>，必须在架构早期注入——事后加装通常意味着重写权限层与存储层。</p>
+
+<ul>
+<li><strong>审计</strong>：动作级日志（谁、在哪个会话、调用了什么工具、碰了哪些文件）+ 不可篡改存储 + 可回溯。已有系统把"LLM 审计 Agent"作为一层（见 6.4 节）。</li>
+<li><strong>多租户隔离（以下为本文推演）</strong>：工作区、凭证、配额三者需同时隔离——只隔离工作区而不隔离凭证，等于没隔离。</li>
+<li><strong>数据留存与删除</strong>：留存期限、PII 处理、可删除性（GDPR 语境下的被遗忘权），以及被索引进向量库 / 记忆的副本如何同步删除。</li>
+<li><strong>供应链溯源</strong>：OWASP 主张以 AIBOM 记录 agent 可触达的组件与权限；OWASP GenAI 亦于 2026-07-30 发布《State of Agentic AI Security and Governance 2.01》更新基线，把"权限边界""知识源完整性""工具 / 插件供应链"列为治理控制项。<span class="pill">据 OWASP 标准</span></li>
+</ul>
+
+<p><strong>一个现实的判断</strong>：合规要求往往先于技术方案到达——它决定的是"哪些能力根本不能开放"，而这个问题最好在设计 harness 能力边界时就回答。</p>
+
+<h3 id="s10-7">10.7 与 RL / 微调的闭环</h3>
+
+<div class="warn">
+<span class="t">本节整体为设计推演，非已证实事实</span>
+<p>它是这七块里最前瞻、也最少一手证据的一块。</p>
+</div>
+
+<p><strong>为什么放在最后</strong>：前面六节都在讲"怎么把现有模型用好"，本节讲"harness 如何反过来改进模型"。</p>
+
+<p><strong>起点</strong>：harness 每天产生的<strong>轨迹</strong>（状态 → 动作 → 结果）就是天然的训练数据。HarnessOpt-Bench 已把"优化 harness"本身确立为可度量能力，说明这个方向正在从直觉走向可测量。<span class="pill">据 arXiv:2608.06301</span></p>
+
+<p><strong>闭环形态（推演）：</strong></p>
+
+<div class="cb"><div class="hd"><span class="fn">训练闭环形态</span></div><pre>线上运行 → 收集成败轨迹 + 失败模式标注
+        → 离线训练（SFT / RL，或仅做提示与工具改进）
+        → 新模型或新 harness 上线 → 回到第一步</pre></div>
+
+<p><strong>三条风险（推演）：</strong></p>
+
+<ol>
+<li><strong>隐私</strong>：轨迹里含真实代码与数据，训练前必须脱敏；</li>
+<li><strong>分布偏移</strong>：线上任务分布会漂移，昨日的最优策略会成为今天的过拟合；</li>
+<li><strong>奖励黑客</strong>：若奖励信号是"测试通过"，agent 会学会绕过测试而非修好代码——这也是为什么 10.1 的评测设计必须先于训练闭环建立。</li>
+</ol>
+
+<p><strong>与第 8 节的关系</strong>：第 8 节讲"模型与脚手架共同演化"；本节把这句话推进到工程闭环——<strong>演化可以是被动适应，也可以被主动设计</strong>。</p>
 
 <hr>
 

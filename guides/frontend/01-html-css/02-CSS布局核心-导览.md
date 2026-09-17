@@ -214,6 +214,40 @@
 
 ---
 
+## 补充：选择器优先级、层叠上下文与外边距合并
+
+### 补1 选择器与优先级（Specificity）
+
+| 维度 | 内容 |
+|------|------|
+| 是什么 | 浏览器决定"多条规则命中同一元素时谁生效"的三段式计数器，记为 `(a, b, c)`：a 为 ID 数量，b 为类/属性/伪类数量，c 为类型/伪元素数量。`!important` 不参与权重计算，而是提升声明的级联来源层级。 |
+| 能做什么 | 口算任意选择器的权重；定位"样式没生效"的根本原因；用 `:where()` 写零权重基础样式；用 `:is()` / `:not()` / `:has()` 简化分组选择器而不必重复书写权重。 |
+| 怎么用 | 权重速查：`*` 为 (0,0,0)、`li` 为 (0,0,1)、`.menu a` 为 (0,1,1)、`li.red.level` 为 (0,2,1)、`#app` 为 (1,0,0)；`:is()` / `:not()` / `:has()` 取参数中最高权重；`:where()` 恒为 (0,0,0)；内联样式优先于任何普通作者选择器，但输给作者 `!important`。 |
+| 原理和工作流程 | 权重按位比较，从 a 到 c 逐位对比，高位大者胜出且**不进位**（11 个类仍小于 1 个 ID）；`(a, b, c)` 完全相同时后声明者胜出。级联在比权重前先按"来源 + 重要性"排序，从低到高为：UA 普通 → 用户普通 → 作者普通（含内联）→ 动画 → 作者 `!important` → 用户 `!important` → UA `!important` → 过渡声明。继承值不参与级联，任何直接声明（含 `*`）都覆盖继承值。 |
+| 缺点 | 权重是隐式的，复杂选择器难以直观判断大小，容易演变成"用 `!important` 压制 `!important`"的维护灾难；`:where()` 的零权重在需要覆盖第三方库时反而要额外加权重；内联样式的高优先级破坏了样式与结构分离，调试困难。 |
+
+### 补2 层叠上下文与 z-index
+
+| 维度 | 内容 |
+|------|------|
+| 是什么 | 层叠上下文是元素在 Z 轴上分层渲染的独立作用域，`z-index` 只在同一层叠上下文内部比较；层叠顺序被规范固定为 7 个层级（自身背景边框 → 负 z-index → 块级盒子 → 浮动盒子 → 行内级盒子 → z-index 0/auto 的定位元素 → 正 z-index）。 |
+| 能做什么 | 正确实现弹窗、下拉菜单、吸顶导航的层级关系；解释并排查 `z-index` 失效；用 CSS 变量建立全站层级阶梯，避免 `z-index: 9999` 满天飞。 |
+| 怎么用 | 显式创建：`position` + `z-index` 不为 `auto`、`position: fixed/sticky`、Flex/Grid 子项 `z-index` 不为 `auto`、`isolation: isolate`。隐式创建：`opacity < 1`、`transform`、`filter`、`backdrop-filter`、`clip-path`、`mask`、`mix-blend-mode`、`perspective`、`will-change`（指定会创建上下文的属性）、`contain: layout/paint`。层级阶梯：`:root { --z-modal: 300; --z-toast: 400; }` |
+| 原理和工作流程 | 浏览器维护一棵层叠上下文树，每个上下文内部维护自己的层叠顺序表。`z-index` 只在该表内排序，祖先一旦创建层叠上下文就形成"结界"，子元素 `z-index` 再大也无法跨越。排查时在 DevTools 的 Elements → Computed 确认 `z-index` 是否有效，再用 Layers 面板查看合成层，并沿祖先链逐级查找 `position + z-index`、`opacity`、`transform`、`filter`、`will-change`、`isolation`、`contain`。 |
+| 缺点 | `transform`、`opacity`、`filter` 等属性会"顺带"创建层叠上下文，导致层级关系被意外破坏；`transform` / `filter` / `will-change` 还会成为 `fixed` 元素的包含块，使 `position: fixed` 失效；负 `z-index` 元素会落到第 ② 层被文档流块级元素的背景遮挡，表现为"元素消失"。 |
+
+### 补3 外边距合并（Margin Collapse）
+
+| 维度 | 内容 |
+|------|------|
+| 是什么 | 在 BFC 中垂直方向相邻的块级盒子的外边距会合并为一个外边距，属于规范定义的正常行为而非 bug；水平方向的 `margin` 永不合并。 |
+| 能做什么 | 解释"间距算不对"的原因；解决父子 `margin` 穿透（子元素 `margin-top` 顶动父元素）；解决父元素高度不含末子元素 `margin-bottom` 的问题；用 `gap` 替代 `margin` 彻底规避合并。 |
+| 怎么用 | 三种情形：相邻兄弟（`margin-bottom` 与 `margin-top` 合并）、父子（父与首/末子元素合并）、空元素（自身 `margin-top` 与 `margin-bottom` 合并）。合并值：都是正值取最大、一正一负取和、都是负值取最负。规避：`display: flow-root`（推荐）、`overflow: hidden`、加 `padding` / `border`、改用 Flex/Grid 的 `gap`。 |
+| 原理和工作流程 | 外边距合并只发生在普通文档流的块级盒子之间。合并的条件是两者之间**没有** `border`、`padding`、行内内容或 `clearance` 阻隔，且父元素未创建 BFC。`display: flow-root` 让父元素成为 BFC 根，从而在"父子之间"建立隔离边界，阻断合并；Flex/Grid 项目的 `margin` 不参与合并，因此 `gap` 是最省心的间距方案。 |
+| 缺点 | 合并规则隐式且反直觉，容易造成"间距比预期小"或"父元素被顶下去"的困惑；`overflow: hidden` 虽能阻断合并却会裁剪溢出内容；`padding-top: 1px` / 透明 `border` 会额外改变元素尺寸；负 margin 的合并规则更易算错。 |
+
+---
+
 ## 本章学习自检
 
 本节为辅助内容，无五维表格。

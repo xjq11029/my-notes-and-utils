@@ -30,6 +30,15 @@
     --stage8: #9333EA;
     --stage8-light: #FAF5FF;
     --stage8-accent: #F3E8FF;
+    --stage9: #0F766E;
+    --stage9-light: #F0FDFA;
+    --stage9-accent: #CCFBF1;
+    --stage10: #B45309;
+    --stage10-light: #FFFBEB;
+    --stage10-accent: #FEF3C7;
+    --stage11: #BE123C;
+    --stage11-light: #FFF1F2;
+    --stage11-accent: #FFE4E6;
     --bg: #F5F5F5;
     --border: #E0E0E0;
     --text: #333333;
@@ -110,6 +119,9 @@
   .stage:nth-child(6) .stage-title { background: var(--stage6); }
 .stage:nth-child(7) .stage-title { background: var(--stage7); }
 .stage:nth-child(8) .stage-title { background: var(--stage8); }
+.stage:nth-child(9) .stage-title { background: var(--stage9); }
+.stage:nth-child(10) .stage-title { background: var(--stage10); }
+.stage:nth-child(11) .stage-title { background: var(--stage11); }
 
   .stage-title .stage-num {
     display: block;
@@ -136,6 +148,9 @@
   .stage:nth-child(6) .stage-body { background: var(--stage6-light); }
 .stage:nth-child(7) .stage-body { background: var(--stage7-light); }
 .stage:nth-child(8) .stage-body { background: var(--stage8-light); }
+.stage:nth-child(9) .stage-body { background: var(--stage9-light); }
+.stage:nth-child(10) .stage-body { background: var(--stage10-light); }
+.stage:nth-child(11) .stage-body { background: var(--stage11-light); }
 
   .module {
     background: var(--white);
@@ -160,6 +175,9 @@
   .stage:nth-child(6) .module-title { color: var(--stage6); }
 .stage:nth-child(7) .module-title { color: var(--stage7); }
 .stage:nth-child(8) .module-title { color: var(--stage8); }
+.stage:nth-child(9) .module-title { color: var(--stage9); }
+.stage:nth-child(10) .module-title { color: var(--stage10); }
+.stage:nth-child(11) .module-title { color: var(--stage11); }
 
   .module-items {
     list-style: none;
@@ -191,6 +209,9 @@
   .stage:nth-child(6) .module-items li::before { color: var(--stage6); }
 .stage:nth-child(7) .module-items li::before { color: var(--stage7); }
 .stage:nth-child(8) .module-items li::before { color: var(--stage8); }
+.stage:nth-child(9) .module-items li::before { color: var(--stage9); }
+.stage:nth-child(10) .module-items li::before { color: var(--stage10); }
+.stage:nth-child(11) .module-items li::before { color: var(--stage11); }
 
   /* Skill acquisition */
   .stage-skill {
@@ -274,6 +295,11 @@
   .progress-step:nth-child(7)  .progress-dot { background: var(--stage4); }
   .progress-step:nth-child(9)  .progress-dot { background: var(--stage5); }
   .progress-step:nth-child(11) .progress-dot { background: var(--stage6); }
+  .progress-step:nth-child(13) .progress-dot { background: var(--stage7); }
+  .progress-step:nth-child(15) .progress-dot { background: var(--stage8); }
+  .progress-step:nth-child(17) .progress-dot { background: var(--stage9); }
+  .progress-step:nth-child(19) .progress-dot { background: var(--stage10); }
+  .progress-step:nth-child(21) .progress-dot { background: var(--stage11); }
 
   .tbl-stage { padding: 4px 10px; border-bottom: 1px solid #EEE; }
   .tbl-dir { padding: 4px 10px; border-bottom: 1px solid #EEE; }
@@ -327,8 +353,8 @@
 <div class="container">
 
   <div class="header">
-    <h1>2026 前端学习路线图</h1>
-    <div class="subtitle">六阶段循序渐进 · 从零基础到全栈前端工程师</div>
+    <h1>前端学习路线图</h1>
+    <div class="subtitle">十一阶段循序渐进 · 从零基础到全栈前端工程师</div>
   </div>
 
   <!-- Progress bar -->
@@ -362,9 +388,34 @@
       <div class="progress-dot">6</div>
       <span class="progress-label">Node + 全栈实战</span>
     </div>
+    <span class="progress-arrow">→</span>
+    <div class="progress-step">
+      <div class="progress-dot">7</div>
+      <span class="progress-label">AI 辅助开发</span>
+    </div>
+    <span class="progress-arrow">→</span>
+    <div class="progress-step">
+      <div class="progress-dot">8</div>
+      <span class="progress-label">跨端开发</span>
+    </div>
+    <span class="progress-arrow">→</span>
+    <div class="progress-step">
+      <div class="progress-dot">9</div>
+      <span class="progress-label">架构设计</span>
+    </div>
+    <span class="progress-arrow">→</span>
+    <div class="progress-step">
+      <div class="progress-dot">10</div>
+      <span class="progress-label">监控与运维</span>
+    </div>
+    <span class="progress-arrow">→</span>
+    <div class="progress-step">
+      <div class="progress-dot">11</div>
+      <span class="progress-label">测试策略</span>
+    </div>
   </div>
 
-  <!-- 6 Stage Columns -->
+  <!-- 11 Stage Columns -->
   <div class="roadmap">
 
     <!-- Stage 1: HTML + CSS -->
@@ -853,6 +904,109 @@
       </div>
     </div>
 
+    <!-- Stage 9: 架构设计 -->
+    <div class="stage">
+      <div class="stage-title"><span class="stage-num">阶段 9</span>架构设计</div>
+      <div class="stage-body">
+        <div class="module">
+          <div class="module-title">微前端架构</div>
+          <ul class="module-items">
+            <li>方案对比：qiankun / Module Federation / wujie / micro-app</li>
+            <li>沙箱隔离：JS 沙箱、样式隔离、DOM 隔离</li>
+            <li>应用通信与路由分发</li>
+            <li>选型决策与落地成本评估</li>
+          </ul>
+        </div>
+        <div class="module">
+          <div class="module-title">设计系统与组件库</div>
+          <ul class="module-items">
+            <li>Design Tokens 三层体系（全局 / 别名 / 组件）</li>
+            <li>组件库架构与组件 API 设计原则</li>
+            <li>主题切换与暗色模式实现</li>
+            <li>零运行时 CSS 方案（CSS 变量 / vanilla-extract）</li>
+          </ul>
+        </div>
+        <div class="module">
+          <div class="module-title">分层架构与技术管理</div>
+          <ul class="module-items">
+            <li>分层架构模式与依赖方向约束</li>
+            <li>ADR 架构决策记录</li>
+            <li>技术债识别、量化与管理</li>
+            <li>技术选型框架与评估维度</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stage 10: 监控与运维 -->
+    <div class="stage">
+      <div class="stage-title"><span class="stage-num">阶段 10</span>监控与运维</div>
+      <div class="stage-body">
+        <div class="module">
+          <div class="module-title">前端监控体系</div>
+          <ul class="module-items">
+            <li>Sentry 接入与自建监控 SDK</li>
+            <li>错误监控：JS 异常、资源加载、Promise 未捕获</li>
+            <li>性能监控：Core Web Vitals 采集</li>
+            <li>业务监控与埋点体系</li>
+            <li>Sourcemap 上传与错误还原</li>
+          </ul>
+        </div>
+        <div class="module">
+          <div class="module-title">灰度发布与部署</div>
+          <ul class="module-items">
+            <li>Feature Flags 四类模型</li>
+            <li>灰度 / 金丝雀 / 蓝绿部署</li>
+            <li>前端灰度：Nginx 分流、CDN 版本切换</li>
+            <li>容器化部署与回滚策略</li>
+          </ul>
+        </div>
+        <div class="module">
+          <div class="module-title">可观测性与故障排查</div>
+          <ul class="module-items">
+            <li>Logs / Metrics / Traces 三支柱</li>
+            <li>链路追踪与 traceId 透传</li>
+            <li>告警策略与告警降噪</li>
+            <li>线上故障排查流程与复盘</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stage 11: 测试策略 -->
+    <div class="stage">
+      <div class="stage-title"><span class="stage-num">阶段 11</span>测试策略</div>
+      <div class="stage-body">
+        <div class="module">
+          <div class="module-title">测试金字塔与单元测试</div>
+          <ul class="module-items">
+            <li>测试金字塔：单元 &gt; 组件 &gt; 集成 &gt; E2E</li>
+            <li>Vitest 核心特性与断言库</li>
+            <li>Mock 策略：vi.fn / vi.mock / vi.spyOn</li>
+            <li>覆盖率四类型与阈值门禁</li>
+          </ul>
+        </div>
+        <div class="module">
+          <div class="module-title">组件测试与集成测试</div>
+          <ul class="module-items">
+            <li>Testing Library 查询优先级</li>
+            <li>userEvent vs fireEvent</li>
+            <li>异步测试：waitFor、findBy*</li>
+            <li>MSW 拦截网络请求</li>
+          </ul>
+        </div>
+        <div class="module">
+          <div class="module-title">E2E 测试与视觉回归</div>
+          <ul class="module-items">
+            <li>Playwright / Cypress 核心能力</li>
+            <li>E2E 场景设计：关键路径、边界、权限</li>
+            <li>视觉回归：截图对比、Chromatic / Percy</li>
+            <li>CI 集成与测试报告归档</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <div class="file-refs" style="max-width: 1920px; margin: 16px auto 0; padding: 16px 20px; background: #FAFAFA; border-radius: 8px; border: 1px solid #E0E0E0;">
@@ -868,22 +1022,40 @@
       </thead>
       <tbody>
         <tr><td style="padding: 4px 10px; border-bottom: 1px solid #EEE;">阶段一</td><td style="padding: 4px 10px; border-bottom: 1px solid #EEE;">01-html-css/</td><td style="padding: 4px 10px; border-bottom: 1px solid #EEE; font-size: 11px;">01-HTML核心与语义化.md、02-CSS布局核心.md、03-CSS进阶与性能.md</td><td style="padding: 4px 10px; border-bottom: 1px solid #EEE;">04-HTMLCSS笔面试题集.md</td></tr>
-        <tr><td style="padding: 4px 10px; border-bottom: 1px solid #EEE;">阶段二</td><td style="padding: 4px 10px; border-bottom: 1px solid #EEE;">02-javascript-core/</td><td style="padding: 4px 10px; border-bottom: 1px solid #EEE; font-size: 11px;">01-语法基础与执行机制.md、02-异步编程与ES6+特性.md、03-常用API与手写原理.md、05-DOM操作与事件机制.md、06-JSON与网络请求.md、07-正则表达式.md、08-BOM与浏览器扩展API.md</td><td style="padding: 4px 10px; border-bottom: 1px solid #EEE;">04-JavaScript核心笔面试题集.md</td></tr>
-        <tr><td style="padding: 4px 10px; border-bottom: 1px solid #EEE;">阶段三</td><td style="padding: 4px 10px; border-bottom: 1px solid #EEE;">03-typescript/ + 04-browser/</td><td style="padding: 4px 10px; border-bottom: 1px solid #EEE; font-size: 11px;">01-TypeScript基础与类型系统.md、02-高级类型与工程配置.md、01-浏览器渲染与V8原理.md、02-事件循环与Web安全.md、04-网络协议基础.md</td><td style="padding: 4px 10px; border-bottom: 1px solid #EEE;">03-TypeScript笔面试题集.md、03-浏览器笔面试题集.md</td></tr>
+        <tr><td style="padding: 4px 10px; border-bottom: 1px solid #EEE;">阶段二</td><td style="padding: 4px 10px; border-bottom: 1px solid #EEE;">02-javascript-core/</td><td style="padding: 4px 10px; border-bottom: 1px solid #EEE; font-size: 11px;">01-语法基础与执行机制.md、02-异步编程与ES6+特性.md、03-常用API与手写原理.md、05-DOM操作与事件机制.md、06-JSON与网络请求.md、07-正则表达式.md、08-BOM与浏览器扩展API.md</td><td style="padding: 4px 10px; border-bottom: 1px solid #EEE;">04-JavaScript核心笔面试题集.md、01-语法基础与执行机制-原型链流程图.md、01-语法基础与执行机制-双链协同图.md</td></tr>
+        <tr><td style="padding: 4px 10px; border-bottom: 1px solid #EEE;">阶段三</td><td style="padding: 4px 10px; border-bottom: 1px solid #EEE;">03-typescript/ + 04-browser/</td><td style="padding: 4px 10px; border-bottom: 1px solid #EEE; font-size: 11px;">01-TypeScript基础与类型系统.md、02-高级类型与工程配置.md、01-浏览器渲染与V8原理.md、02-事件循环与Web安全.md、04-网络协议基础.md、05-前端安全深度.md</td><td style="padding: 4px 10px; border-bottom: 1px solid #EEE;">03-TypeScript笔面试题集.md、03-浏览器笔面试题集.md</td></tr>
         <tr><td style="padding: 4px 10px; border-bottom: 1px solid #EEE;">阶段四</td><td style="padding: 4px 10px; border-bottom: 1px solid #EEE;">05-vue/ + 06-react/</td><td style="padding: 4px 10px; border-bottom: 1px solid #EEE; font-size: 11px;">01-Vue3核心语法.md、02-响应式与编译优化.md、03-路由与状态管理.md、01-React核心与Hooks.md、02-Diff算法与性能优化.md、03-路由与状态管理.md</td><td style="padding: 4px 10px; border-bottom: 1px solid #EEE;">04-Vue3笔面试题集.md、04-React笔面试题集.md</td></tr>
-        <tr><td style="padding: 4px 10px; border-bottom: 1px solid #EEE;">阶段五</td><td style="padding: 4px 10px; border-bottom: 1px solid #EEE;">07-engineering/ + 08-performance/</td><td style="padding: 4px 10px; border-bottom: 1px solid #EEE; font-size: 11px;">01-构建工具原理.md、02-工程规范与流程.md、01-加载性能优化.md、02-运行时优化.md</td><td style="padding: 4px 10px; border-bottom: 1px solid #EEE;">03-前端工程化笔面试题集.md、03-性能优化笔面试题集.md</td></tr>
-        <tr><td style="padding: 4px 10px; border-bottom: 1px solid #EEE;">阶段六</td><td style="padding: 4px 10px; border-bottom: 1px solid #EEE;">09-nodejs/ + 10-project/</td><td style="padding: 4px 10px; border-bottom: 1px solid #EEE; font-size: 11px;">01-Node运行时与核心API.md、02-Web框架与BFF层.md、04-数据库与ORM.md、01-企业后台管理系统实战.md</td><td style="padding: 4px 10px; border-bottom: 1px solid #EEE;">03-Node.js笔面试题集.md</td></tr>
+        <tr><td style="padding: 4px 10px; border-bottom: 1px solid #EEE;">阶段五</td><td style="padding: 4px 10px; border-bottom: 1px solid #EEE;">07-engineering/ + 08-performance/</td><td style="padding: 4px 10px; border-bottom: 1px solid #EEE; font-size: 11px;">01-构建工具原理.md、02-工程规范与流程.md、04-测试集成与质量门禁.md、01-加载性能优化.md、02-运行时优化.md、04-渲染架构深度.md</td><td style="padding: 4px 10px; border-bottom: 1px solid #EEE;">03-前端工程化笔面试题集.md、03-性能优化笔面试题集.md</td></tr>
+        <tr><td style="padding: 4px 10px; border-bottom: 1px solid #EEE;">阶段六</td><td style="padding: 4px 10px; border-bottom: 1px solid #EEE;">09-nodejs/ + 10-project/</td><td style="padding: 4px 10px; border-bottom: 1px solid #EEE; font-size: 11px;">01-Node运行时与核心API.md、02-Web框架与BFF层.md、04-数据库与ORM.md、01-企业后台管理系统实战.md、02-电商平台实战.md</td><td style="padding: 4px 10px; border-bottom: 1px solid #EEE;">03-Node.js笔面试题集.md、03-项目实战笔面试题集.md</td></tr>
 <tr>
   <td class="tbl-stage">阶段七</td>
   <td class="tbl-dir">11-ai-assisted/</td>
   <td class="tbl-files">01-AI编程工具与工作流.md、02-Prompt工程与代码生成.md、03-AI代码审查与质量管控.md</td>
-  <td class="tbl-files">—</td>
+  <td class="tbl-files">04-AI辅助开发笔面试题集.md</td>
 </tr>
 <tr>
   <td class="tbl-stage">阶段八</td>
   <td class="tbl-dir">12-cross-platform/</td>
-  <td class="tbl-files">01-uniapp跨端开发基础.md、02-uniapp渲染差异与性能优化.md</td>
-  <td class="tbl-files">—</td>
+  <td class="tbl-files">01-uniapp跨端开发基础.md、02-uniapp渲染差异与性能优化.md、03-PWA与WebComponents.md</td>
+  <td class="tbl-files">04-跨端开发笔面试题集.md</td>
+</tr>
+<tr>
+  <td class="tbl-stage">阶段九</td>
+  <td class="tbl-dir">13-architecture/</td>
+  <td class="tbl-files">01-微前端架构.md、02-设计系统与组件库架构.md、03-前端分层架构与技术管理.md</td>
+  <td class="tbl-files">04-前端架构设计笔面试题集.md</td>
+</tr>
+<tr>
+  <td class="tbl-stage">阶段十</td>
+  <td class="tbl-dir">14-monitoring/</td>
+  <td class="tbl-files">01-前端监控体系.md、02-灰度发布与部署策略.md、03-可观测性与故障排查.md</td>
+  <td class="tbl-files">04-前端监控与运维笔面试题集.md</td>
+</tr>
+<tr>
+  <td class="tbl-stage">阶段十一</td>
+  <td class="tbl-dir">15-testing/</td>
+  <td class="tbl-files">01-测试金字塔与单元测试.md、02-组件测试与集成测试.md、03-E2E测试与视觉回归.md</td>
+  <td class="tbl-files">04-前端测试笔面试题集.md</td>
 </tr>
       </tbody>
     </table>
@@ -902,7 +1074,7 @@
   </div>
 
   <div class="footer" style="margin-top: 16px">
-    基于 frontend/ 目录 10 个模块完整知识体系 · 配套 MD 文档：<a href="./前端学习路线图.md">前端学习路线图.md</a>
+    基于 frontend/ 目录 15 个模块完整知识体系 · 配套 MD 文档：<a href="./前端学习路线图.md">前端学习路线图.md</a>
   </div>
 
 </div>

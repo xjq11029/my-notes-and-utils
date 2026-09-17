@@ -125,6 +125,8 @@ const element = _jsx('h1', { className: 'title', children: 'Hello' });
 
 ### 2.2 虚拟 DOM
 
+> **本主题权威章节**（其他模块的同主题内容均指向此处）。
+
 **虚拟 DOM**（Virtual DOM）是真实 DOM 的 JavaScript 对象表示。React 通过在内存中维护一棵虚拟 DOM 树，实现高效的 UI 更新。
 
 > **生活化类比**：装修设计图——先在图纸上改（虚拟 DOM diff），确认无误后再动工（更新真实 DOM），避免反复拆墙造成浪费。React 的虚拟 DOM 就是这张"设计图"，先在内存里比对新旧差异，再一次性更新真实 DOM。
@@ -702,6 +704,8 @@ render 阶段是**可中断**的，React 遍历 Fiber 树并标记副作用（�
 
 ## 补充：React Server Components（RSC）
 
+> **本主题权威章节**：[完整讲解见 08-performance/04-渲染架构深度.md](../08-performance/04-渲染架构深度.md)；此处从 React 组件模型视角展开要点。
+
 ### 背景与概念
 
 React Server Components（RSC）在 React 18 中作为实验性功能引入，React 19 中正式稳定，是一种允许组件在**服务端**渲染而非浏览器中的新组件类型。与传统的客户端组件（Client Components）不同，RSC 在服务端执行完毕后，将渲染结果以特殊的 RSC Payload 格式流式传输到客户端，由 React 进行调和并更新 DOM。
@@ -1108,6 +1112,8 @@ function CommentForm() {
 
 ### 4. Server Actions（`'use server'`）
 
+> **本主题权威章节**：[完整讲解见 08-performance/04-渲染架构深度.md](../08-performance/04-渲染架构深度.md)；此处从 React 组件模型视角展开要点。
+
 Server Actions 是 React 19 引入的机制，允许在客户端组件中直接调用服务端函数，无需手动创建 API 路由。
 
 **定义 Server Action**：
@@ -1465,3 +1471,542 @@ pnpm add react@20 react-dom@20 @types/react@20 @types/react-dom@20
 1. 升级 `react` 和 `react-dom` 到 20.x
 2. 移除手动的 `useMemo`、`useCallback`、`React.memo`（编译器自动处理）
 3. 运行 React Compiler 的 ESLint 规则检查代码合规性
+
+---
+
+## 补充：错误边界、Portals 与进阶 Hooks
+
+本节补齐四个「React 渲染机制之外」的高频考点：错误边界、Portals、`useImperativeHandle`、`useSyncExternalStore`，以及表单场景中绕不开的受控 / 非受控组件。它们共同的主题是：**在 React 的数据流之外，如何与 DOM、外部状态源、浏览器 API 打交道**。
+
+### 1. 错误边界（Error Boundary）
+
+**概念定义**：错误边界是一个 React 组件，用于捕获其**子组件树**在渲染、生命周期方法和构造函数中抛出的 JavaScript 错误，并渲染降级 UI（fallback），避免整个应用白屏。
+
+**底层原理**：错误边界只能由类组件实现，依赖两个生命周期：
+
+| 生命周期 | 执行阶段 | 作用 | 是否可有副作用 |
+|---------|---------|------|--------------|
+| `static getDerivedStateFromError(error)` | render 阶段 | 返回新的 state，用于渲染 fallback UI | ❌ 必须是纯函数 |
+| `componentDidCatch(error, errorInfo)` | commit 阶段 | 读取 `errorInfo.componentStack`，做日志上报 | ✅ 适合上报 |
+
+React 在渲染子树时如果某个组件抛错，会沿组件树向上冒泡，找到**最近的**错误边界；找到后卸载出错的整棵子树，改用 fallback 渲染。如果整棵树都没有错误边界，React 会卸载整棵树（React 16 之前的表现就是白屏）。
+
+```jsx
+class ErrorBoundary extends React.Component {
+  state = { hasError: false, error: null };
+
+  // render 阶段调用：只负责返回降级所需的 state，不能有副作用
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  // commit 阶段调用：副作用（日志上报）放这里
+  componentDidCatch(error, errorInfo) {
+    console.error('组件渲染出错：', error, errorInfo.componentStack);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div role="alert">
+          <p>页面出错了：{this.state.error.message}</p>
+          <button onClick={() => this.setState({ hasError: false })}>重试</button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+```
+
+**为什么函数组件不能用 Hooks 写错误边界**：
+
+1. **时机不对**：错误边界需要在「组件自己的 render 执行之前」就拿到降级 state。`getDerivedStateFromError` 是一个静态方法，React 可以在**不执行组件其余渲染逻辑**的前提下调用它。Hooks 的执行发生在 render 内部，子组件抛错时 React 会直接向上跳过中间组件的渲染，函数组件的 Hook 根本没有机会运行。
+2. **没有等价的 Hook**：React 至今没有提供 `useErrorBoundary` 这类官方 Hook（`react-error-boundary` 的 `useErrorBoundary` 是库自己封装的，内部仍然是一个类组件边界）。
+3. **生命周期缺失**：`componentDidCatch` 对应的是类组件的 commit 阶段时机，函数组件没有与之对应的「捕获子树错误」的入口。
+
+结论：**函数组件要使用错误边界，必须外包一层类组件**，或直接使用 `react-error-boundary`。
+
+**`react-error-boundary` 库用法**：
+
+```jsx
+import { ErrorBoundary, useErrorBoundary } from 'react-error-boundary';
+
+// 1. 声明式用法：fallback 组件会收到 error 和 resetErrorBoundary
+function Fallback({ error, resetErrorBoundary }) {
+  return (
+    <div role="alert">
+      <p>出错了：{error.message}</p>
+      <button onClick={resetErrorBoundary}>重新加载</button>
+    </div>
+  );
+}
+
+function App() {
+  return (
+    <ErrorBoundary
+      FallbackComponent={Fallback}
+      onError={(error, info) => reportToSentry(error, info.componentStack)}
+      onReset={() => {
+        // resetErrorBoundary 被调用时执行，用于清理导致错误的 state
+        queryClient.clear();
+      }}
+    >
+      <UserProfile />
+    </ErrorBoundary>
+  );
+}
+
+// 2. 命令式用法：子组件主动把错误抛给最近的错误边界
+function SubmitButton() {
+  const { showBoundary } = useErrorBoundary();
+  return (
+    <button
+      onClick={async () => {
+        try {
+          await submit();
+        } catch (err) {
+          showBoundary(err); // 事件处理器中的错误，靠这行才能被边界捕获
+        }
+      }}
+    >
+      提交
+    </button>
+  );
+}
+```
+
+该库还提供 `withErrorBoundary(Component, options)` HOC，以及 `resetKeys`（当指定值变化时自动重置错误状态）。
+
+**错误边界捕获不到的异常类型**（高频考点）：
+
+| 异常类型 | 为什么捕获不到 | 正确做法 |
+|---------|--------------|---------|
+| 事件处理器（`onClick` 中 throw） | 不在渲染期间执行，不参与渲染错误冒泡 | `try/catch` + `useErrorBoundary().showBoundary` |
+| 异步代码（`setTimeout` / `Promise` / `async` 回调） | 已脱离 React 的同步调用栈 | `try/catch`、`window.onunhandledrejection` |
+| 服务端渲染（SSR） | 错误发生在服务端，浏览器端的错误边界尚未挂载 | 框架层错误处理（Next.js 的 `error.js`、`getServerSideProps` 的 try/catch） |
+| 错误边界自身抛出的错误 | 边界不会捕获自己的错误 | 在外层再包一个错误边界 |
+| 水合（Hydration）过程中的不匹配 | React 会尝试客户端重新渲染恢复，而非交给错误边界 | 排查并消除 SSR / CSR 渲染不一致 |
+
+**生产环境的错误上报配合**：
+
+- 上报放在 `componentDidCatch`，不要放在 `getDerivedStateFromError`（后者在 render 阶段可能被重复调用，并发渲染下还会被打断）。
+- 上报内容至少包含 `error.message`、`error.stack`、`errorInfo.componentStack`、当前路由和用户标识。
+- 生产构建下 React 会压缩错误信息，`error.stack` 依然可用；同时建议开启 source map 上传（Sentry / SourceMap 私有化部署）以还原调用栈。
+- 全局兜底：`window.addEventListener('error')` 与 `window.addEventListener('unhandledrejection')` 覆盖事件处理器与异步错误，与错误边界形成「组件级 + 全局级」双层防护。
+- 错误边界不要只包根节点，应按业务模块分片包裹，避免一个模块出错导致整页降级。
+
+**面试常见问法**：
+
+- 错误边界能捕获哪些错误？哪些捕获不到？
+- 为什么函数组件不能直接实现错误边界？
+- `getDerivedStateFromError` 和 `componentDidCatch` 有什么区别？
+- 多个错误边界嵌套时，错误会被谁捕获？
+
+**易错点**：
+
+- 在 `getDerivedStateFromError` 中做日志上报（render 阶段有副作用，可能重复执行）。
+- 只包一个根级错误边界，导致局部错误放大为全站白屏。
+- fallback 里没有 reset 机制，用户只能刷新页面。
+- 误以为错误边界能兜住接口请求失败——网络错误需要在数据层（TanStack Query / SWR）处理。
+
+### 2. Portals（传送门）
+
+**概念定义**：`createPortal(children, domNode, key?)` 把 `children` 渲染到 DOM 树中**另一个位置**的节点下，但在 React 组件树中，`children` 仍然保留在原位置。
+
+**底层原理**：React 的 Fiber 树记录的是**组件关系**，而真实 DOM 的挂载位置由 `createPortal` 的 `domNode` 决定。在 commit 阶段的 mutation 子阶段，React 会把 Portal 子树的 DOM 节点插入到 `domNode` 中。
+
+关键在于**事件系统**：React 17+ 把事件监听器统一挂在 root container（`createRoot` 的容器）上，通过 Fiber 树模拟冒泡路径。因此 Portal 内的点击事件**沿着 React 组件树冒泡**，而不是沿着真实 DOM 树冒泡——这与直觉相反，也是最高频的面试点。
+
+```jsx
+import { createPortal } from 'react-dom';
+
+function Modal({ open, onClose, children }) {
+  if (!open) return null;
+
+  return createPortal(
+    // 遮罩层点击关闭：因为事件沿 React 树冒泡到父组件，需要显式阻止
+    <div className="modal-mask" onClick={onClose}>
+      <div className="modal-body" onClick={(e) => e.stopPropagation()}>
+        {children}
+      </div>
+    </div>,
+    document.body // 挂载到 body，脱离父级的 overflow / transform / z-index 限制
+  );
+}
+```
+
+**适用场景**：
+
+- 模态框、抽屉、全屏浮层：需要脱离父级 `overflow: hidden`、`transform`、`filter` 造成的层叠上下文与裁剪。
+- Tooltip / Popover / 下拉菜单：避免被父级 `overflow: hidden` 裁掉，也便于用 `position: fixed` 定位。
+- Toast / 通知：统一挂在 body 末尾，保证层级最高。
+- 第三方组件挂载点（地图、播放器、编辑器容器）。
+
+**上下文传递与 DOM 位置无关**：Portal 的 `children` 依旧是 React 树的一部分，因此：
+
+- `Context` 正常穿透（Portal 不会像 iframe 那样切断上下文）。
+- `props`、`ref`、事件处理函数正常传递。
+- `ref` 拿到的是真实的 DOM 节点（Portal 容器内的节点）。
+- 唯一「跨出去」的是 DOM 位置与 CSS 继承：样式从 `document.body` 开始继承，父级的字体、颜色、`transform` 不会再影响它。
+
+**面试常见问法**：
+
+- Portal 内的事件会冒泡到哪里？为什么？
+- Portal 能解决什么问题？和 `position: fixed` 有什么区别？
+- Portal 会断开 Context 吗？
+
+**易错点**：
+
+- 以为 Portal 会阻断事件冒泡——实际上 React 事件仍冒泡到 React 父组件，浮层内需要 `stopPropagation` 或判断 `e.target`。
+- SSR 下 `document` 不存在，直接调用 `createPortal` 会报错——需要 `useEffect` 或 `typeof document !== 'undefined'` 守卫。
+- 只改了 DOM 位置，忘了 CSS 继承链变化（字号、颜色、`box-sizing` 可能丢失）。
+- `z-index` 需要配合 `position: fixed` 或足够的层级值，否则仍被其他层遮挡。
+- 使用 Portal 后无障碍焦点管理需要自己处理（焦点陷阱、`aria-modal`、Esc 关闭）。
+
+### 3. `useImperativeHandle`
+
+**概念定义**：`useImperativeHandle(ref, createHandle, dependencies?)` 用于**自定义暴露给父组件的 ref 值**，把默认的「暴露真实 DOM 节点」替换为「暴露一组受控的命令式方法」。
+
+**底层原理**：`useImperativeHandle` 必须配合 `forwardRef` 使用（React 19 起 ref 可作为普通 prop 传递，不再强制需要 `forwardRef`）。它的执行时机与 `useLayoutEffect` 相同（layout 子阶段），把 `createHandle()` 的返回值赋给父组件传入的 `ref.current`，因此父组件拿到的是一个自定义对象，而非 DOM 节点。
+
+```jsx
+import { forwardRef, useRef, useImperativeHandle } from 'react';
+
+const FancyInput = forwardRef(function FancyInput(props, ref) {
+  const inputRef = useRef(null);
+
+  // 只暴露需要的能力，内部 DOM 结构保持封装
+  useImperativeHandle(ref, () => ({
+    focus() {
+      inputRef.current.focus();
+    },
+    scrollIntoView() {
+      inputRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    },
+    selectAll() {
+      inputRef.current.select();
+    },
+  }), []); // 依赖数组：createHandle 内部用到响应式值时需要补全
+
+  return <input ref={inputRef} {...props} />;
+});
+
+function SearchForm() {
+  const inputApi = useRef(null);
+
+  return (
+    <div>
+      <FancyInput ref={inputApi} placeholder="搜索" />
+      <button onClick={() => inputApi.current.focus()}>聚焦搜索框</button>
+      <button onClick={() => inputApi.current.selectAll()}>全选内容</button>
+    </div>
+  );
+}
+```
+
+**适用场景**（命令式、一次性动作）：
+
+- 聚焦 / 失焦、选中文本、滚动到指定位置。
+- 视频、音频的 `play()` / `pause()` / `seek()` 控制。
+- Canvas 绘制指令、地图实例的平移缩放。
+- 触发一次性动画、打开第三方弹窗。
+
+**与受控组件的取舍**：
+
+| 维度 | 受控组件（props + 回调） | 命令式 API（`useImperativeHandle`） |
+|------|------------------------|-----------------------------------|
+| 数据流向 | 单向，状态在父组件 | 父组件直接调用子组件方法，绕过数据流 |
+| 表达能力 | 适合表达**持续状态**（值、开关） | 适合表达**一次性动作**（focus / play / scroll） |
+| 可测试性 | 高，纯 props 驱动 | 较低，依赖 ref 时序 |
+| 可预测性 | 高，状态可回溯 | 低，调用顺序敏感 |
+
+取舍原则：**能用 props 表达的状态就不要用命令式 API**。只把「无法用状态描述的动作」暴露出去；不要通过 imperative handle 让父组件直接修改子组件内部 state，否则数据流变成双向，调试成本陡增。
+
+**面试常见问法**：
+
+- `useImperativeHandle` 有什么用？为什么不直接把 `ref` 传给 DOM？
+- 什么场景适合命令式 API，什么场景应该用受控组件？
+- React 19 中 ref 的变化对 `useImperativeHandle` 有什么影响？
+
+**易错点**：
+
+- React 18 下忘记用 `forwardRef` 包裹，导致 `ref` 为 `null` 并报警告。
+- `createHandle` 依赖数组为空，却使用了会变化的 props / state，闭包捕获过期值。
+- 通过 imperative API 暴露 `setState` 之类的写方法，破坏单向数据流。
+- 在 render 期间调用 `ref.current` 上的方法（此时 layout 阶段尚未执行，ref 可能还未赋值）。
+
+### 4. `useSyncExternalStore`
+
+**概念定义**：`useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot?)` 用于**订阅 React 之外的外部数据源**，并在并发渲染下保证组件读取到一致、最新的快照。
+
+**为什么需要它（tearing 问题）**：并发渲染下，React 可以把一次渲染拆成多个可中断的时间片。假设渲染进行到一半时，外部 store 发生了变化：
+
+```
+渲染开始（读到 store = A）
+  ├─ 渲染 <Header /> → 显示 A
+  ├─ ... 时间片耗尽，让出主线程 ...
+  │    （此时 store 更新为 B）
+  └─ 渲染 <Content /> → 显示 B
+结果：同一帧 UI 中 Header 显示 A、Content 显示 B —— 这就是 tearing（撕裂）
+```
+
+`useSyncExternalStore` 让 React 在渲染期间持续比对 `getSnapshot()` 的返回值：一旦发现快照变化，就丢弃当前这次渲染并重新开始，从而保证同一帧内所有组件读到同一份快照。代价是可能触发同步的强制更新，但换来了一致性。
+
+**三个参数**：
+
+| 参数 | 说明 | 注意 |
+|------|------|------|
+| `subscribe(callback)` | 订阅函数，返回取消订阅函数；store 变化时调用 `callback` 通知 React 重渲染 | 必须是**稳定引用**（提到组件外或用 `useCallback`），否则每次渲染都会重新订阅 |
+| `getSnapshot()` | 返回当前快照 | 必须返回**缓存过的不可变值**；每次返回新对象会导致无限渲染 |
+| `getServerSnapshot()` | SSR / hydration 期间使用的快照 | 服务端没有订阅能力，必须返回与首屏 HTML 一致的值 |
+
+**与 `useEffect` 订阅的差异**：
+
+| 维度 | `useEffect` + `useState` | `useSyncExternalStore` |
+|------|------------------------|-----------------------|
+| 并发安全 | 存在 tearing 风险 | 保证同一帧读到一致快照 |
+| 首屏取值 | 必须等 effect 执行后才能订阅，可能先渲染旧值 | 渲染阶段即可读取快照，无闪烁 |
+| SSR | 需手动处理服务端无订阅的情况 | 由 `getServerSnapshot` 统一处理 |
+| 重复订阅 | 依赖数组写错会反复订阅 | 只在 `subscribe` 引用变化时重订阅 |
+| 适用对象 | 组件内部的副作用 | 库作者、跨组件共享的外部 store |
+
+**典型实现一：订阅浏览器 API**
+
+```jsx
+// subscribe 定义在组件外，保证引用稳定
+function subscribe(callback) {
+  window.addEventListener('online', callback);
+  window.addEventListener('offline', callback);
+  return () => {
+    window.removeEventListener('online', callback);
+    window.removeEventListener('offline', callback);
+  };
+}
+
+function useOnlineStatus() {
+  return useSyncExternalStore(
+    subscribe,
+    () => navigator.onLine,  // 客户端快照：boolean，天然稳定
+    () => true               // 服务端快照：默认在线，保证与首屏 HTML 一致
+  );
+}
+
+// 使用
+function Banner() {
+  const isOnline = useOnlineStatus();
+  return isOnline ? null : <div className="offline">网络已断开</div>;
+}
+```
+
+**典型实现二：订阅自定义 store（Redux 等库的底层实现）**
+
+`react-redux` v8+ 的 `useSelector` 内部就是用 `useSyncExternalStore` 实现订阅的。
+
+```javascript
+// 一个极简的发布订阅 store
+const store = {
+  state: { count: 0 },
+  listeners: new Set(),
+  subscribe(listener) {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  },
+  getSnapshot() {
+    return this.state; // 关键：返回同一引用，直到状态真正变化
+  },
+  increment() {
+    this.state = { ...this.state, count: this.state.count + 1 }; // 换新引用
+    this.listeners.forEach((listener) => listener());
+  },
+};
+
+function useStoreCount() {
+  return useSyncExternalStore(
+    (cb) => store.subscribe(cb),
+    () => store.getSnapshot().count, // 选择基本类型值，避免新引用问题
+    () => 0
+  );
+}
+```
+
+> 注意：上面 `subscribe` 每次渲染都创建了新的箭头函数，实际项目中应把它提到组件外，或使用 `useCallback` 包裹，否则每次渲染都会「取消订阅 → 重新订阅」。
+
+**面试常见问法**：
+
+- 什么是 tearing？为什么并发渲染下会出现？
+- `useSyncExternalStore` 和 `useEffect` 订阅有什么区别？
+- `getSnapshot` 为什么不能每次返回新对象？
+- Redux / Zustand 是怎么做订阅的？
+
+**易错点**：
+
+- `getSnapshot` 返回新对象或新数组，触发 `The result of getSnapshot should be cached to avoid an infinite loop`。
+- `subscribe` 每次渲染都是新函数，导致反复订阅与取消订阅（性能问题 + 可能的竞态）。
+- 忘记 `getServerSnapshot`，SSR 下报 `Missing getServerSnapshot`。
+- 在 `subscribe` 内同步调用 `callback`，造成渲染循环。
+- 把组件内部的普通 state 也交给 `useSyncExternalStore` 管理——内部状态用 `useState` 即可，这个 Hook 是给**外部**数据源准备的。
+
+### 5. 受控组件与非受控组件
+
+**概念定义**：
+
+- **受控组件**：表单元素的值由 React state 驱动，必须同时提供 `value`（或 `checked`）和 `onChange`，React 是**唯一数据源**。
+- **非受控组件**：表单元素的值由 DOM 自身维护，React 通过 `ref` 在需要时读取，初始值用 `defaultValue` / `defaultChecked` 指定。
+
+**判断标准**：看**值是否由 React state 控制**。
+
+| 写法 | 类型 | 说明 |
+|------|------|------|
+| `<input value={v} onChange={...} />` | 受控 | 值由 state 驱动 |
+| `<input value={v} readOnly />` | 受控 | 只读，也算受控 |
+| `<input defaultValue="x" />` | 非受控 | DOM 自己维护值 |
+| `<input ref={r} />` | 非受控 | 通过 ref 读取 |
+| `<input />` 无 value | 非受控 | 完全由 DOM 管理 |
+
+```jsx
+// 受控：每次输入都同步到 state，可实现实时校验 / 联动
+function ControlledSearch() {
+  const [keyword, setKeyword] = useState('');
+
+  return (
+    <>
+      <input
+        value={keyword}
+        onChange={(e) => setKeyword(e.target.value)}
+        placeholder="输入关键字"
+      />
+      <p>实时预览：{keyword}</p>
+      <button disabled={keyword.trim().length === 0}>搜索</button>
+    </>
+  );
+}
+
+// 非受控：只在提交时读取一次，输入过程零渲染
+function UncontrolledForm() {
+  const formRef = useRef(null);
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    const formData = new FormData(formRef.current);
+    console.log(Object.fromEntries(formData));
+  }
+
+  return (
+    <form ref={formRef} onSubmit={handleSubmit}>
+      <input name="username" defaultValue="张三" />
+      <input name="email" type="email" />
+      <button type="submit">提交</button>
+    </form>
+  );
+}
+```
+
+**适用场景**：
+
+| 场景 | 推荐方案 | 原因 |
+|------|---------|------|
+| 实时校验、输入联动、字符计数 | 受控 | 需要每次输入都拿到最新值 |
+| 表单字段与其它 UI 联动（如搜索建议） | 受控 | state 变化驱动派生 UI |
+| 一次性提交的大型表单 | 非受控 | 避免每次按键触发整表重渲染 |
+| `<input type="file" />` | 非受控（唯一选择） | 文件值不可由脚本设置 |
+| 集成第三方非 React 组件（富文本、日期选择器） | 非受控 | 第三方库自己管理 DOM |
+| 性能敏感的高频输入 | 非受控 + 提交时读取 | 输入过程不触发 React 渲染 |
+
+**受控组件的性能问题与优化**：
+
+受控组件的每次按键都会触发 `setState` → 组件（乃至整棵父树）重渲染。当表单字段很多，或 state 提升到很大的父组件时，会出现明显输入延迟。
+
+```jsx
+// ❌ 问题：state 提升到顶层，每次输入都让整棵大树重渲染
+function BigForm() {
+  const [name, setName] = useState('');
+  return (
+    <div>
+      <ExpensiveTree /> {/* 与输入无关，却被连带重渲染 */}
+      <input value={name} onChange={(e) => setName(e.target.value)} />
+    </div>
+  );
+}
+
+// ✅ 优化一：state 下沉到独立小组件，缩小重渲染范围
+function NameField() {
+  const [name, setName] = useState('');
+  return <input value={name} onChange={(e) => setName(e.target.value)} />;
+}
+```
+
+其它优化手段：
+
+1. **`useDeferredValue` / `useTransition`**：把由输入派生的昂贵渲染标记为非紧急更新，保证输入框本身不卡。
+2. **`React.memo` 拆分字段组件**：让不相关的子树跳过重渲染。
+3. **改用非受控 + `ref`**：只在提交时读取，输入过程不产生任何渲染。
+4. **使用 `react-hook-form`**：内部基于非受控 + 字段级订阅，只有订阅了该字段的组件重渲染。
+5. **React 19+ 的 `useActionState` / `<form action>`**：表单提交与 pending 状态由 React 管理，减少手写 state。
+
+```jsx
+// 优化二：非紧急的派生渲染用 useDeferredValue 降优先级
+function SearchList() {
+  const [keyword, setKeyword] = useState('');
+  const deferredKeyword = useDeferredValue(keyword);
+
+  return (
+    <>
+      {/* 输入框始终使用 keyword，保证即时响应 */}
+      <input value={keyword} onChange={(e) => setKeyword(e.target.value)} />
+      {/* 昂贵列表使用 deferredKeyword，落后一帧但不会阻塞输入 */}
+      <ExpensiveList keyword={deferredKeyword} />
+    </>
+  );
+}
+```
+
+**`defaultValue` / `defaultChecked` 与混用**：
+
+- `defaultValue` / `defaultChecked` 只在**首次挂载**时生效，之后即使 prop 变化也不会同步到 DOM。
+- 想「重置」非受控表单，改变 `key` 让 React 重建节点是最简洁的做法：`<form key={formVersion}>`。
+- 同一个 `<form>` 中可以混用受控与非受控字段：受控字段用于需要联动的项，非受控字段用于纯收集项，提交时用 `FormData` 统一读取。
+
+```jsx
+function MixedForm() {
+  const [coupon, setCoupon] = useState(''); // 受控：需要联动展示优惠信息
+  const formRef = useRef(null);
+
+  return (
+    <form
+      ref={formRef}
+      onSubmit={(e) => {
+        e.preventDefault();
+        const data = Object.fromEntries(new FormData(formRef.current));
+        // data.coupon 来自受控字段，data.address 来自非受控字段
+        console.log({ ...data, coupon });
+      }}
+    >
+      <input
+        name="coupon"
+        value={coupon}
+        onChange={(e) => setCoupon(e.target.value)}
+      />
+      {coupon && <p>优惠码已应用：{coupon}</p>}
+      <input name="address" defaultValue="" /> {/* 非受控 */}
+      <button type="submit">提交</button>
+    </form>
+  );
+}
+```
+
+**面试常见问法**：
+
+- 受控组件和非受控组件的区别？如何判断一个组件是哪种？
+- 为什么 React 更推荐受控组件？
+- 受控组件的性能问题怎么优化？
+- `value` 和 `defaultValue` 的区别是什么？
+- 文件上传为什么只能用非受控？
+
+**易错点**：
+
+- 只写 `value` 不写 `onChange` → 输入框变只读，控制台报 `You provided a value prop to a form field without an onChange handler`。
+- 传 `value={undefined}` 时 React 会视为非受控，切换 `undefined` 与具体值会触发受控/非受控切换警告。
+- 期望 `defaultValue` 变化能同步到 DOM（不会生效，需要改 `key`）。
+- 给 `<input type="file" />` 传 `value` 会直接报错。
+- 在 `onChange` 中用 state 拼接新值（`setValue(value + char)`）遇到快速输入会丢字符，应使用 `e.target.value` 或函数式更新。

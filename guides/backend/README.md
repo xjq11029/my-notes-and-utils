@@ -9,13 +9,13 @@
 
 资料库按 **4 大核心模块 + 1 个扩展模块** 组织，共 5 个一级目录，覆盖从 Java 基础到分布式微服务、Python AI Agent 的完整后端技术栈。
 
-| 序号 | 模块 | 包含子模块 | 文件数 | 资料目录 |
+| 序号 | 模块 | 包含子模块 | 目录文件数 | 资料目录 |
 |:----:|------|-----------|:------:|----------|
-| 1 | Java 基础 | java-core / jvm-juc / mysql-jdbc | 20 | [01-java-basics](./01-java-basics/) |
-| 2 | JavaWeb 单体架构 | maven / javaweb-servlet / ssm / spring-boot / mybatis / linux / docker-k8s | 28 | [02-javaweb-monolith](./02-javaweb-monolith/) |
-| 3 | 分布式微服务 | redis / mysql-advanced / nginx / spring-cloud / zookeeper / mq / elasticsearch / clickhouse / git | 32 | [03-distributed-microservices](./03-distributed-microservices/) |
-| 4 | Python AI Agent | python-core / langchain-rag / llm-fine-tuning | 8 | [04-python-aiagent](./04-python-aiagent/) |
-| 扩展 | 实战项目 | project | 1 | [extensions](./extensions/) |
+| 1 | Java 基础 | java-core / jvm-juc / mysql-jdbc | 51 | [01-java-basics](./01-java-basics/) |
+| 2 | JavaWeb 单体架构 | maven / javaweb-servlet / ssm / spring-boot / mybatis / linux / docker-k8s | 77 | [02-javaweb-monolith](./02-javaweb-monolith/) |
+| 3 | 分布式微服务 | redis / mysql-advanced / nginx / spring-cloud / zookeeper / mq / elasticsearch / clickhouse / git | 95 | [03-distributed-microservices](./03-distributed-microservices/) |
+| 4 | Python AI Agent | python-core / langchain-rag / llm-fine-tuning | 27 | [04-python-aiagent](./04-python-aiagent/) |
+| 扩展 | 实战项目 | project | 5 | [extensions](./extensions/) |
 
 ---
 
@@ -31,26 +31,35 @@
 
 ### 文件结构说明
 
-每个子模块目录包含两类文件：
+每个子模块目录包含四类文件：
 
-- **原理文件**（`01-xxx.md`、`02-xxx.md`）：深入讲解核心概念、底层原理、实战应用，附常见面试题
-- **笔面试题集**（`xxx笔面试题集.md`）：选择题 + 简答题 + 编程/场景设计题，全部附完整解析
+- **原理文件**（`NN-主题.md`）：深入讲解核心概念、底层原理、实战应用，附常见面试题
+- **章节导读**（`NN-主题-导览.md`）：与原理文件一一对应的速览版，便于复习与定位
+- **笔面试题集**（`*笔面试题集.md`）：选择题 + 简答题 + 编程/场景设计题，全部附完整解析
+- **速查件**：`常见错误汇总.md`、`概念对比速查.md`、`综合场景.md`
+
+> **统计口径**：本文各级「文件数」均为该目录下的**文件总数**（含原理文件、章节导读、题集与速查件）。下方明细表仅列出原理文件与题集两类，因此表格行数会少于标题中的文件数。
+
+> **编号说明**：`01-java-basics` 内的 `NN-` 前缀为**跨子目录连续编号** —— java-core 用 01–12，jvm-juc 接续 13–17，正则表达式回到 java-core 编为 18，JMM 接续为 jvm-juc/19。其余模块的子目录各自独立编号，且部分**并非从 01 起**（mybatis 从 03、mysql-advanced 从 06、langchain-rag 从 02），属历史沿用的模块级编号。新增文件按所在子目录的最大编号顺延。
+
+> **变更日志**：[`_CHANGELOG.md`](./_CHANGELOG.md) —— 记录本资料库的版本演进（版本 / 日期 / 变更摘要 / 来源项目）。
 
 ### 相关知识库
 
-本资料库与项目中的以下深度资料互补：
+本资料库与仓库内其他资料互补：
 
-- [ljit-exam-deep-dive.md](../ljit-exam-deep-dive.md) — 完整版深度复习手册（20156 行）
-- [ljit-exam-newtech.md](../ljit-exam-newtech.md) — 计算机新型技术考点
-- [ljit-exam-foundation.md](../ljit-exam-foundation.md) — 计算机基础综合（含信息安全管理）
+- [前端笔面试资料库](../frontend/README.md) — HTML/CSS、JS 核心、TypeScript、浏览器原理、Vue、React、工程化、性能、Node.js 等 15 个模块
+- [代码理解与审查指南](../code-review/README.md) — 供 Agent 加载的代码分析 / 审查指令规范
+- [学习方法论](../learning/AI辅助源码阅读方法.md) — AI 辅助开源项目源码阅读方法
+- [AI 辅助开发模块](../frontend/11-ai-assisted/) — AI 编程工具、Prompt 工程与代码审查
 
 ---
 
 ## 文件索引
 
-### 01-java-basics — Java 基础（20 文件）
+### 01-java-basics — Java 基础（51 文件）
 
-#### java-core（13 文件）
+#### java-core（29 文件）
 
 | 文件 | 内容 | 类型 |
 |------|------|:--:|
@@ -68,17 +77,18 @@
 | [12-反射机制.md](./01-java-basics/java-core/12-反射机制.md) | Class类、Constructor/Method/Field、动态代理、类加载器 | 原理 |
 | [18-正则表达式.md](./01-java-basics/java-core/18-正则表达式.md) | Pattern/Matcher、正则语法、零宽断言、常见模式、回溯与ReDoS | 原理 |
 
-#### jvm-juc（5 文件）
+#### jvm-juc（15 文件）
 
 | 文件 | 内容 | 类型 |
 |------|------|:--:|
 | [13-多线程与并发编程.md](./01-java-basics/jvm-juc/13-多线程与并发编程.md) | 线程池、synchronized/AQS、volatile、CAS、ThreadLocal | 原理 |
-| [14-JVM原理与调优.md](./01-java-basics/jvm-juc/14-JVM原理与调优.md) | 内存模型、GC算法、类加载、JVM参数调优、OOM排查 | 原理 |
+| [14-JVM原理与调优.md](./01-java-basics/jvm-juc/14-JVM原理与调优.md) | 内存模型、GC算法、类加载、JVM参数调优、GC日志解读、Arthas实战诊断、OOM排查 | 原理 |
 | [15-JDK8-17新特性.md](./01-java-basics/jvm-juc/15-JDK8-17新特性.md) | Lambda、Stream API、Optional、var、记录类、密封类 | 原理 |
 | [16-设计模式.md](./01-java-basics/jvm-juc/16-设计模式.md) | 单例/工厂/策略/代理/模板方法、Spring设计模式应用 | 原理 |
 | [17-Java核心笔面试题集.md](./01-java-basics/jvm-juc/17-Java核心笔面试题集.md) | 选择题 30 + 简答 15 + 编程 8 | 题库 |
+| [19-JMM与happens-before.md](./01-java-basics/jvm-juc/19-JMM与happens-before.md) | JMM 抽象模型、8 种原子操作、happens-before 八条规则、三类重排序、四种内存屏障、volatile/synchronized/final 语义 | 原理 |
 
-#### mysql-jdbc（2 文件）
+#### mysql-jdbc（7 文件）
 
 | 文件 | 内容 | 类型 |
 |------|------|:--:|
@@ -87,9 +97,9 @@
 
 ---
 
-### 02-javaweb-monolith — JavaWeb 单体架构（28 文件）
+### 02-javaweb-monolith — JavaWeb 单体架构（77 文件）
 
-#### maven（3 文件）
+#### maven（9 文件）
 
 | 文件 | 内容 | 类型 |
 |------|------|:--:|
@@ -97,7 +107,7 @@
 | [02-Maven私服与实战配置.md](./02-javaweb-monolith/maven/02-Maven私服与实战配置.md) | settings.xml配置、镜像源、Nexus私服搭建、发布配置、多环境Profile | 原理 |
 | [03-Maven笔面试题集.md](./02-javaweb-monolith/maven/03-Maven笔面试题集.md) | 选择题 10 + 简答 5 | 题库 |
 
-#### javaweb-servlet（4 文件）
+#### javaweb-servlet（11 文件）
 
 | 文件 | 内容 | 类型 |
 |------|------|:--:|
@@ -106,7 +116,7 @@
 | [03-Request与Response&Filter监听器.md](./02-javaweb-monolith/javaweb-servlet/03-Request与Response&Filter监听器.md) | Filter过滤器链、Listener监听器、请求封装与响应处理 | 原理 |
 | [JavaWeb笔面试题集.md](./02-javaweb-monolith/javaweb-servlet/JavaWeb笔面试题集.md) | 选择题 + 简答 + 场景题 | 题库 |
 
-#### ssm（4 文件）
+#### ssm（11 文件）
 
 | 文件 | 内容 | 类型 |
 |------|------|:--:|
@@ -115,7 +125,7 @@
 | [03-MyBatis整合与配置.md](./02-javaweb-monolith/ssm/03-MyBatis整合与配置.md) | SqlSessionFactory、Mapper代理、Spring整合MyBatis、事务管理 | 原理 |
 | [SSM整合笔面试题集.md](./02-javaweb-monolith/ssm/SSM整合笔面试题集.md) | 选择题 + 简答 + 场景题 | 题库 |
 
-#### spring-boot（8 文件）
+#### spring-boot（19 文件）
 
 | 文件 | 内容 | 类型 |
 |------|------|:--:|
@@ -128,7 +138,7 @@
 | [07-日志整合与监控.md](./02-javaweb-monolith/spring-boot/07-日志整合与监控.md) | Logback配置、日志级别、Actuator端点、Prometheus集成 | 原理 |
 | [08-SpringBoot部署与运维.md](./02-javaweb-monolith/spring-boot/08-SpringBoot部署与运维.md) | jar打包、Docker部署、外部化配置、Profile隔离、热部署 | 原理 |
 
-#### mybatis（3 文件）
+#### mybatis（9 文件）
 
 | 文件 | 内容 | 类型 |
 |------|------|:--:|
@@ -136,7 +146,7 @@
 | [04-Spring-Data-JPA深度.md](./02-javaweb-monolith/mybatis/04-Spring-Data-JPA深度.md) | Entity 映射、JPQL、N+1 问题、事务管理 | 原理 |
 | [05-MyBatis-Plus实战.md](./02-javaweb-monolith/mybatis/05-MyBatis-Plus实战.md) | BaseMapper、分页插件、条件构造器、代码生成器 | 原理 |
 
-#### linux（3 文件）
+#### linux（9 文件）
 
 | 文件 | 内容 | 类型 |
 |------|------|:--:|
@@ -144,7 +154,7 @@
 | [02-Linux系统管理与服务部署.md](./02-javaweb-monolith/linux/02-Linux系统管理与服务部署.md) | 用户权限、进程管理、网络管理、JDK/MySQL/Redis服务部署、系统监控 | 原理 |
 | [03-Linux笔面试题集.md](./02-javaweb-monolith/linux/03-Linux笔面试题集.md) | 选择题 15 + 简答 8 + 场景题 2 | 题库 |
 
-#### docker-k8s（3 文件）
+#### docker-k8s（9 文件）
 
 | 文件 | 内容 | 类型 |
 |------|------|:--:|
@@ -154,9 +164,9 @@
 
 ---
 
-### 03-distributed-microservices — 分布式微服务（32 文件）
+### 03-distributed-microservices — 分布式微服务（95 文件）
 
-#### redis（3 文件）
+#### redis（9 文件）
 
 | 文件 | 内容 | 类型 |
 |------|------|:--:|
@@ -164,14 +174,14 @@
 | [02-Redis高级特性与实战.md](./03-distributed-microservices/redis/02-Redis高级特性与实战.md) | 持久化、主从/哨兵/集群、缓存策略、内存淘汰、分布式锁 | 原理 |
 | [03-Redis笔面试题集.md](./03-distributed-microservices/redis/03-Redis笔面试题集.md) | 选择题 20 + 简答 10 + 场景设计 5 | 题库 |
 
-#### mysql-advanced（2 文件）
+#### mysql-advanced（7 文件）
 
 | 文件 | 内容 | 类型 |
 |------|------|:--:|
 | [06-MySQL深度优化.md](./03-distributed-microservices/mysql-advanced/06-MySQL深度优化.md) | InnoDB 引擎、B+ 树索引、SQL 优化、分库分表 | 原理 |
 | [07-数据库笔面试题集.md](./03-distributed-microservices/mysql-advanced/07-数据库笔面试题集.md) | 选择题 20 + 简答 10 + SQL 题 10 | 题库 |
 
-#### nginx（3 文件）
+#### nginx（9 文件）
 
 | 文件 | 内容 | 类型 |
 |------|------|:--:|
@@ -179,7 +189,7 @@
 | [02-Nginx性能优化与安全配置.md](./03-distributed-microservices/nginx/02-Nginx性能优化与安全配置.md) | 动静分离、sendfile零拷贝、gzip压缩、HTTPS配置、限流、CORS | 原理 |
 | [03-Nginx笔面试题集.md](./03-distributed-microservices/nginx/03-Nginx笔面试题集.md) | 选择题 15 + 简答 8 + 场景题 2 | 题库 |
 
-#### spring-cloud（7 文件）
+#### spring-cloud（17 文件）
 
 | 文件 | 内容 | 类型 |
 |------|------|:--:|
@@ -191,7 +201,7 @@
 | [06-OpenFeign声明式调用.md](./03-distributed-microservices/spring-cloud/06-OpenFeign声明式调用.md) | 动态代理机制、超时重试、日志级别、拦截器、fallback降级 | 原理 |
 | [07-链路追踪与可观测性.md](./03-distributed-microservices/spring-cloud/07-链路追踪与可观测性.md) | Trace/Span模型、SkyWalking/Zipkin原理、采样策略、日志关联 | 原理 |
 
-#### zookeeper（3 文件）
+#### zookeeper（9 文件）
 
 | 文件 | 内容 | 类型 |
 |------|------|:--:|
@@ -199,18 +209,20 @@
 | [02-Zookeeper集群与应用场景.md](./03-distributed-microservices/zookeeper/02-Zookeeper集群与应用场景.md) | 集群部署配置、分布式锁、服务注册发现、配置中心、选举 | 原理 |
 | [Zookeeper笔面试题集.md](./03-distributed-microservices/zookeeper/Zookeeper笔面试题集.md) | 选择题 + 简答 + 场景题 | 题库 |
 
-#### mq（6 文件）
+#### mq（19 文件）
 
 | 文件 | 内容 | 类型 |
 |------|------|:--:|
 | [kafka/01-Kafka核心原理.md](./03-distributed-microservices/mq/kafka/01-Kafka核心原理.md) | Topic/Partition、ISR 机制、高吞吐原理、Exactly Once | 原理 |
+| [kafka/Kafka笔面试题集.md](./03-distributed-microservices/mq/kafka/Kafka笔面试题集.md) | 选择题 12 + 简答 8 + 场景设计 3 | 题库 |
 | [rabbitmq/02-RabbitMQ核心原理.md](./03-distributed-microservices/mq/rabbitmq/02-RabbitMQ核心原理.md) | Exchange/Queue/Binding、死信队列、延迟队列、消息确认 | 原理 |
+| [rabbitmq/RabbitMQ笔面试题集.md](./03-distributed-microservices/mq/rabbitmq/RabbitMQ笔面试题集.md) | 选择题 12 + 简答 8 + 场景设计 3 | 题库 |
 | [rocketmq/01-RocketMQ核心原理.md](./03-distributed-microservices/mq/rocketmq/01-RocketMQ核心原理.md) | NameServer/Broker架构、存储模型、消息类型、高可用设计 | 原理 |
 | [rocketmq/02-RocketMQ高级特性.md](./03-distributed-microservices/mq/rocketmq/02-RocketMQ高级特性.md) | 顺序消息、事务消息、延迟消息、消息过滤、消息轨迹 | 原理 |
 | [rocketmq/RocketMQ笔面试题集.md](./03-distributed-microservices/mq/rocketmq/RocketMQ笔面试题集.md) | 选择题 + 简答 + 场景题 | 题库 |
-| [03-消息队列笔面试题集.md](./03-distributed-microservices/mq/03-消息队列笔面试题集.md) | 选择题 15 + 简答 8 + 场景设计 3（综合对比） | 题库 |
+| [03-消息队列笔面试题集.md](./03-distributed-microservices/mq/03-消息队列笔面试题集.md) | 选择题 15 + 简答 8 + 场景设计 3（综合对比）+ 消息积压治理专题 | 题库 |
 
-#### elasticsearch（3 文件）
+#### elasticsearch（9 文件）
 
 | 文件 | 内容 | 类型 |
 |------|------|:--:|
@@ -218,14 +230,14 @@
 | [02-ES查询与聚合分析.md](./03-distributed-microservices/elasticsearch/02-ES查询与聚合分析.md) | DSL 查询、bool/must/should、聚合、高亮、Spring Data ES | 原理 |
 | [03-ES笔面试题集.md](./03-distributed-microservices/elasticsearch/03-ES笔面试题集.md) | 选择题 15 + 简答 8 + 场景设计 3 | 题库 |
 
-#### clickhouse（2 文件）
+#### clickhouse（7 文件）
 
 | 文件 | 内容 | 类型 |
 |------|------|:--:|
 | [01-ClickHouse核心原理.md](./03-distributed-microservices/clickhouse/01-ClickHouse核心原理.md) | MergeTree 引擎、列式存储、分区策略、物化视图 | 原理 |
 | [02-ClickHouse笔面试题集.md](./03-distributed-microservices/clickhouse/02-ClickHouse笔面试题集.md) | 选择题 10 + 简答 5 + 场景设计 3 | 题库 |
 
-#### git（3 文件）
+#### git（9 文件）
 
 | 文件 | 内容 | 类型 |
 |------|------|:--:|
@@ -235,15 +247,16 @@
 
 ---
 
-### 04-python-aiagent — Python AI Agent（8 文件）
+### 04-python-aiagent — Python AI Agent（27 文件）
 
-#### python-core（1 文件）
+#### python-core（7 文件）
 
 | 文件 | 内容 | 类型 |
 |------|------|:--:|
 | [01-Python核心语法速通.md](./04-python-aiagent/python-core/01-Python核心语法速通.md) | Java对比Python速通、数据类型、函数、面向对象、装饰器、常用标准库 | 原理 |
+| [02-Python笔面试题集.md](./04-python-aiagent/python-core/02-Python笔面试题集.md) | 选择题 18 + 简答 11 + 场景设计 3 | 题库 |
 
-#### langchain-rag（3 文件）
+#### langchain-rag（9 文件）
 
 | 文件 | 内容 | 类型 |
 |------|------|:--:|
@@ -251,7 +264,7 @@
 | [03-RAG检索增强生成实战.md](./04-python-aiagent/langchain-rag/03-RAG检索增强生成实战.md) | RAG架构、文档切分、向量化、检索策略、知识库问答系统、RAG评估 | 原理 |
 | [04-Python与AI智能体笔面试题集.md](./04-python-aiagent/langchain-rag/04-Python与AI智能体笔面试题集.md) | 选择题 15 + 简答 10 + 场景题 3 | 题库 |
 
-#### llm-fine-tuning（4 文件）
+#### llm-fine-tuning（11 文件）
 
 | 文件 | 内容 | 类型 |
 |------|------|:--:|
@@ -262,9 +275,9 @@
 
 ---
 
-### extensions — 扩展模块（1 文件）
+### extensions — 扩展模块（5 文件）
 
-#### project（1 文件）
+#### project（5 文件）
 
 | 文件 | 内容 | 类型 |
 |------|------|:--:|

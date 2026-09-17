@@ -26,7 +26,7 @@
 | 能做什么 | 语义化标签提升 SEO 和可访问性；表单增强支持原生验证；音视频替代 Flash；Canvas/SVG 支持 2D/3D 绘图；Web Storage 提供客户端持久化；WebSocket 实现全双工通信。 |
 | 怎么用 | `<article>`、`<input type="email">`、`<video src="...">`、`<canvas>`、`localStorage.setItem()`、`new WebSocket()` |
 | 原理和工作流程 | HTML5 规范由 W3C 和 WHATWG 共同制定，浏览器厂商按规范实现新的解析规则和 API。语义化标签被解析为具有特定含义的 DOM 节点；Web Storage 在浏览器沙箱中分配存储空间；WebSocket 通过 HTTP 升级协议建立持久连接。 |
-| 缺点 | 旧版浏览器（如 IE8 及以下）不支持 HTML5 新特性，需要 polyfill 或优雅降级。 |
+| 缺点 | 旧版浏览器（如 IE8 及以下）不支持 HTML5 新特性，需要 polyfill 或优雅降级。（历史兼容场景，2026 年新项目按现代浏览器基线） |
 
 ### 1.3 语义化标签详解
 

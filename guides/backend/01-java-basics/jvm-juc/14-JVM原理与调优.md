@@ -415,6 +415,366 @@ JAVA_OPTS="
 > - [JEP 328: Flight Recorder](https://openjdk.org/jeps/328) -- JDK 11 JFR 飞行记录器
 > - [Java SE 17 API: java.lang.management.ThreadMXBean](https://docs.oracle.com/javase/17/docs/api/java.management/java/lang/management/ThreadMXBean.html) -- 线程 CPU 监控
 
+### 3.4 GC 日志解读与线上 GC/OOM 排查
+
+GC 日志是线上性能问题最可靠的「黑匣子」：**先有日志，才有分析**。生产环境必须提前开启并做好滚动，事后补开往往已错过现场。
+
+#### 开启 GC 日志
+
+```bash
+# JDK 9+ 统一日志框架（推荐）
+-Xlog:gc*:file=/logs/gc.log:time,uptime,level,tags:filecount=10,filesize=50m
+
+# 更细粒度：堆信息 + 对象年龄分布 + 各阶段耗时
+-Xlog:gc*,gc+heap=info,gc+age=trace,gc+phases=debug:file=/logs/gc-%p.log:time,uptime,level,tags:filecount=10,filesize=100m
+
+# JDK 8 及以前（已废弃，仅维护老系统时参考）
+-XX:+PrintGCDetails -XX:+PrintGCDateStamps -XX:+PrintTenuringDistribution \
+-Xloggc:/logs/gc.log -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=10 -XX:GCLogFileSize=50M
+```
+
+**`-Xlog` 各字段含义：**
+
+| 字段 | 含义 | 可选值 |
+|------|------|-------|
+| `gc*` | 选择日志标签，`*` 表示所有以 `gc` 开头的标签 | `gc`、`gc+heap`、`gc+age`、`gc+phases`、`gc+ergo` |
+| `file=` | 输出文件路径，支持占位符 | `%p`（pid）、`%t`（时间戳） |
+| `time` | 输出本地时间（ISO-8601） | -- |
+| `uptime` | 输出 JVM 启动后的相对时间 | -- |
+| `level` | 输出日志级别 | `error`、`warning`、`info`、`debug`、`trace` |
+| `tags` | 输出日志标签，便于按问题域过滤 | -- |
+| `filecount` / `filesize` | 滚动文件数与单文件大小 | 生产建议 10 × 50MB |
+
+**级别与标签的筛选语法：**
+
+```bash
+-Xlog:gc*=info            # 所有 gc 标签，info 及以上
+-Xlog:gc+heap=trace       # 仅堆信息，trace 级
+-Xlog:gc*=debug:stderr    # 输出到标准错误
+```
+
+#### G1 日志实例逐字段解读
+
+```
+[2024-06-12T10:23:45.123+0800][12345.678s][info][gc,start] GC(128) Pause Young (Normal) (G1 Evacuation Pause)
+[2024-06-12T10:23:45.130+0800][12345.685s][info][gc,phases] GC(128) Phase 1: Ext Root Scanning (ms): 1.2
+[2024-06-12T10:23:45.145+0800][12345.700s][info][gc,heap]  GC(128) Eden regions: 120->0(120)
+[2024-06-12T10:23:45.145+0800][12345.700s][info][gc,heap]  GC(128) Survivor regions: 8->10(15)
+[2024-06-12T10:23:45.145+0800][12345.700s][info][gc,heap]  GC(128) Old regions: 45->47
+[2024-06-12T10:23:45.145+0800][12345.700s][info][gc,heap]  GC(128) Humongous regions: 3->2
+[2024-06-12T10:23:45.146+0800][12345.701s][info][gc,metaspace] GC(128) Metaspace: 102400K->102400K(1048576K)
+[2024-06-12T10:23:45.146+0800][12345.701s][info][gc] GC(128) Pause Young (Normal) (G1 Evacuation Pause) 173M->59M(2048M) 23.456ms
+[2024-06-12T10:23:45.146+0800][12345.701s][info][gc,cpu] GC(128) User=0.08s Sys=0.00s Real=0.02s
+```
+
+| 字段 | 示例值 | 含义与判读 |
+|------|-------|-----------|
+| 本地时间 | `2024-06-12T10:23:45.123+0800` | 与业务日志对齐时间轴用 |
+| uptime | `12345.678s` | JVM 启动后相对时间，算 GC 间隔用 |
+| level | `info` | 日志级别 |
+| tags | `gc,start` / `gc,heap` / `gc,cpu` | 问题域，决定这行日志讲什么 |
+| GC 序号 | `GC(128)` | 第 128 次 GC，跨类型连续编号，用于去重与对齐 |
+| GC 类型 | `Pause Young (Normal) (G1 Evacuation Pause)` | Young GC；另有 `Pause Young (Concurrent Start)`、`Pause Remark`、`Pause Cleanup`、`Pause Full` |
+| Eden | `120->0(120)` | 回收前 -> 回收后（Region 总数）；Eden 清零是正常 Young GC |
+| Survivor | `8->10(15)` | 存活对象复制进 Survivor，总量 15 是 Survivor 容量上限 |
+| Old regions | `45->47` | 增加说明本次有对象晋升，需关注长期趋势 |
+| Humongous | `3->2` | 大对象 Region；长期不下降说明大对象分配频繁 |
+| Metaspace | `102400K->102400K(1048576K)` | 元空间不回收说明类加载稳定；持续上涨是类加载器泄漏 |
+| 堆前后 | `173M->59M(2048M)` | 回收前 -> 回收后（总容量），评估回收效率与堆容量 |
+| 停顿 | `23.456ms` | 本次 STW 时长，与 `MaxGCPauseMillis` 目标对比 |
+| CPU | `User=0.08s Sys=0.00s Real=0.02s` | 用户态/内核态/实际耗时；`Real` 明显大于 `User+Sys` 说明并行度不足 |
+
+#### ZGC / CMS 日志差异
+
+| 维度 | G1 | ZGC | CMS |
+|------|----|-----|-----|
+| 阶段日志 | `gc,phases` 输出各阶段耗时 | `Pause Mark Start`、`Pause Mark End`、`Concurrent Mark`、`Concurrent Relocate` | `CMS-initial-mark`、`CMS-concurrent-mark`、`CMS-remark`、`CMS-concurrent-sweep` |
+| 停顿形态 | Young GC 短停、Mixed GC 中等停顿 | 停顿极短（常见 <1ms），主体为并发阶段 | 初始标记与重新标记 STW，其余并发 |
+| 关键指标 | `Pause Young` 时长、Mixed GC 频率 | 停顿是否稳定在亚毫秒、并发阶段是否跟得上分配速率 | `Concurrent Mode Failure`、`promotion failed` |
+| 典型告警 | `to-space exhausted`、`Evacuation Failure` | `Allocation Stall`（回收跟不上分配） | 碎片化导致 Full GC 退化 |
+
+#### Young GC / Full GC 频繁的判定标准
+
+| 判定项 | 参考阈值 | 处置方向 |
+|-------|---------|---------|
+| Young GC 频率 | > 10 次/分钟，或间隔 < 5s | 增大新生代（`-Xmn` / `-XX:NewRatio`）；排查短命大对象 |
+| Young GC 单次停顿 | > 50ms | 降低 `MaxGCPauseMillis`；检查 Survivor 过小导致复制量过大 |
+| Full GC 频率 | > 1 次/小时，或短时间内连续出现 | 优先怀疑内存泄漏（老年代持续上涨不回落） |
+| Full GC 单次耗时 | > 1s | 检查堆大小与对象存活量；考虑换 ZGC |
+| 老年代占用 | Full GC 后仍 > 70% 且不回落 | 内存泄漏，需 dump 分析 |
+| GC 总耗时占比 | > 5%（`GCT` / 运行时长） | 整体调优或扩容 |
+
+**Full GC 频繁的五步处置：**
+
+```
+1. jstat -gcutil <pid> 1000 观察 30 秒
+   关注 OU（老年代使用率）是否持续上涨、FGC 是否递增、FGCT 是否累积
+
+2. 判定「泄漏」还是「容量不足」
+   泄漏特征：Full GC 后 OU 仍高（>70%），且很快再次占满
+   容量不足特征：Full GC 后 OU 明显回落（<40%），业务高峰又满
+
+3. 导出并分析堆
+   jmap -dump:live,format=b,file=heap.hprof <pid>
+   或提前配置 -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/logs/heapdump.hprof
+   MAT 看 Leak Suspects / Dominator Tree / Path to GC Roots
+
+4. 检查常见根因
+   内存泄漏（静态集合无限增长、ThreadLocal 未 remove、缓存无淘汰策略）
+   大对象直接进老年代（超过 Region 50% 的 Humongous 对象）
+   元空间泄漏（动态代理/字节码生成类过多、类加载器未释放）
+   显式 GC 调用（System.gc()，可用 -XX:+DisableExplicitGC 屏蔽）
+
+5. 调整与验证
+   修代码优先；参数上可调大堆、调大新生代、调整 IHOP 阈值
+   改完用同样压测复现，对比 FGC 次数与 GCT 占比
+```
+
+#### OOM 分类与排查路径
+
+| OOM 类型 | 报错信息 | 根因 | 排查路径 |
+|---------|---------|------|---------|
+| **堆溢出** | `OutOfMemoryError: Java heap space` | 内存泄漏或堆容量不足 | `jmap -dump` + MAT 找大对象与引用链；检查静态集合、缓存、大数组 |
+| **元空间溢出** | `OutOfMemoryError: Metaspace` | 类加载器泄漏或动态类过多 | `jstat -gc` 看 MC/MU；`-XX:+TraceClassLoading` 观察类加载；排查 CGLIB、动态代理、热部署 |
+| **直接内存溢出** | `OutOfMemoryError: Direct buffer memory` | NIO DirectByteBuffer 未释放 | 设置 `-XX:MaxDirectMemorySize`；`jmap -histo:live` 看 DirectByteBuffer 计数；检查 Netty ByteBuf 是否 release |
+| **GC 开销超限** | `OutOfMemoryError: GC overhead limit exceeded` | GC 占用 >98% 时间却回收 <2% 堆 | 本质仍是堆不足或泄漏，按堆溢出路径排查；临时可调 `-XX:GCTimeLimit` / `-XX:GCHeapFreeLimit` |
+| **线程创建失败** | `OutOfMemoryError: unable to create new native thread` | 线程数超系统上限或栈空间耗尽 | 降低线程池上限；检查 `-Xss` 是否过大；核对 `ulimit -u` 与 `/proc/sys/kernel/threads-max` |
+| **栈溢出** | `StackOverflowError` | 递归过深或方法调用链过长 | 检查递归终止条件；适度调大 `-Xss`（治标不治本） |
+
+#### jstat / jmap / jstack / MAT 组合使用
+
+| 工具 | 用途 | 常用命令 |
+|------|------|---------|
+| `jstat` | 实时观察 GC 频率与各区占用 | `jstat -gcutil <pid> 1000 30`、`jstat -gc <pid> 1000` |
+| `jmap` | 导出堆快照、查看对象直方图 | `jmap -dump:live,format=b,file=heap.hprof <pid>`、`jmap -histo:live <pid> \| head -30` |
+| `jstack` | 打印线程栈，定位死锁与 CPU 热点 | `jstack -l <pid>`、`jstack <pid> \| grep -A 20 <十六进制tid>` |
+| `jinfo` | 查看与动态修改 JVM 参数 | `jinfo -flags <pid>`、`jinfo -flag +HeapDumpOnOutOfMemoryError <pid>` |
+| **MAT** | 离线分析堆快照 | Leak Suspects、Dominator Tree、Path to GC Roots、OQL |
+
+**OOM 场景的组合排查套路：**
+
+```
+jstat -gcutil 确认异常  →  jmap -histo:live 快速看 Top 对象
+                      →  jmap -dump 导出快照  →  MAT 找支配树与引用链
+                      →  jstack 交叉验证线程在做什么  →  定位代码 → 修复 → 压测回归
+```
+
+#### 生产案例：订单服务每 2 小时一次 Full GC
+
+```
+【现象】
+  监控告警：Full GC 每小时 1~2 次，单次 800ms~1.2s，接口 P99 抖动到 2s
+  jstat -gcutil <pid> 1000 输出：
+    S0     S1     E      O      M      CCS    YGC   YGCT   FGC   FGCT    GCT
+    0.00  45.12  62.34  89.71  94.12  91.20  5821  87.4    37   32.1  119.5
+  判读：老年代 89.71% 接近占满，FGC 37 次累计 32.1s，GCT 占比约 21%
+
+【定位】
+  1. jmap -dump:live,format=b,file=heap.hprof <pid> 导出堆快照
+  2. MAT Dominator Tree 第一名：ConcurrentHashMap$Node[] 占 1.4G
+  3. Path to GC Roots 追到 OrderCacheManager 的 static 字段 localCache
+  4. 代码检查发现：localCache 只 put 不 remove，用订单号做 key 且无过期策略
+
+【根因】
+  本地缓存无淘汰机制，订单量增长导致缓存无限膨胀，对象持续晋升老年代
+
+【修复与验证】
+  1. 改用 Caffeine，设置 maximumSize(100_000) + expireAfterWrite(10, MINUTES)
+  2. 补上 -XX:+HeapDumpOnOutOfMemoryError 与 GC 日志滚动，便于复现留证
+  3. 压测回归：FGC 从 37 次/小时降到 0，GCT 占比从 21% 降到 0.8%
+```
+
+**判读 GC 日志的三个反直觉点：**
+
+1. **Full GC 后老年代占用不回落，不等于内存泄漏。** 也可能是「长生命周期对象本来就多」（如缓存预热后的稳态）。要看**趋势**而不是单点值：连续多次 Full GC 后 OU 仍单调上涨，才是泄漏特征。
+2. **`Real` 时间远大于 `User + Sys` 说明并行度不足。** GC 线程数可能被容器 CPU 限制（`-XX:ActiveProcessorCount` 未设置时读到宿主核数），导致并发回收跑不满。
+3. **`to-space exhausted` 不只是「Survivor 太小」。** 它意味着晋升速度超过了老年代可用空间，通常伴随 `Evacuation Failure`，此时 G1 会退化为 Full GC，应优先排查**晋升速率**而非简单调大 Survivor。
+
+> 📖 **参考链接**：
+> - [JEP 158: Unified JVM Logging](https://openjdk.org/jeps/158) -- JDK 9 统一日志框架
+> - [JEP 271: Unified GC Logging](https://openjdk.org/jeps/271) -- GC 日志统一到 `-Xlog:gc*`
+> - [Oracle Java SE 17: jstat 命令](https://docs.oracle.com/javase/17/docs/specs/man/jstat.html)
+> - [JEP 331: Low-Overhead Heap Profiling](https://openjdk.org/jeps/331) -- JDK 11 低开销堆分析
+> - [Java SE 17 API: java.lang.management.MemoryMXBean](https://docs.oracle.com/javase/17/docs/api/java.management/java/lang/management/MemoryMXBean.html)
+
+### 3.5 Arthas 实战诊断
+
+Arthas 是阿里开源的 Java 诊断工具，最大的价值是**不重启、不改代码、不重新打包**，直接对线上 JVM 做现场取证。与 `jstack` / `jmap` 相比，它的优势是**面向方法级**（能看入参、返回值、调用耗时），而不是只给一个线程栈快照。
+
+#### 安装与 attach
+
+```bash
+# 方式一：独立 jar（推荐，目标应用无侵入）
+curl -O https://arthas.aliyun.com/arthas-boot.jar
+java -jar arthas-boot.jar
+# 交互式选择要 attach 的 Java 进程编号
+
+# 方式二：指定 pid 直接 attach
+java -jar arthas-boot.jar <pid>
+
+# 方式三：容器内使用（先进入容器再执行）
+kubectl exec -it <pod> -- java -jar /opt/arthas/arthas-boot.jar 1
+
+# 常用启动参数
+java -jar arthas-boot.jar --target-ip 0.0.0.0 --telnet-port 3658 --http-port 8563
+# 注意：生产环境务必限制端口暴露范围，或仅用本地 telnet 接入
+```
+
+**attach 失败常见原因：**
+
+| 现象 | 原因 | 解决 |
+|------|------|------|
+| `AttachNotSupportedException` | JDK 版本不匹配或 JVM 未开启 attach | 使用与目标 JVM 相同的 JDK；检查 `/tmp/.java_pid*` |
+| `No such file or directory` | 目标进程由其他用户运行 | 用与目标进程相同的用户执行 |
+| 容器内 attach 失败 | 缺少 `/tmp` 写权限或 PID namespace 隔离 | 挂载可写 `/tmp`；确认 PID 命名空间一致 |
+| 目标进程无响应 | 之前的会话未正常退出 | 先执行 `stop` 再重试 |
+
+#### 核心命令与输出解读
+
+| 命令 | 用途 | 典型用法 |
+|------|------|---------|
+| `dashboard` | 实时 JVM 总览（线程、内存、GC、运行时） | `dashboard -n 5 -i 2000` |
+| `thread` | 查看线程状态与 CPU 占用 | `thread -n 3`、`thread -b`、`thread --state BLOCKED` |
+| `jad` | 反编译已加载的类 | `jad com.example.OrderService`、`jad --source-only <Class>` |
+| `watch` | 观察方法入参、返回值、异常 | `watch com.example.OrderService create '{params, returnObj, throwExp}' -x 3` |
+| `trace` | 追踪方法内部调用路径与耗时 | `trace com.example.OrderService create -n 5 --skipJDKMethod false` |
+| `monitor` | 统计调用次数、成功率、RT | `monitor -c 5 com.example.OrderService create` |
+| `sc` | 查看已加载类的信息 | `sc -d com.example.OrderService`（含类加载器与来源 jar） |
+| `ognl` | 执行 OGNL 表达式读写静态/实例字段 | `ognl '@com.example.Config@MAX_RETRY'` |
+| `heapdump` | 导出堆快照（等价 `jmap`） | `heapdump /logs/heapdump.hprof` |
+| `profiler` | 生成火焰图定位 CPU 热点 | `profiler start` → `profiler stop --format html` |
+
+**`dashboard` 输出解读要点：**
+
+```
+ID   NAME                     GROUP  PRIORITY  STATE     %CPU  DELTA_TIME  TIME    INTERRUPTED  DAEMON
+ 23  http-nio-8080-exec-5     main   5         RUNNABLE  78.5  0.785       12:34   false        false
+
+Memory                used   total  max    usage   GC
+heap                  1.8G   2.0G   2.0G   90.00%  gc.g1_young_generation.count     1523
+g1_eden_space         120M   400M   -1     30.00%  gc.g1_young_generation.time(ms)  45210
+g1_old_gen            1.6G   1.6G   1.6G   98.00%  gc.g1_old_generation.count       12
+
+Runtime
+os.name              Linux
+java.version         17.0.9
+```
+
+判读：`heap usage` 持续 >85% 且 `g1_old_gen` 接近占满 → 内存压力大；某线程 `%CPU` 长期 >70% 且 `STATE` 为 `RUNNABLE` → 存在 CPU 热点或死循环。
+
+**`thread` 命令定位 CPU 与阻塞：**
+
+```bash
+thread -n 3                # 列出 CPU 占用最高的 3 个线程及其栈
+thread -b                  # 找出阻塞其他线程的「元凶」线程
+thread 23                  # 查看指定线程 ID 的栈
+thread --state BLOCKED     # 统计各状态线程数
+```
+
+**`watch` / `trace` / `monitor` / `stack` 的差异：**
+
+| 命令 | 观察维度 | 性能开销 | 适用场景 |
+|------|---------|---------|---------|
+| `watch` | 单次调用的入参、返回、异常 | 中（每次调用都输出） | 排查「传参对不对」「返回值异常」 |
+| `trace` | 方法内部子调用的耗时分布 | 较高（需对每个子调用埋点） | 定位「慢在哪一行」 |
+| `monitor` | 聚合统计（次数、成功率、平均 RT） | 低 | 定位「哪个方法整体慢 / 错得多」 |
+| `stack` | 方法被调用的调用栈 | 低 | 定位「谁在调这个方法」 |
+
+**`watch` 实战用法：**
+
+```bash
+# 观察入参与返回值，展开 3 层
+watch com.example.OrderService create '{params, returnObj}' -x 3
+
+# 只观察抛异常的情况
+watch com.example.OrderService create '{params, throwExp}' -e -x 3
+
+# 条件过滤：只观察 orderId 为特定值的调用
+watch com.example.OrderService create '{params, returnObj}' 'params[0].orderId == 10086' -x 3
+
+# 调用前后都观察（-b 前、-s 后），限制 5 次
+watch com.example.OrderService create '{params, returnObj}' -b -s -n 5 -x 3
+```
+
+#### 生产案例一：CPU 飙高完整排查
+
+```bash
+# 步骤 1：确认热点线程
+dashboard -n 1
+# 输出显示 thread id 23 的 %CPU 为 78.5%，STATE = RUNNABLE
+
+# 步骤 2：看该线程在干什么
+thread 23
+# 栈顶为 com.example.OrderService.calcPromotion(OrderService.java:186)
+# 说明热点在 calcPromotion 方法
+
+# 步骤 3：生成火焰图，定位方法内部热点
+profiler start
+# 等待 30 秒采集
+profiler stop --format html --file /tmp/cpu.html
+# 打开火焰图：calcPromotion 占 68% 采样，其中 applyRule 占 52%
+
+# 步骤 4：反编译确认逻辑
+jad com.example.OrderService
+# 发现 calcPromotion 内层循环对每个订单遍历全部 3000 条促销规则，
+# 且 applyRule 每次都对规则列表做 stream().filter().collect()，产生大量临时对象
+
+# 步骤 5：trace 验证耗时分布
+trace com.example.OrderService calcPromotion -n 5
+# 输出显示 applyRule 平均耗时 42ms，占比 88%
+
+# 步骤 6：修复与验证
+# 修复：把规则列表预编译为按商品类目索引的 Map，避免全量遍历与重复过滤
+# 验证：monitor -c 5 com.example.OrderService calcPromotion 平均 RT 从 48ms 降到 3ms
+```
+
+#### 生产案例二：接口变慢完整排查
+
+```bash
+# 现象：下单接口 P99 从 200ms 涨到 3.5s，无异常日志
+
+# 步骤 1：monitor 确认是哪个方法慢
+monitor -c 5 com.example.OrderController submit
+# 输出：调用 250 次，成功 250，平均 RT 3120ms，最大 4800ms
+
+# 步骤 2：trace 定位慢在哪个子调用
+trace com.example.OrderController submit -n 3
+# 输出：submit 内部 inventoryService.lock 平均 2900ms，占 93%
+
+# 步骤 3：watch 看该子调用的入参与返回值
+watch com.example.InventoryService lock '{params, returnObj}' -n 5 -x 2
+# 入参 skuId 正常，但 returnObj 的 lockTime 达到 2.8s
+
+# 步骤 4：thread -b 检查是否锁竞争
+thread -b
+# 大量线程 BLOCKED 在 InventoryService.lock，持有者是线程 87，
+# 其栈停在 InventoryService.syncRedis()
+
+# 步骤 5：定位根因
+# syncRedis 使用 synchronized (this)，且方法内有一次 Redis 网络调用，
+# 网络抖动时持锁时间被拉长，其他线程只能排队
+
+# 步骤 6：修复与验证
+# 修复：去掉方法级 synchronized，改用 Redis 分布式锁 + 本地分段锁降低粒度
+# 验证：monitor 观察平均 RT 回落到 210ms，thread -b 不再报阻塞
+```
+
+**Arthas 使用注意事项：**
+
+| 注意项 | 说明 |
+|-------|------|
+| 生产使用需授权 | `watch` / `trace` 会输出业务数据，需符合数据安全规范 |
+| `trace` 开销较大 | 高 QPS 接口上使用可能加剧延迟，建议配合 `-n` 限制次数 |
+| 诊断完及时 `stop` | 避免增强后的字节码长期驻留影响性能 |
+| 谨慎使用 `redefine` | 线上热替换风险高，仅用于紧急止血并需立即回滚 |
+| 与 APM 配合 | Arthas 是「现场取证」，APM 是「持续观测」，二者互补 |
+
+> 📖 **参考链接**：
+> - [Arthas 官方文档](https://arthas.aliyun.com/doc/) -- 命令全集与进阶用法
+> - [Oracle Java SE 17: jstack 命令](https://docs.oracle.com/javase/17/docs/specs/man/jstack.html) -- 与 Arthas `thread` 对照使用
+> - [JEP 328: Flight Recorder](https://openjdk.org/jeps/328) -- JFR 持续低开销采样，与 Arthas 互补
+> - [JEP 331: Low-Overhead Heap Profiling](https://openjdk.org/jeps/331) -- 低开销堆采样，辅助定位分配热点
+
 ---
 
 ## 四、常见面试题（附答案）
@@ -489,7 +849,7 @@ JAVA_OPTS="
 
 > **学习导航**：
 > - 返回 [学习路线总览](../../README.md)
-> - 前置学习：[05-面向对象基础](./05-面向对象基础.md) | [13-多线程与并发编程](./13-多线程与并发编程.md)
+> - 前置学习：[05-面向对象基础](../java-core/05-面向对象基础.md) | [13-多线程与并发编程](./13-多线程与并发编程.md)
 > - 本模块其他文件：[17-Java核心笔面试题集](./17-Java核心笔面试题集.md)
 > - 实战应用：[电商订单实时统计分析平台](../../extensions/project/01-电商订单实时统计分析平台.md)
 

@@ -176,6 +176,132 @@
 
 ---
 
+## 补充：类型守卫与类型收窄
+
+### 补1 内置类型守卫（typeof / instanceof / in / 字面量）
+
+| 维度 | 内容 |
+|------|------|
+| 是什么 | 能触发类型收窄的内置表达式：`typeof`（基本类型）、`instanceof`（类实例）、`in`（属性存在性）、字面量相等比较与真值判断，以及 `Array.isArray`。收窄只发生在编译期，不产生运行时代码。 |
+| 能做什么 | 把联合类型按条件分流到具体类型，使每个分支都能安全访问该类型独有的属性与方法；`unknown` 入参必须先经守卫收窄才能使用。 |
+| 怎么用 | `if (typeof value === "string") { value.toUpperCase() }`；`if (err instanceof ApiError) { err.status }`；`if ("permissions" in user) { user.permissions }`；`if (data) { data.length }`；`if (Array.isArray(input)) { input.map(...) }`。 |
+| 原理和工作流程 | 检查器为每个引用维护 flow type，遇到分支时按控制流图分别计算分支内类型。`typeof` 只识别 `"string"`、`"number"`、`"bigint"`、`"boolean"`、`"symbol"`、`"undefined"`、`"object"`、`"function"` 八个字符串；因运行时 `typeof null === "object"`，`typeof x === "object"` 只能收窄为 `object \| null`。真值收窄会剔除 `null`、`undefined`、`0`、`NaN`、`""`、`false`。`in` 要求左侧为属性名字面量、右侧为对象类型。 |
+| 缺点 | `instanceof` 不能用于接口（接口没有运行时实体）；`typeof` 无法区分具体对象类型；真值收窄会把 `0` 和 `""` 一起剔除，容易误伤合法值；收窄不跨越函数边界，在异步回调中会失效。 |
+
+### 补2 自定义类型守卫与断言函数
+
+| 维度 | 内容 |
+|------|------|
+| 是什么 | 类型谓词 `function isX(v: unknown): v is X` 与断言函数 `function assertX(v: unknown): asserts v is X`（TS 3.7+），用于表达内置守卫覆盖不到的业务判断。 |
+| 能做什么 | 谓词把判断结果返回调用方，收窄仅作用于 `if` 分支；断言函数在不满足条件时抛错，收窄作用于断言之后的全部代码，适合「参数校验后一路畅通」的场景。 |
+| 怎么用 | 谓词：`function isCat(a: Cat \| Dog): a is Cat { return typeof (a as Cat).meow === "function" }`；断言：`function assertIsString(v: unknown): asserts v is string { if (typeof v !== "string") throw new TypeError(...) }`；`asserts x` 形态可断言真值。 |
+| 原理和工作流程 | 谓词类型必须可赋值给参数类型（只能收窄、不能造类型），返回值必须是 `boolean`；TS **不校验函数体实现**，逻辑写错只会在运行时暴露。断言函数必须显式标注返回类型、不能返回值，且调用时实参必须是标识符或属性访问（不能是任意表达式）；箭头函数做断言函数时必须给变量显式标注类型。 |
+| 缺点 | 守卫实现与谓词不一致时编译期无感知，是常见的运行时隐患；复杂结构建议改用 zod 等运行时校验库；断言函数会让「抛错」隐藏在调用处，需注意错误处理路径。 |
+
+### 补3 可辨识联合与穷尽性检查
+
+| 维度 | 内容 |
+|------|------|
+| 是什么 | 可辨识联合指联合的每个成员都拥有一个同名、类型为不同字面量的判别属性，TS 借此把联合拆分为互斥分支；穷尽性检查借助 `never` 在编译期发现「漏掉的分支」。 |
+| 能做什么 | 让 `switch (shape.kind)` 的每个 `case` 精确收窄到对应成员；新增联合成员时通过 `never` 赋值报错，把遗漏从运行时提前到编译期；TS 4.6+ 还支持对解构出的判别属性做收窄。 |
+| 怎么用 | `type Shape = Circle \| Square \| Rect`，成员分别带 `kind: "circle" \| "square" \| "rect"`；`switch` 的 `default` 分支写 `const exhaustive: never = shape; throw new Error(...)`，或抽成 `function assertNever(v: never): never`。 |
+| 原理和工作流程 | 判别属性必须是单元类型（字符串/数字/布尔字面量、`null`、`undefined` 或它们的联合；`boolean` 等价于 `true \| false` 也可用），不能是 `string`、`number` 这类宽类型，也不能是可选属性。`never` 是底层类型，只能接受 `never`，因此遗漏分支时赋值失败并报错。TS 4.4+ 的别名条件（把条件存进 `const` 变量）同样能收窄。 |
+| 缺点 | 需要为每个类型手工加判别属性，侵入数据结构；判别属性若被重新赋值或来自泛型参数，收窄可能失效；`never` 检查必须真的写进 `default`，漏写则完全失效。 |
+
+---
+
+## 补充：函数重载
+
+### 补1 重载签名与实现签名
+
+| 维度 | 内容 |
+|------|------|
+| 是什么 | 同一函数名对应多个「重载签名」（只有参数与返回类型、无函数体），外加一个「实现签名」（有函数体，对调用方不可见）。 |
+| 能做什么 | 为同一函数提供多种调用形态，并在不同形态下返回精确类型（如 `createElement("a")` 返回 `HTMLAnchorElement`）；支持参数个数不同、返回值随入参类型变化等场景。 |
+| 怎么用 | `function parse(input: string): string[];` + `function parse(input: string[]): string;` + `function parse(input: string \| string[]): string \| string[] { ... }`；类/接口中的重载只在声明处写多份签名，实现只有一份。 |
+| 原理和工作流程 | 调用匹配**从上到下**取第一个兼容的重载签名，并用它的返回类型作为结果类型，因此签名顺序决定结果。实现签名必须「足够宽」：参数能接受所有重载的参数，返回值能覆盖所有重载的返回类型，否则报 `This overload signature is not compatible with its implementation signature`。运行时不存在重载，编译后只有一个普通函数，分派逻辑必须写在函数体内。 |
+| 缺点 | 写法冗长、需要维护多份签名；签名之间若存在完全覆盖关系，TS 不报警，容易出现永远匹配不到的死签名；箭头函数不能直接写重载，只能用接口/函数类型标注变量。 |
+
+### 补2 重载 vs 联合类型
+
+| 维度 | 内容 |
+|------|------|
+| 是什么 | 两种表达「一个函数接受多种类型」的方案：重载（多份签名）与联合类型参数（一份签名 + 联合类型 + 联合返回类型）。 |
+| 能做什么 | 需要「返回值随入参类型精确变化」或「参数个数不同」时用重载；只需要「接受多种类型、返回统一类型」时用联合类型，代码更短。 |
+| 怎么用 | 重载：`parse("a,b")` 得到 `string[]`、`parse(["a"])` 得到 `string`；联合类型：`function parse(input: string \| string[]): string \| string`，调用方必须自己再收窄返回值。 |
+| 原理和工作流程 | 重载在类型层建立「参数 → 返回类型」的一一映射，编译器按调用实参选出对应签名；联合类型只有一份签名，返回类型只能是各分支的并集，精度丢失。二者在运行时都不产生额外代码。 |
+| 缺点 | 重载的精确性以代码冗长为代价；联合类型写法更简洁但调用方需要额外收窄；过度使用重载会让类型错误信息变得难以阅读。 |
+
+---
+
+## 补充：类与继承
+
+### 补1 访问修饰符与私有字段
+
+| 维度 | 内容 |
+|------|------|
+| 是什么 | TS 的 `public` / `protected` / `private` / `readonly` 是**编译期**访问约束；ES2022 的 `#field` 是**运行时**真私有字段；参数属性简写（`constructor(public readonly id: string)`）是「声明字段 + 赋值」的语法糖。 |
+| 能做什么 | 控制成员的可见范围、禁止重新赋值（`readonly`）、实现真正的封装（`#`）；参数属性简写显著减少样板代码。 |
+| 怎么用 | `constructor(public readonly id: string, private balance: number) {}`；真私有：`class Vault { #secret = "token" }`；只声明类型不生成字段：`declare version: string`。 |
+| 原理和工作流程 | 修饰符在编译后完全消失，只保留在类型信息里，因此 `(obj as any).privateProp` 可以绕过并真的读到值——`private` 是约定与检查，不是安全边界；`#` 由语言保证，编译后仍不可访问。在 `target: ES2022+` 或 `useDefineForClassFields: true` 时类字段采用 `Object.defineProperty` 语义，字段声明会把原型上的同名 getter/setter 覆盖为 `undefined`。`strictPropertyInitialization` 要求字段在声明处或构造函数中初始化。 |
+| 缺点 | `private` 容易被误解为安全机制；`#` 与 TS 的部分语法（如参数属性）不能混用；`useDefineForClassFields` 的字段语义与旧版 `target` 不一致，跨版本升级时可能改变运行行为。 |
+
+### 补2 implements / extends / override
+
+| 维度 | 内容 |
+|------|------|
+| 是什么 | `implements` 是类对接口的结构契约检查；`extends` 是类的继承；`override`（TS 4.3+）显式标记覆写基类成员。 |
+| 能做什么 | `implements` 校验类是否满足接口（可同时实现多个接口，不继承实现、不产生运行时代码）；`extends` 继承实现与原型链（单继承，产生运行时代码）；`override` 配合 `noImplicitOverride` 防止基类改名导致覆写静默失效。 |
+| 怎么用 | `class UserDto implements Serializable { serialize() { ... } }`；`class AdminDto extends BaseDto {}`；`override log(msg: string): void { ... }`。 |
+| 原理和工作流程 | `implements` 只在类型层比较结构，接口不提供任何实现，所以类必须自己写全部成员（除非声明为 `abstract`）；`extends` 生成运行时原型链，派生类构造函数中必须先 `super()` 才能访问 `this`。开启 `noImplicitOverride` 后，漏写 `override` 或覆写不存在的成员都会编译报错。抽象类不能被实例化，抽象成员必须由非抽象子类实现；`abstract new (...)` 可用来约束「某个类的构造函数」。 |
+| 缺点 | `implements` 不提供代码复用，容易写成大量重复成员；`extends` 造成强耦合，深继承链难以维护（组合优于继承）；`noImplicitOverride` 对存量项目有改造量。 |
+
+### 补3 this 类型与多态 this
+
+| 维度 | 内容 |
+|------|------|
+| 是什么 | 在类或接口的成员位置，`this` 类型表示「当前类型或其子类类型」；此外函数还可以声明 `this` 参数（`function f(this: T) {}`）来约束调用上下文。 |
+| 能做什么 | 让链式调用的返回值保持调用者的实际类型（`new UserQuery().where().limit()`）；给独立函数约束 `this` 指向，避免把方法赋给对象后上下文丢失。 |
+| 怎么用 | `where(cond: string): this { ...; return this }`；`function handleClick(this: Clickable): void { if (this.disabled) return; this.onClick() }`，调用时用 `handleClick.call(btn)`。 |
+| 原理和工作流程 | `this` 类型是「多态 this」，等价于一个隐含的类型参数，实例化时替换为实际调用者的类型，因此子类实例上的链式调用会返回子类类型。`this` 类型只在类/接口的成员位置可用；静态成员中的 `this` 指构造函数类型。`this` 参数只做编译期检查，编译后不产生额外参数，直接调用会因 `this` 上下文为 `void` 而报错。 |
+| 缺点 | 返回 `this` 会限制返回值的可替换性，某些场景下反而不便（需要返回固定基类类型时要显式标注）；`this` 参数对箭头函数无效（箭头函数没有自己的 `this`）；`this` 类型与泛型组合时错误信息较难阅读。 |
+
+---
+
+## 补充：类型兼容性
+
+### 补1 结构化类型与多余属性检查
+
+| 维度 | 内容 |
+|------|------|
+| 是什么 | TS 采用结构化类型系统（鸭子类型）：类型兼容性只看成员结构，不看是否显式声明继承；「多余属性检查」则对直接赋值的对象字面量额外严格。 |
+| 能做什么 | 让没有显式继承关系的类型也能互相赋值（如 `class Vector` 直接赋给 `interface Point`）；用多余属性检查拦截拼写错误；用弱类型检测拦截「一个属性都对不上」的赋值。 |
+| 怎么用 | `const p: Point = new Vector(1, 2)`；多余属性绕过：`const temp = { x: 1, y: 2, z: 3 }; const p: Point = temp;`；弱类型：目标属性全可选时源类型必须至少命中一个同名属性。 |
+| 原理和工作流程 | 判断 `S` 能否赋值给 `T` 时，编译器逐项检查 `T` 的每个必需属性在 `S` 中是否存在且类型可赋值，源类型多出的属性不影响赋值（`S` 是 `T` 的子类型）。对象字面量直接出现在赋值位置时会触发多余属性检查——这是为防拼写错误而人为加上的规则。含 `private` / `#` 成员的类退化为名义类型，必须来自同一处声明才能互相赋值。 |
+| 缺点 | 结构化类型让「意外的兼容」难以察觉（结构恰好相同就被认为兼容）；多余属性检查只对字面量生效，把字面量先赋给变量即可绕过，规则略显不一致；私有成员造成「结构相同却互不兼容」的困惑。 |
+
+### 补2 协变 / 逆变 / 双变
+
+| 维度 | 内容 |
+|------|------|
+| 是什么 | 描述子类型关系在类型构造器中的传播方向：协变（方向一致）、逆变（方向相反）、双变（两个方向都允许）、不变（必须完全相同）。 |
+| 能做什么 | 解释「为什么 `Dog[]` 能赋给 `Animal[]`」「为什么能处理 `Animal` 的函数可以赋给需要处理 `Dog` 的函数类型」；指导如何用 `readonly` 和函数属性语法写出更安全的类型。 |
+| 怎么用 | 协变：`const a: Animal = dog`；逆变：`const handleDog: (d: Dog) => void = handleAnimal`；双变包装：`type BivariantHandler<T> = { bivarianceHack(e: T): void }["bivarianceHack"]`；安全协变：`const list: readonly Animal[] = dogs`。 |
+| 原理和工作流程 | 返回值位置协变（返回子类型更安全）、参数位置逆变（接受更宽类型更安全）。TS 的**函数类型语法**参数在 `strictFunctionTypes` 下按逆变检查，而**方法语法**参数保持双变——这个例外是为了兼容 DOM、`Array.prototype` 等历史 API。数组因为方法参数双变而整体表现为不安全协变，因此 `Dog[]` 可赋给 `Animal[]` 并可写入非 `Dog` 对象。 |
+| 缺点 | 双变是类型系统的不安全放宽，可能引入运行时错误；数组协变让「看起来安全」的赋值暗藏风险；协变/逆变的概念抽象，容易与 `readonly`、`in`/`out` 变型标注混淆。 |
+
+### 补3 strictFunctionTypes 与可赋值性规则
+
+| 维度 | 内容 |
+|------|------|
+| 是什么 | `strictFunctionTypes` 是 `strict` 家族的一员，把函数类型参数的检查从双变收紧为逆变；可赋值性规则则涵盖 `any` / `unknown` / `never` / `void` / `null` 等特殊类型的处理方式。 |
+| 能做什么 | 拦截「用窄参数函数冒充宽参数函数」的不安全赋值；明确 `unknown` 只能收窄后使用、`never` 可赋给任何类型、`() => void` 可接受任何返回值的函数；用 `strictNullChecks` 阻止 `null` 赋值给其他类型。 |
+| 怎么用 | `"strict": true` 一键开启；`const u: unknown = 1` 后必须收窄才能使用；`type Callback = () => void` 可接受 `() => 42`；`nums.forEach((n) => n.toString())` 返回值被忽略。 |
+| 原理和工作流程 | 函数类型兼容性同时比较参数与返回值：参数按逆变（方法语法双变）、返回值按协变。`void` 返回值位置是特例——返回值在 `void` 上下文被忽略，因此任何返回值的函数都可赋给 `() => void`。`any` 双向可赋值且会污染后续推导；`unknown` 是顶层类型、`never` 是底层类型；`strictNullChecks` 决定 `null` / `undefined` 的可赋值性，是兼容性判断中最常踩的开关。 |
+| 缺点 | 开启 `strict` 后存量代码报错较多，需要逐步修复；`void` 返回值的放宽规则容易被误用（回调里写错返回值不会报错）；`any` 一旦引入就难以追踪污染范围。 |
+
+---
+
 ## 本章学习自检
 
 本节为辅助内容，无五维表格。

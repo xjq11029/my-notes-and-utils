@@ -195,6 +195,74 @@
 
 ---
 
+## 补充：存储配额与持久化
+
+### 补1 配额查询与各存储方案上限
+
+| 维度 | 内容 |
+|------|------|
+| 是什么 | 浏览器为每个源分配存储额度（quota），并用 `navigator.storage.estimate()` 暴露「已用 / 上限」的估计值；同源下的 localStorage、sessionStorage、IndexedDB、Cache Storage、OPFS 共享同一配额池。 |
+| 能做什么 | 在写大数据前了解剩余空间量级；在写入失败后给出可理解的提示；为「离线可用」这类功能做容量规划。 |
+| 怎么用 | `const { quota, usage } = await navigator.storage.estimate()`（只在安全上下文可用，部分浏览器额外提供 `usageDetails`）；容量量级：Cookie 单条约 4KB、单域名几十个；localStorage / sessionStorage 约 5MB 每源；IndexedDB / Cache Storage / OPFS 共享源配额（Chrome 单源约为磁盘的 60%、全浏览器池约 80%；Firefox 单组约 10%、全局约 50%；Safari 初始约 1GB，超出需授权）。 |
+| 原理和工作流程 | `usage` 是当前源已用字节数，`quota` 是可用的上限估计值。为防止通过存储数值做指纹追踪，浏览器会对结果**取整/桶化**，且 `quota` 会随磁盘剩余空间动态变化，因此它只是估计值，不能用于精确的容量判断。 |
+| 缺点 | 数值不精确、跨浏览器差异大且随版本变化；只在 HTTPS / localhost 可用；依赖它做「还能不能写」的判断并不可靠，应改为「写入失败再降级」的失败驱动策略。 |
+
+### 补2 persist() 与淘汰策略
+
+| 维度 | 内容 |
+|------|------|
+| 是什么 | `navigator.storage.persist()` 申请持久化存储（返回 `Promise<boolean>`），`navigator.storage.persisted()` 查询当前状态；持久化的唯一意义是免于被浏览器在磁盘压力下自动清理（eviction）。 |
+| 能做什么 | 让重要本地数据（离线内容、用户草稿）不被自动清除；在申请被拒时给出降级方案。 |
+| 怎么用 | `if (await navigator.storage.persisted()) return true; const granted = await navigator.storage.persist();` 典型调用时机是用户开启「离线可用」或导入重要数据之后。 |
+| 原理和工作流程 | 默认存储是 best-effort：磁盘压力下会被清理，清理粒度是**整个源**（全留或全清），选择依据是 **LRU**（最久未使用的源优先被清）。授权策略由浏览器决定：Chrome 依据站点参与度、PWA 安装状态、通知权限等启发式规则自动授予（不弹窗）；Firefox 会弹窗询问用户。Safari 还对脚本可写入的存储实施 7 天无交互清理（ITP）。 |
+| 缺点 | 申请可能被拒，不能假设一定成功；Chrome 不弹窗导致「静默失败」，开发者容易误以为已获授权；即使获得持久化，用户手动清理浏览器数据仍会删除。 |
+
+### 补3 QuotaExceededError 处理
+
+| 维度 | 内容 |
+|------|------|
+| 是什么 | 写入超出配额时抛出的 `DOMException`（`name === "QuotaExceededError"`，`code === 22`）。 |
+| 能做什么 | 让应用在存储写满时优雅降级而不是崩溃：清理低优先级缓存后重试、申请持久化、必要时提示用户。 |
+| 怎么用 | localStorage：`try { localStorage.setItem(k, v) } catch (err) { if (err instanceof DOMException && err.name === "QuotaExceededError") { clearLowPriorityCache(); retry(); } }`；IndexedDB：监听 `tx.onabort` 并检查 `tx.error?.name`；Cache API / OPFS 写入同样要 try/catch。 |
+| 原理和工作流程 | `localStorage.setItem` 是同步 API，超限时**同步抛出**；IndexedDB 的写入超限会让**事务被 abort**，请求的 `error` 为 `QuotaExceededError`；Safari 无痕模式下 localStorage 配额为 0，`setItem` 直接抛错。因此必须覆盖「同步抛出」与「事务 abort」两条路径。 |
+| 缺点 | 超限通常发生在最不该失败的写入路径上（用户提交内容），需要预先设计降级；仅靠容量预判无法避免，只能靠失败处理；Safari 无痕模式属于「必然失败」，必须走内存兜底。 |
+
+---
+
+## 补充：IndexedDB 事务与索引
+
+### 补1 事务的三种模式与生命周期
+
+| 维度 | 内容 |
+|------|------|
+| 是什么 | IndexedDB 用事务保证一组操作的原子性，模式有 `readonly`（只读，可并发）、`readwrite`（读写，同仓库写事务串行化）、`versionchange`（建/删对象仓库与索引，由版本升级自动触发）。 |
+| 能做什么 | 把多条读写操作打包为原子单元；通过只读事务并发读取提升吞吐；通过版本升级事务安全地变更数据库结构。 |
+| 怎么用 | `db.transaction(["notes"], "readonly")`、`db.transaction("notes", "readwrite")`；请求结果用 `request.onsuccess` / `onerror`，事务完成用 `tx.oncomplete` / `onerror` / `onabort`；`await txDone(tx)` 等待提交。 |
+| 原理和工作流程 | 事务是**自动提交**的：所有请求完成、且当前任务及其微任务结束时没有新请求入队就提交并触发 `oncomplete`。因此**在事务中 `await` 非 IndexedDB 的 Promise（如 `fetch`）之后事务已失活**，再用它会抛 `TransactionInactiveError`。事务内请求按入队顺序串行执行；**请求成功 ≠ 事务提交成功**，必须以 `oncomplete` 为准。`readwrite` 在同一仓库上串行化，长事务会阻塞其他写入。 |
+| 缺点 | 生命周期规则隐式且严格，容易在「先校验再写入」的流程中踩坑；写事务串行化使长事务成为性能瓶颈；事件式 API 需要自行封装 Promise（或用 `idb` 库）。 |
+
+### 补2 索引与游标
+
+| 维度 | 内容 |
+|------|------|
+| 是什么 | 索引（`createIndex`）是按某个属性排序的辅助查找结构；游标（`openCursor` / `openKeyCursor`）是逐条遍历记录或索引项的迭代器；`IDBKeyRange` 用于限定查询范围。 |
+| 能做什么 | 按非主键字段查询与排序；唯一性约束（`unique`）；数组值多键索引（`multiEntry`）；大结果集的分批遍历以控制内存；倒序取最近 N 条等典型需求。 |
+| 怎么用 | `store.createIndex("by_updated", "updatedAt", { unique: false })`；`index.getAll(IDBKeyRange.only(tag))`；`index.openCursor(null, "prev")` + `cursor.continue()`；范围：`IDBKeyRange.bound(a, b)` / `only(v)` / `lowerBound(v)` / `upperBound(v, true)`；游标上可 `update()` / `delete()`（需 `readwrite`）。 |
+| 原理和工作流程 | 索引在对象仓库之外维护一份「索引键 → 主键」的映射，因此按索引查询与排序不需要全表扫描。游标是**手动推进**的：处理完当前记录必须调用 `continue()`（或 `advance()`）才会移到下一条，游标走完时 `cursor` 为 `null`。`multiEntry: true` 会把数组值的每个元素各建一条索引项；`unique: true` 在键重复时抛 `ConstraintError`。 |
+| 缺点 | 索引会占用额外存储并在写入时带来维护成本；`getAll` 对超大结果集会造成内存峰值；游标忘记 `continue()` 只处理第一条，且不会报错，属于典型隐性 bug。 |
+
+### 补3 版本升级、选型对比与常见坑
+
+| 维度 | 内容 |
+|------|------|
+| 是什么 | 版本升级通过 `indexedDB.open(name, version)` 触发 `onupgradeneeded`，在其中用 `versionchange` 事务创建/删除对象仓库与索引；多标签页场景下需要处理 `versionchange` 与 `onblocked`。 |
+| 能做什么 | 增量迁移数据库结构（用 `event.oldVersion` 判断）；避免旧标签页的连接阻塞新页面的升级；在 IndexedDB 与 localStorage 之间做出合理选型。 |
+| 怎么用 | `request.onupgradeneeded = (event) => { if (event.oldVersion < 1) { db.createObjectStore(...) } if (event.oldVersion < 2) { tx.objectStore("notes").createIndex(...) } }`；`db.onversionchange = () => db.close()`；`request.onblocked` 给出提示；`deleteDatabase` 前确保连接已关闭。 |
+| 原理和工作流程 | 版本号只能升不能降，用低于当前版本的 `open()` 会抛 `VersionError`。升级期间其他标签页的旧连接会收到 `versionchange`，必须在其中 `db.close()`，否则新页面会停在 `onblocked`。选型对比：localStorage 同步、仅字符串、约 5MB、无事务；IndexedDB 异步不阻塞主线程、支持结构化克隆类型（对象/数组/`Date`/`Blob`/`ArrayBuffer`/`Map`/`Set` 等）、共享源配额、支持事务索引游标。 |
+| 缺点 | `onupgradeneeded` 中做耗时操作会长时间阻塞其他标签页；结构变更与数据迁移混在一起容易出错；`DataCloneError`（存了函数或 DOM 节点）、`ConstraintError`（键冲突）、`DataError`（内联键与显式 key 混用）等错误码需要逐个处理。 |
+
+---
+
 ## 本章学习自检
 
 本节为辅助内容，无五维表格。

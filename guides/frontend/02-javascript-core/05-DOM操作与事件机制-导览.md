@@ -88,7 +88,7 @@
 | 能做什么 | 读取和修改元素的 HTML 属性（如 src、href、disabled）；通过 `data-*` 属性在 DOM 上存储自定义数据；通过 `classList` 安全地增删改类名而不影响其他类名。 |
 | 怎么用 | `el.getAttribute('href')` 读取属性；`el.setAttribute('data-id', '123')` 设置属性；`el.dataset.userId` 读写 `data-user-id` 属性（驼峰命名）；`el.classList.add('active')` / `el.classList.remove('active')` / `el.classList.toggle('dark')` 操作类名。 |
 | 原理和工作流程 | 大多数 HTML 属性与 DOM 属性同名同步，但存在例外：`class`→`className`、`for`→`htmlFor`、`tabindex`→`tabIndex`。`classList` 内部维护一个 DOMTokenList，操作时不会影响其他类名，比直接操作 `className` 字符串安全。 |
-| 缺点 | `className` 整体替换会覆盖已有类名；`dataset` 在 IE10 及以下不支持；部分 HTML 属性（如 `checked`）在 HTML 层面是字符串，在 DOM 层面是布尔值，行为不一致。 |
+| 缺点 | `className` 整体替换会覆盖已有类名；`dataset` 在 IE10 及以下不支持；部分 HTML 属性（如 `checked`）在 HTML 层面是字符串，在 DOM 层面是布尔值，行为不一致。（历史兼容场景，2026 年新项目按现代浏览器基线） |
 
 ### 4.2 样式操作
 
@@ -136,7 +136,7 @@
 | 能做什么 | 防 XSS 攻击（监听并过滤危险属性）；水印保护（监听水印 DOM 被删除或修改）；表单自动保存（监听输入变化）；第三方脚本注入检测；所见即所得编辑器内容监控。 |
 | 怎么用 | `const ob = new MutationObserver(callback);` 创建观察者；`ob.observe(target, { childList: true, attributes: true, subtree: true });` 开始观察；`ob.disconnect();` 停止观察；`ob.takeRecords();` 获取未处理的变更记录。 |
 | 原理和工作流程 | DOM 变化时，变化记录被推入微任务队列，在当前宏任务完成后批量处理。回调接收一个 `MutationRecord[]` 数组，每条记录包含 `type`、`target`、`addedNodes`、`removedNodes`、`attributeName`、`oldValue` 等信息。与已废弃的 `MutationEvent` 不同，MutationObserver 不会阻塞页面渲染。 |
-| 缺点 | 回调中修改 DOM 可能导致死循环（修改触发新的 mutation）；需要手动管理 `disconnect()` 避免内存泄漏；无法监听 CSS 样式变化（需用 ResizeObserver）；不支持 IE10 及以下。 |
+| 缺点 | 回调中修改 DOM 可能导致死循环（修改触发新的 mutation）；需要手动管理 `disconnect()` 避免内存泄漏；无法监听 CSS 样式变化（需用 ResizeObserver）；不支持 IE10 及以下。（历史兼容场景，2026 年新项目按现代浏览器基线） |
 
 ### 6.2 IntersectionObserver（可见性监听）
 

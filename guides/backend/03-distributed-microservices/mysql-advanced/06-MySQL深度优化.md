@@ -280,6 +280,155 @@ SELECT * FROM orders WHERE id > 100020 ORDER BY id LIMIT 20;
 > - [MySQL 8.0 参考手册 - Partitioning](https://dev.mysql.com/doc/refman/8.0/en/partitioning.html) -- MySQL 分区（Partitioning）官方说明
 > - [MySQL 8.0 参考手册 - InnoDB Architecture](https://dev.mysql.com/doc/refman/8.0/en/innodb-architecture.html) -- InnoDB 内存与后台线程架构
 
+### 2.5 间隙锁与 Next-Key Lock
+
+前面 1.1 提到 Undo Log 支撑 MVCC，2.1~2.4 讲的是"如何让查询更快"。这一节换个方向：**并发写入时 InnoDB 到底锁了什么**。理解加锁范围，才能解释"为什么只更新一行却把别人的插入卡住了"这类线上问题。
+
+#### 三种锁的关系
+
+InnoDB 的行级锁并不是"锁住一行"这么简单，它锁的是**索引记录以及记录之间的间隙**，三者关系如下：
+
+| 锁类型 | 锁定对象 | 作用 | 典型出现场景 |
+|--------|---------|------|-------------|
+| **Record Lock** | 单条索引记录本身 | 阻止其他事务修改/删除该行 | 唯一索引等值命中时的加锁 |
+| **Gap Lock** | 两条记录之间的**开区间**（不含记录本身） | 阻止其他事务在间隙中**插入**新记录 | 等值查询未命中；防幻读的核心 |
+| **Next-Key Lock** | Record Lock + 该记录**前面的间隙**，即"左开右闭"区间 | 同时阻止修改已存在记录与插入新记录 | RR 级别下范围查询、非唯一索引查询的默认加锁单位 |
+
+**关键结论：Next-Key Lock 是加锁的基本单位**，Record Lock 和 Gap Lock 是它的两种退化形态：
+
+- 命中唯一索引的**等值**查询 → Next-Key Lock 退化为 **Record Lock**（间隙不锁）
+- **等值**查询**未命中** → 退化为 **Gap Lock**（只锁间隙，不锁任何记录）
+- **范围**查询、非唯一索引查询 → 保持 **Next-Key Lock**
+
+> **生活化类比：图书馆自习室的"占座"** —— Record Lock 是"这张椅子被我占了"（别人不能坐，但旁边的空隙还能塞人）；Gap Lock 是"这两张椅子之间的走道我占了"（椅子本身随便坐，但谁也别想搬张新椅子塞进来）；Next-Key Lock 则是"从上一张椅子到我这张椅子之间的整片区域都归我"（既占椅子又占走道）。为什么要有 Gap Lock？因为如果只占椅子，别人随时能往空隙里加椅子——那你就可能"第二次抬头发现凭空多出一个人"（幻读）。InnoDB 在 RR 级别下干脆把走道也占上，从物理上杜绝别人插入。
+
+**间隙的划分（以主键 id 为例，表中已有 1、5、10、15）：**
+
+```mermaid
+%%{init: {'themeVariables': {'fontSize': '16px'}}}%%
+graph LR
+    A["-∞"] --> G1["间隙 (1,5)"] --> B["id=1"] --> G2["间隙 (5,10)"] --> C["id=5"] --> G3["间隙 (10,15)"] --> D["id=10"] --> G4["间隙 (15,+∞)"] --> E["+∞"]
+```
+
+> 上图展示 InnoDB 在 RR 级别下看到的索引结构：**记录**（id=1/5/10/15）与它们之间的**间隙**是两类不同的加锁对象。当查询条件落在某个间隙内（如 `id = 8`），InnoDB 加的就是 Gap Lock，锁住的是 `(5,10)` 这段"没有记录的空间"，效果是**其他事务无法插入 6~9**，但锁 id=5 和 id=10 这两行不受影响。
+
+#### RR 下的加锁规则
+
+以主键索引 id（已有 1、5、10、15）为例，`REPEATABLE READ` 级别下：
+
+| SQL | 加锁类型 | 实际锁住的区间 | 说明 |
+|-----|---------|--------------|------|
+| `SELECT * FROM t WHERE id = 5 FOR UPDATE` | Record Lock | 仅 `id=5` 这一行 | 唯一索引等值命中，Next-Key Lock 退化为 Record Lock，不锁间隙 |
+| `SELECT * FROM t WHERE id = 8 FOR UPDATE` | Gap Lock | 间隙 `(5,10)` | 等值未命中，只锁间隙；可并发更新 id=5/10，但**无法插入 6~9** |
+| `SELECT * FROM t WHERE id > 5 AND id < 10 FOR UPDATE` | Next-Key Lock | `(1,5]`、`(5,10]`，并锁住 `id=10` 前的间隙 | 范围查询逐条加锁，直到**第一条不满足条件的记录**（id=10）为止 |
+| `SELECT * FROM t WHERE id >= 10 AND id < 11 FOR UPDATE` | Next-Key Lock | `(5,10]`、`(10,15]` | 唯一索引上的范围查询会访问到"第一个不满足条件的值"（id=15 所在的 next-key 区间），这是常被忽略的加锁放大 |
+| `UPDATE t SET ... WHERE id = 8`（无索引列条件） | 锁全表记录与间隙 | 所有记录 + 所有间隙 | 条件列无索引时，InnoDB 必须扫描全表，**每一条记录都加 Next-Key Lock**，等价于锁表 |
+
+**非唯一索引的等值查询更"重"**：设 `idx_c(c)`，表中 c 的值为 `5, 5, 10`，执行 `SELECT * FROM t WHERE c = 5 FOR UPDATE`，加锁区间为 `(-∞,5]` 和 `(5,10)`——即两条 c=5 的记录各加 Next-Key Lock，**并额外对 c=10 加一个 Gap Lock**。原因是优化器需要向右扫描确认"没有更多 c=5 的记录"，扫到 c=10 才发现不满足条件，于是把这个间隙也一并锁上。这就是"明明只查 c=5，却把 c=6 的插入也挡住了"的根源。
+
+#### 间隙锁如何解决幻读
+
+幻读的定义是：**同一事务内两次执行相同的查询，第二次看到了第一次没有的行**。要分两种情况看：
+
+| 读取方式 | 实现机制 | RR 下是否幻读 |
+|---------|---------|--------------|
+| **快照读**（普通 `SELECT`） | MVCC，读 Undo Log 构建的一致性视图 | 不幻读（读到的是事务开始时的快照） |
+| **当前读**（`SELECT ... FOR UPDATE` / `LOCK IN SHARE MODE`、`UPDATE`、`DELETE`） | 加锁读最新版本 | 若只锁已存在记录则**会幻读**——别人可以插入新行 |
+
+Gap Lock 正是为当前读准备的：它锁住记录之间的空隙，让"插入新记录"这个动作被阻塞。于是第一次当前读锁定的范围，在事务提交前不会出现新行，第二次当前读自然得到相同结果——**用锁把"范围"固化下来**。
+
+#### 间隙锁导致死锁的典型案例
+
+间隙锁之间**互不冲突**（两个事务可以同时持有同一个间隙的 Gap Lock），但它与**插入意向锁**（Insert Intention Lock）冲突，这个特性正是死锁的温床。
+
+**案例：两个事务各持间隙锁后都想插入**
+
+```
+-- 表 t(id PK, c INT)，已有记录 id = 5、10
+事务 A: BEGIN;
+        UPDATE t SET c = 1 WHERE id = 8;   -- 未命中，持有间隙锁 (5,10)
+事务 B: BEGIN;
+        UPDATE t SET c = 1 WHERE id = 9;   -- 同样未命中，也持有间隙锁 (5,10)（间隙锁不互斥，成功）
+事务 A: INSERT INTO t (id, c) VALUES (6, 1);  -- 需要插入意向锁 → 与 B 的间隙锁冲突 → 等待 B
+事务 B: INSERT INTO t (id, c) VALUES (7, 1);  -- 需要插入意向锁 → 与 A 的间隙锁冲突 → 等待 A
+-- 死锁，InnoDB 检测后回滚其中一个事务
+```
+
+**案例：加锁顺序相反**
+
+```
+事务 A: UPDATE t SET c = 1 WHERE id = 5;   -- 持有 (1,5] 的 Next-Key Lock
+事务 B: UPDATE t SET c = 1 WHERE id = 10;  -- 持有 (5,10] 的 Next-Key Lock
+事务 A: UPDATE t SET c = 1 WHERE id = 10;  -- 申请 (5,10]，等 B
+事务 B: UPDATE t SET c = 1 WHERE id = 5;   -- 申请 (1,5]，等 A → 死锁
+```
+
+**排查与处置：**
+
+```sql
+-- 1. 查看最近一次死锁的详细信息（含两个事务各自持有的锁与等待的锁）
+SHOW ENGINE INNODB STATUS\G   -- 关注 LATEST DETECTED DEADLOCK 段落
+
+-- 2. 记录所有死锁（默认只记录最后一次），写入错误日志
+SET GLOBAL innodb_print_all_deadlocks = ON;
+
+-- 3. 查看当前运行中的事务与锁等待
+SELECT * FROM information_schema.INNODB_TRX;         -- 当前事务
+SELECT * FROM performance_schema.data_locks;         -- MySQL 8.0 锁信息
+SELECT * FROM performance_schema.data_lock_waits;    -- MySQL 8.0 锁等待关系
+
+-- 4. 查看锁等待超时阈值（默认 50 秒）
+SHOW VARIABLES LIKE 'innodb_lock_wait_timeout';
+```
+
+处置原则：**死锁是并发系统的正常现象，无法彻底消除，只能减少发生概率并做好重试**。业务侧捕获死锁异常（MySQL 错误码 `1213`，Spring 中表现为 `DeadlockLoserDataAccessException` / `CannotAcquireLockException`）后，重新开启事务重试。
+
+#### RC 与 RR 下加锁行为的差异
+
+| 维度 | READ COMMITTED | REPEATABLE READ（MySQL 默认） |
+|------|---------------|------------------------------|
+| 间隙锁 | 基本不使用 Gap Lock（仅外键约束检查、唯一键冲突检测等少数场景会用） | 范围查询、非唯一索引等值查询普遍加 Next-Key Lock |
+| 加锁范围 | 只锁**扫描到并命中条件**的记录，不锁间隙 | 锁记录 + 间隙，范围明显更大 |
+| 幻读 | 当前读可能幻读 | 当前读通过 Next-Key Lock 防止幻读 |
+| 并发插入 | 阻塞少，插入不易被卡 | 容易被间隙锁阻塞，锁冲突与死锁概率更高 |
+| 一致性读 | 每条语句都读最新快照（语句级） | 整个事务共用事务开始时的快照（事务级） |
+| 适用场景 | 高并发写入、允许不可重复读 | 需要可重复读、需防幻读的业务 |
+
+> **实践建议**：很多互联网业务把隔离级别降为 `READ COMMITTED` 来换取更小的锁范围与更高的写入并发，代价是同一事务内两次读可能不一致（不可重复读）以及当前读可能幻读，需要业务侧评估是否可接受。设置方式：`SET GLOBAL transaction_isolation = 'READ-COMMITTED';`（会话级用 `SET SESSION`）。
+
+#### 如何减少锁范围
+
+| 手段 | 做法 | 效果 |
+|------|------|------|
+| 让加锁条件命中唯一索引/主键的等值查询 | `WHERE id = 5 FOR UPDATE` | Next-Key Lock 退化为 Record Lock，不再锁间隙 |
+| 避免索引失效 | 更新/删除前先 `EXPLAIN` 确认走索引，避免函数、隐式转换、前导 `%` 模糊 | 防止"一条 UPDATE 锁全表" |
+| 缩小范围条件 | 用精确区间替代 `!=`、`NOT IN`、大范围 `>` | 减少 Next-Key Lock 覆盖的记录与间隙数量 |
+| 控制事务长度 | 把加锁语句放在事务靠后位置，尽快提交 | 缩短锁持有时间，降低冲突概率 |
+| 统一加锁顺序 | 多行更新按主键升序处理 | 避免交叉等待造成的死锁 |
+| 评估降级为 RC | 业务允许不可重复读时使用 `READ COMMITTED` | 基本消除间隙锁，写入并发显著提升 |
+| 用乐观锁替代悲观锁 | 加 version 字段 + 条件更新，替代 `SELECT ... FOR UPDATE` | 从根本上不持有间隙锁 |
+
+#### binlog 格式与历史参数说明
+
+早期版本的加锁行为与 binlog 格式强相关，这里说明历史背景，避免在旧资料中踩坑：
+
+| 项 | 说明 |
+|----|------|
+| `innodb_locks_unsafe_for_binlog` | MySQL 5.6/5.7 存在的老参数。设为 `ON` 后，InnoDB 在**搜索与索引扫描**时不再对不满足条件的记录加 Gap Lock（外键约束与唯一键冲突检测除外），效果接近 RC，能显著减少锁冲突 |
+| 为什么叫"unsafe" | 在 `binlog_format = STATEMENT` 下，主库不加间隙锁意味着从库重放时可能插入不同顺序的数据，导致主从不一致——名字里的 unsafe 正是指这个风险 |
+| 当前状态 | 该参数自 5.6 起被标记为废弃，**MySQL 8.0 已正式移除**，不再可用 |
+| 现代替代方案 | 直接使用 `READ COMMITTED` 隔离级别（`transaction_isolation`），比开启这个不安全参数更可控、语义更清晰 |
+| `binlog_format` 选择 | MySQL 5.7+ 默认 `ROW`。ROW 格式记录行变更而非 SQL 语句，主从重放不依赖执行计划，因此对加锁行为的敏感性大幅降低，也是"RC + ROW"这一组合被广泛采用的前提 |
+
+> **一句话总结**：Gap Lock 用"锁住空隙"换来了 RR 级别下的防幻读能力，代价是锁范围扩大、并发插入受阻、死锁概率上升。排查线上"只更新一行却大面积阻塞"的问题时，第一件事是确认加锁语句**是否真的走了索引**——索引失效会让一条 UPDATE 退化成全表加锁。
+
+> 📖 **参考链接**：
+> - [MySQL 8.0 参考手册 - InnoDB Locking](https://dev.mysql.com/doc/refman/8.0/en/innodb-locking.html) -- Record/Gap/Next-Key Lock 与插入意向锁官方定义
+> - [MySQL 8.0 参考手册 - Transaction Isolation Levels](https://dev.mysql.com/doc/refman/8.0/en/innodb-transaction-isolation-levels.html) -- RC 与 RR 的加锁与幻读行为差异
+> - [MySQL 8.0 参考手册 - InnoDB Deadlocks](https://dev.mysql.com/doc/refman/8.0/en/innodb-deadlocks.html) -- 死锁成因、检测与 `innodb_print_all_deadlocks`
+> - [MySQL 8.0 参考手册 - Server System Variables](https://dev.mysql.com/doc/refman/8.0/en/server-system-variables.html) -- `transaction_isolation`、`innodb_lock_wait_timeout` 等参数
+> - [MySQL 8.0 参考手册 - Replication Formats](https://dev.mysql.com/doc/refman/8.0/en/replication-formats.html) -- STATEMENT/ROW/MIXED 三种 binlog 格式对比
+
 ---
 
 ## 三、实战应用
@@ -495,7 +644,7 @@ SELECT * FROM users WHERE name LIKE '张%' AND age > 18;
 
 > **学习导航**：
 > - 返回 [学习路线总览](../../README.md)
-> - 本模块其他文件：[01-MySQL基础与SQL核心](./01-MySQL基础与SQL核心.md) | [02-JDBC核心原理](./02-JDBC核心原理.md) | [03-MyBatis原生框架](./03-MyBatis原生框架.md) | [04-Spring-Data-JPA深度](./04-Spring-Data-JPA深度.md) | [05-MyBatis-Plus实战](./05-MyBatis-Plus实战.md) | [07-数据库笔面试题集](./07-数据库笔面试题集.md)
+> - 本模块其他文件：[01-MySQL基础与SQL核心](../../01-java-basics/mysql-jdbc/01-MySQL基础与SQL核心.md) | [02-JDBC核心原理](../../01-java-basics/mysql-jdbc/02-JDBC核心原理.md) | [03-MyBatis原生框架](../../02-javaweb-monolith/mybatis/03-MyBatis原生框架.md) | [04-Spring-Data-JPA深度](../../02-javaweb-monolith/mybatis/04-Spring-Data-JPA深度.md) | [05-MyBatis-Plus实战](../../02-javaweb-monolith/mybatis/05-MyBatis-Plus实战.md) | [07-数据库笔面试题集](./07-数据库笔面试题集.md)
 > - 实战应用：[电商订单实时统计分析平台](../../extensions/project/01-电商订单实时统计分析平台.md)
 
 
