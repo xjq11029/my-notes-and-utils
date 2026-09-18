@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900">
+  <rect width="1200" height="900" fill="#FFFFFF"/>
+  <g font-family="'Microsoft YaHei','PingFang SC','Noto Sans CJK SC',sans-serif">
+
+    <!-- 标题 -->
+    <text x="60" y="48" font-size="26" font-weight="700" fill="#1F2937">一次工具调用的完整往返</text>
+    <text x="60" y="78" font-size="15" fill="#6B7280">模型只输出「想调用什么」，真正执行的是 Agent——这是理解全部 Coding Agent 机制的前提</text>
+
+    <!-- 泳道头 -->
+    <rect x="40" y="102" width="200" height="46" rx="9" fill="#EFF4FE" stroke="#2563EB" stroke-width="1.6"/>
+    <text x="140" y="131" font-size="16" font-weight="700" fill="#1D4ED8" text-anchor="middle">用户</text>
+
+    <rect x="390" y="102" width="260" height="46" rx="9" fill="#FEF6EC" stroke="#B45309" stroke-width="1.6"/>
+    <text x="520" y="131" font-size="16" font-weight="700" fill="#92400E" text-anchor="middle">Agent（程序）</text>
+
+    <rect x="880" y="102" width="280" height="46" rx="9" fill="#F4F0FE" stroke="#6D28D9" stroke-width="1.6"/>
+    <text x="1020" y="131" font-size="16" font-weight="700" fill="#5B21B6" text-anchor="middle">大模型</text>
+
+    <!-- 生命线 -->
+    <path d="M140,148 V790" stroke="#94A3B8" stroke-width="1.2" stroke-dasharray="5 5" fill="none"/>
+    <path d="M520,148 V790" stroke="#94A3B8" stroke-width="1.2" stroke-dasharray="5 5" fill="none"/>
+    <path d="M1020,148 V790" stroke="#94A3B8" stroke-width="1.2" stroke-dasharray="5 5" fill="none"/>
+
+    <!-- ① 用户提问 -->
+    <text x="340" y="194" font-size="13" fill="#1F2937" text-anchor="middle">① 用户提问：「当前项目在做什么」</text>
+    <path d="M140,202 H510" stroke="#2563EB" stroke-width="1.6" fill="none"/>
+    <polygon points="502,197 502,207 512,202" fill="#2563EB"/>
+
+    <!-- ② Agent → 模型 -->
+    <text x="770" y="262" font-size="13" fill="#1F2937" text-anchor="middle">② 提示词（项目路径 + 可用工具清单）+ 用户问题，一起传给模型</text>
+    <path d="M520,270 H1010" stroke="#B45309" stroke-width="1.6" fill="none"/>
+    <polygon points="1002,265 1002,275 1012,270" fill="#B45309"/>
+
+    <!-- ③ 模型 → Agent 返回 JSON -->
+    <text x="770" y="330" font-size="13" fill="#1F2937" text-anchor="middle">③ 模型不回答，而是返回 JSON：{ type:"use-tool", name:"command" }</text>
+    <path d="M1020,338 H530" stroke="#6D28D9" stroke-width="1.6" stroke-dasharray="7 5" fill="none"/>
+    <polygon points="538,333 538,343 528,338" fill="#6D28D9"/>
+
+    <!-- ④ Agent 自环：解析 -->
+    <text x="520" y="392" font-size="13" fill="#92400E" text-anchor="middle">④ 解析 JSON，决定如何处理</text>
+    <path d="M520,400 H630 V414 H528" stroke="#B45309" stroke-width="1.6" fill="none"/>
+    <polygon points="536,409 536,419 526,414" fill="#B45309"/>
+
+    <!-- ⑤ Agent 自环：执行 -->
+    <text x="520" y="460" font-size="13" fill="#92400E" text-anchor="middle">⑤ 执行工具：command / read / write / delete</text>
+    <path d="M520,468 H630 V482 H528" stroke="#B45309" stroke-width="1.6" fill="none"/>
+    <polygon points="536,477 536,487 526,482" fill="#B45309"/>
+
+    <!-- ⑥ 结果回灌 -->
+    <text x="770" y="532" font-size="13" fill="#1F2937" text-anchor="middle">⑥ 执行结果回灌模型——模型全程看不到结果本身，只能看到文本</text>
+    <path d="M520,540 H1010" stroke="#B45309" stroke-width="1.6" fill="none"/>
+    <polygon points="1002,535 1002,545 1012,540" fill="#B45309"/>
+
+    <!-- ⑦ 循环 -->
+    <text x="770" y="600" font-size="13" fill="#1F2937" text-anchor="middle">⑦ 信息不够 → 再返回一个 JSON，回到第 ③ 步，循环往复</text>
+    <path d="M1020,608 H530" stroke="#6D28D9" stroke-width="1.6" stroke-dasharray="7 5" fill="none"/>
+    <polygon points="538,603 538,613 528,608" fill="#6D28D9"/>
+
+    <!-- ⑧ 模型收尾 -->
+    <text x="770" y="668" font-size="13" fill="#1F2937" text-anchor="middle">⑧ 信息足够 → 模型输出最终答案</text>
+    <path d="M1020,676 H530" stroke="#0F766E" stroke-width="1.6" fill="none"/>
+    <polygon points="538,671 538,681 528,676" fill="#0F766E"/>
+
+    <!-- ⑨ Agent 回复用户 -->
+    <text x="340" y="736" font-size="13" fill="#1F2937" text-anchor="middle">⑨ Agent 把结果回复给用户</text>
+    <path d="M520,744 H150" stroke="#0F766E" stroke-width="1.6" fill="none"/>
+    <polygon points="158,739 158,749 148,744" fill="#0F766E"/>
+
+    <!-- 底部要点 -->
+    <rect x="40" y="812" width="1120" height="56" rx="10" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.6"/>
+    <text x="600" y="846" font-size="15" fill="#1F2937" text-anchor="middle">执行权在 Agent：模型只负责「决定调用什么」，Agent 才是打开命令行、读写文件的那个程序</text>
+
+  </g>
+</svg>

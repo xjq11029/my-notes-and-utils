@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="880" viewBox="0 0 1200 880">
+  <rect width="1200" height="880" fill="#FFFFFF"/>
+  <g font-family="'Microsoft YaHei','PingFang SC','Noto Sans CJK SC',sans-serif">
+
+    <!-- 标题 -->
+    <text x="60" y="48" font-size="26" font-weight="700" fill="#1F2937">Sub Agent：用上下文隔离换取质量与并行</text>
+    <text x="60" y="78" font-size="15" fill="#6B7280">子代理 = 独立系统提示词 + 独立会话上下文，可理解为一个独立会话</text>
+
+    <!-- 主代理 -->
+    <rect x="430" y="100" width="340" height="72" rx="10" fill="#EFF4FE" stroke="#2563EB" stroke-width="1.6"/>
+    <text x="600" y="131" font-size="17" font-weight="700" fill="#1D4ED8" text-anchor="middle">主代理</text>
+    <text x="600" y="156" font-size="13" fill="#374151" text-anchor="middle">上下文干净 · 只持有任务清单</text>
+
+    <!-- 分配子任务：竖直短干 + 横向总线 + 三条下落线 -->
+    <path d="M600,172 V204" stroke="#2563EB" stroke-width="1.6" fill="none"/>
+    <path d="M200,204 H1000" stroke="#2563EB" stroke-width="1.6" fill="none"/>
+    <path d="M200,204 V256" stroke="#2563EB" stroke-width="1.6" fill="none"/>
+    <path d="M600,204 V256" stroke="#2563EB" stroke-width="1.6" fill="none"/>
+    <path d="M1000,204 V256" stroke="#2563EB" stroke-width="1.6" fill="none"/>
+    <polygon points="195,256 205,256 200,266" fill="#2563EB"/>
+    <polygon points="595,256 605,256 600,266" fill="#2563EB"/>
+    <polygon points="995,256 1005,256 1000,266" fill="#2563EB"/>
+    <text x="600" y="196" font-size="13" fill="#2563EB" text-anchor="middle">主代理分配子任务（彼此独立 → 可并行）</text>
+
+    <!-- 三个子代理 -->
+    <rect x="50" y="268" width="300" height="110" rx="10" fill="#F4F0FE" stroke="#6D28D9" stroke-width="1.6"/>
+    <text x="200" y="298" font-size="16" font-weight="700" fill="#5B21B6" text-anchor="middle">子代理 1</text>
+    <text x="200" y="322" font-size="13" fill="#374151" text-anchor="middle">独立系统提示词</text>
+    <text x="200" y="343" font-size="13" fill="#374151" text-anchor="middle">独立会话上下文</text>
+    <text x="200" y="365" font-size="12" fill="#6B7280" text-anchor="middle">上下文干净 · 不污染主代理</text>
+
+    <rect x="450" y="268" width="300" height="110" rx="10" fill="#F4F0FE" stroke="#6D28D9" stroke-width="1.6"/>
+    <text x="600" y="298" font-size="16" font-weight="700" fill="#5B21B6" text-anchor="middle">子代理 2</text>
+    <text x="600" y="322" font-size="13" fill="#374151" text-anchor="middle">独立系统提示词</text>
+    <text x="600" y="343" font-size="13" fill="#374151" text-anchor="middle">独立会话上下文</text>
+    <text x="600" y="365" font-size="12" fill="#6B7280" text-anchor="middle">上下文干净 · 不污染主代理</text>
+
+    <rect x="850" y="268" width="300" height="110" rx="10" fill="#F4F0FE" stroke="#6D28D9" stroke-width="1.6"/>
+    <text x="1000" y="298" font-size="16" font-weight="700" fill="#5B21B6" text-anchor="middle">子代理 3</text>
+    <text x="1000" y="322" font-size="13" fill="#374151" text-anchor="middle">独立系统提示词</text>
+    <text x="1000" y="343" font-size="13" fill="#374151" text-anchor="middle">独立会话上下文</text>
+    <text x="1000" y="365" font-size="12" fill="#6B7280" text-anchor="middle">上下文干净 · 不污染主代理</text>
+
+    <!-- 回收结果：三条短干 + 横向总线 + 一条下落箭头 -->
+    <path d="M200,378 V420" stroke="#0F766E" stroke-width="1.6" fill="none"/>
+    <path d="M600,378 V420" stroke="#0F766E" stroke-width="1.6" fill="none"/>
+    <path d="M1000,378 V420" stroke="#0F766E" stroke-width="1.6" fill="none"/>
+    <path d="M200,420 H1000" stroke="#0F766E" stroke-width="1.6" fill="none"/>
+    <path d="M600,420 V448" stroke="#0F766E" stroke-width="1.6" fill="none"/>
+    <polygon points="595,448 605,448 600,458" fill="#0F766E"/>
+    <text x="880" y="412" font-size="13" fill="#0F766E" text-anchor="middle">各自完成，只把结果交回</text>
+
+    <!-- 主代理汇总 -->
+    <rect x="380" y="460" width="440" height="62" rx="10" fill="#EDF7F5" stroke="#0F766E" stroke-width="1.6"/>
+    <text x="600" y="486" font-size="16" font-weight="700" fill="#0F766E" text-anchor="middle">主代理汇总</text>
+    <text x="600" y="508" font-size="13" fill="#374151" text-anchor="middle">中间过程不进主上下文，全程不被污染</text>
+
+    <!-- 三大优势 -->
+    <rect x="40" y="556" width="550" height="210" rx="10" fill="#F1F5F9" stroke="#475569" stroke-width="1.6"/>
+    <text x="66" y="588" font-size="16" font-weight="700" fill="#334155">三大优势</text>
+    <text x="66" y="622" font-size="14" fill="#111827">① 独立会话——不污染主代理的上下文窗口</text>
+    <text x="66" y="654" font-size="14" fill="#111827">② 可并行执行——缩短任务总时长</text>
+    <text x="66" y="686" font-size="14" fill="#111827">③ 能力专注——适合专项任务（如前后端并行开发）</text>
+    <text x="66" y="724" font-size="13" fill="#6B7280">讲师强调：上下文管理是用好 Coding Agent 的重中之重</text>
+
+    <!-- 两种形式 + 最佳实践 -->
+    <rect x="610" y="556" width="550" height="210" rx="10" fill="#FEF6EC" stroke="#B45309" stroke-width="1.6"/>
+    <text x="636" y="588" font-size="16" font-weight="700" fill="#92400E">两种形式</text>
+    <text x="636" y="622" font-size="14" fill="#111827">内置子代理——系统内置、用户无法干预（黑盒）</text>
+    <text x="636" y="650" font-size="14" fill="#111827">用户子代理——由用户用提示词启动</text>
+    <text x="636" y="694" font-size="15" font-weight="700" fill="#B45309">最佳实践⑤</text>
+    <text x="636" y="722" font-size="14" fill="#111827">独立、并行任务适合使用子代理完成</text>
+
+    <!-- 底部要点 -->
+    <rect x="40" y="792" width="1120" height="56" rx="10" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.6"/>
+    <text x="600" y="826" font-size="15" fill="#1F2937" text-anchor="middle">本质：用上下文隔离换质量——子代理的上下文不进入主代理，主代理始终干净</text>
+
+  </g>
+</svg>

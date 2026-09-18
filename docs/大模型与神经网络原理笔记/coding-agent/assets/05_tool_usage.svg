@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720">
+  <rect width="1200" height="720" fill="#FFFFFF"/>
+  <g font-family="'Microsoft YaHei','PingFang SC','Noto Sans CJK SC',sans-serif">
+
+    <!-- 标题 -->
+    <text x="60" y="48" font-size="26" font-weight="700" fill="#1F2937">课程全景：8 章各自站在什么位置</text>
+    <text x="60" y="78" font-size="15" fill="#6B7280">技术认知（最核心）&gt; 范式（工具无关）&gt; 工具使用（概念）——吃透原理，换任何工具都能立刻上手</text>
+
+    <!-- 左：课件大纲 -->
+    <rect x="40" y="130" width="430" height="470" rx="10" fill="#F1F5F9" stroke="#475569" stroke-width="1.6"/>
+    <text x="68" y="168" font-size="16" font-weight="700" fill="#334155">课件大纲</text>
+
+    <text x="68" y="206" font-size="14" fill="#111827">AI 效能工具</text>
+    <text x="68" y="240" font-size="14" fill="#111827">工具使用</text>
+    <path d="M86,252 V272" stroke="#94A3B8" stroke-width="1.4" fill="none"/>
+    <text x="108" y="276" font-size="14" fill="#111827">工具选择</text>
+
+    <text x="68" y="314" font-size="14" font-weight="700" fill="#1D4ED8">Coding Agent 原理</text>
+    <path d="M86,326 V462" stroke="#94A3B8" stroke-width="1.4" fill="none"/>
+    <path d="M86,344 H100" stroke="#94A3B8" stroke-width="1.4" fill="none"/>
+    <path d="M86,376 H100" stroke="#94A3B8" stroke-width="1.4" fill="none"/>
+    <path d="M86,408 H100" stroke="#94A3B8" stroke-width="1.4" fill="none"/>
+    <path d="M86,440 H100" stroke="#94A3B8" stroke-width="1.4" fill="none"/>
+    <path d="M86,462 H100" stroke="#94A3B8" stroke-width="1.4" fill="none"/>
+    <text x="112" y="348" font-size="14" fill="#111827">tools</text>
+    <text x="112" y="380" font-size="14" fill="#111827">会话</text>
+    <text x="112" y="412" font-size="14" fill="#111827">提示词</text>
+    <text x="112" y="444" font-size="14" fill="#111827">深度思考 / 推理 / 思维链</text>
+    <text x="112" y="466" font-size="14" fill="#111827">最佳实践</text>
+
+    <path d="M68,496 H442" stroke="#CBD5E1" stroke-width="1.4" fill="none"/>
+    <text x="68" y="528" font-size="13" fill="#6B7280">本子课程覆盖「Coding Agent 原理」下的</text>
+    <text x="68" y="552" font-size="13" fill="#6B7280">tools → 会话 → 提示词 → 深度思考 → 最佳实践</text>
+    <text x="68" y="580" font-size="13" fill="#6B7280">这一段，并按讲解顺序拆成 8 章。</text>
+
+    <!-- 右：8 章主线 -->
+    <rect x="490" y="130" width="670" height="470" rx="10" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.6"/>
+    <text x="518" y="168" font-size="16" font-weight="700" fill="#334155">8 章主线（原课叙事线）</text>
+
+    <path d="M518,196 V576" stroke="#CBD5E1" stroke-width="1.6" fill="none"/>
+
+    <rect x="506" y="194" width="24" height="20" rx="5" fill="#EFF4FE" stroke="#2563EB" stroke-width="1.3"/>
+    <text x="518" y="209" font-size="12.5" font-weight="700" fill="#1D4ED8" text-anchor="middle">1</text>
+    <text x="544" y="209" font-size="14" font-weight="700" fill="#1F2937">Tools</text>
+    <text x="544" y="229" font-size="12.5" fill="#6B7280">模型只会概率预测，「会用工具」的能力靠 Tools 补足</text>
+
+    <rect x="506" y="244" width="24" height="20" rx="5" fill="#EFF4FE" stroke="#2563EB" stroke-width="1.3"/>
+    <text x="518" y="259" font-size="12.5" font-weight="700" fill="#1D4ED8" text-anchor="middle">2</text>
+    <text x="544" y="259" font-size="14" font-weight="700" fill="#1F2937">会话 Conversation</text>
+    <text x="544" y="279" font-size="12.5" fill="#6B7280">模型没有记忆，每次请求都要把全部历史重新带上</text>
+
+    <rect x="506" y="294" width="24" height="20" rx="5" fill="#EFF4FE" stroke="#2563EB" stroke-width="1.3"/>
+    <text x="518" y="309" font-size="12.5" font-weight="700" fill="#1D4ED8" text-anchor="middle">3</text>
+    <text x="544" y="309" font-size="14" font-weight="700" fill="#1F2937">提示词 Prompt</text>
+    <text x="544" y="329" font-size="12.5" fill="#6B7280">全局 / 工程两级；写提示词的目的是减少上下文</text>
+
+    <rect x="506" y="344" width="24" height="20" rx="5" fill="#EFF4FE" stroke="#2563EB" stroke-width="1.3"/>
+    <text x="518" y="359" font-size="12.5" font-weight="700" fill="#1D4ED8" text-anchor="middle">4</text>
+    <text x="544" y="359" font-size="14" font-weight="700" fill="#1F2937">深度思考</text>
+    <text x="544" y="379" font-size="12.5" fill="#6B7280">模型先给自己写一段更完善的提示词，再据此回复</text>
+
+    <rect x="506" y="394" width="24" height="20" rx="5" fill="#F4F0FE" stroke="#6D28D9" stroke-width="1.3"/>
+    <text x="518" y="409" font-size="12.5" font-weight="700" fill="#5B21B6" text-anchor="middle">5</text>
+    <text x="544" y="409" font-size="14" font-weight="700" fill="#1F2937">MCP</text>
+    <text x="544" y="429" font-size="12.5" fill="#6B7280">一个 Tool 的集合；缺点是工具列表全量下发</text>
+
+    <rect x="506" y="444" width="24" height="20" rx="5" fill="#F4F0FE" stroke="#6D28D9" stroke-width="1.3"/>
+    <text x="518" y="459" font-size="12.5" font-weight="700" fill="#5B21B6" text-anchor="middle">6</text>
+    <text x="544" y="459" font-size="14" font-weight="700" fill="#1F2937">Skill 与 CLI</text>
+    <text x="544" y="479" font-size="12.5" fill="#6B7280">渐进式：先只给一行 description，需要时才展开</text>
+
+    <rect x="506" y="494" width="24" height="20" rx="5" fill="#F4F0FE" stroke="#6D28D9" stroke-width="1.3"/>
+    <text x="518" y="509" font-size="12.5" font-weight="700" fill="#5B21B6" text-anchor="middle">7</text>
+    <text x="544" y="509" font-size="14" font-weight="700" fill="#1F2937">Sub Agent</text>
+    <text x="544" y="529" font-size="12.5" fill="#6B7280">独立上下文、可并行、能力专注——用隔离换质量</text>
+
+    <rect x="506" y="544" width="24" height="20" rx="5" fill="#F4F0FE" stroke="#6D28D9" stroke-width="1.3"/>
+    <text x="518" y="559" font-size="12.5" font-weight="700" fill="#5B21B6" text-anchor="middle">8</text>
+    <text x="544" y="559" font-size="14" font-weight="700" fill="#1F2937">长期记忆</text>
+    <text x="544" y="579" font-size="12.5" fill="#6B7280">跨工程跨会话的经验沉淀；但不可全指望它</text>
+
+    <!-- 底部要点 -->
+    <rect x="40" y="630" width="1120" height="56" rx="10" fill="#FEF6EC" stroke="#B45309" stroke-width="1.6"/>
+    <text x="600" y="664" font-size="15" fill="#92400E" text-anchor="middle">贯穿全课的一条暗线：Skills、CLI、Sub Agents 无一例外，都是为了精简 / 隔离上下文</text>
+
+  </g>
+</svg>

@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="880" viewBox="0 0 1200 880">
+  <rect width="1200" height="880" fill="#FFFFFF"/>
+  <g font-family="'Microsoft YaHei','PingFang SC','Noto Sans CJK SC',sans-serif">
+
+    <!-- 标题 -->
+    <text x="60" y="48" font-size="26" font-weight="700" fill="#1F2937">会话：每次请求都要带上全部历史</text>
+    <text x="60" y="78" font-size="15" fill="#6B7280">模型本身没有任何记忆——每一次 API 请求都是独立的</text>
+
+    <!-- ===== 不带历史 ===== -->
+    <rect x="40" y="126" width="1120" height="190" rx="10" fill="#FDF0F0" stroke="#B91C1C" stroke-width="1.6"/>
+    <rect x="40" y="126" width="6" height="190" rx="3" fill="#B91C1C"/>
+    <text x="72" y="162" font-size="16" font-weight="700" fill="#B91C1C">不带历史：只发当前这一句</text>
+
+    <rect x="68" y="182" width="520" height="104" rx="8" fill="#0F172A" stroke="#1E293B" stroke-width="1.4"/>
+    <text x="88" y="212" font-size="12.5" fill="#E2E8F0" font-family="Consolas,'Courier New',monospace">messages: [</text>
+    <text x="88" y="238" font-size="12.5" fill="#E2E8F0" font-family="Consolas,'Courier New',monospace">  { role: "user", content: "第二大的质数呢" }</text>
+    <text x="88" y="264" font-size="12.5" fill="#E2E8F0" font-family="Consolas,'Courier New',monospace">]</text>
+
+    <path d="M588,232 H618" stroke="#B91C1C" stroke-width="1.6" fill="none"/>
+    <polygon points="618,227 618,237 628,232" fill="#B91C1C"/>
+    <rect x="636" y="206" width="140" height="52" rx="9" fill="#FFFFFF" stroke="#B91C1C" stroke-width="1.4"/>
+    <text x="706" y="238" font-size="14" font-weight="700" fill="#B91C1C" text-anchor="middle">模型</text>
+
+    <path d="M776,232 H806" stroke="#B91C1C" stroke-width="1.6" fill="none"/>
+    <polygon points="806,227 806,237 816,232" fill="#B91C1C"/>
+    <rect x="816" y="196" width="316" height="76" rx="9" fill="#FFFFFF" stroke="#FECACA" stroke-width="1.4"/>
+    <text x="842" y="228" font-size="14" font-weight="700" fill="#B91C1C">模型答不出来</text>
+    <text x="842" y="254" font-size="12.5" fill="#6B7280">它根本不知道上一轮问过什么</text>
+
+    <!-- ===== 带历史 ===== -->
+    <rect x="40" y="340" width="1120" height="238" rx="10" fill="#EDF7F5" stroke="#0F766E" stroke-width="1.6"/>
+    <rect x="40" y="340" width="6" height="238" rx="3" fill="#0F766E"/>
+    <text x="72" y="376" font-size="16" font-weight="700" fill="#0F766E">带上全部历史（这就是「会话」）</text>
+
+    <rect x="68" y="396" width="620" height="140" rx="8" fill="#0F172A" stroke="#1E293B" stroke-width="1.4"/>
+    <text x="88" y="424" font-size="12.5" fill="#E2E8F0" font-family="Consolas,'Courier New',monospace">messages: [</text>
+    <text x="88" y="450" font-size="12.5" fill="#E2E8F0" font-family="Consolas,'Courier New',monospace">  { role: "user",      content: "请输出 100 以内的最大质数" },</text>
+    <text x="88" y="476" font-size="12.5" fill="#E2E8F0" font-family="Consolas,'Courier New',monospace">  { role: "assistant", content: "100 以内最大的质数是 97" },</text>
+    <text x="88" y="502" font-size="12.5" fill="#E2E8F0" font-family="Consolas,'Courier New',monospace">  { role: "user",      content: "第二大的质数呢" }</text>
+    <text x="88" y="528" font-size="12.5" fill="#E2E8F0" font-family="Consolas,'Courier New',monospace">]</text>
+
+    <path d="M688,444 H718" stroke="#0F766E" stroke-width="1.6" fill="none"/>
+    <polygon points="718,439 718,449 728,444" fill="#0F766E"/>
+    <rect x="736" y="418" width="140" height="52" rx="9" fill="#FFFFFF" stroke="#0F766E" stroke-width="1.4"/>
+    <text x="806" y="450" font-size="14" font-weight="700" fill="#0F766E" text-anchor="middle">模型</text>
+
+    <path d="M876,444 H906" stroke="#0F766E" stroke-width="1.6" fill="none"/>
+    <polygon points="906,439 906,449 916,444" fill="#0F766E"/>
+    <rect x="916" y="408" width="216" height="76" rx="9" fill="#FFFFFF" stroke="#99F6E4" stroke-width="1.4"/>
+    <text x="942" y="440" font-size="16" font-weight="700" fill="#0F766E">答对：89</text>
+    <text x="942" y="466" font-size="12.5" fill="#6B7280">看到了完整上下文</text>
+
+    <!-- 两个代价 -->
+    <rect x="40" y="602" width="548" height="160" rx="10" fill="#F1F5F9" stroke="#475569" stroke-width="1.6"/>
+    <text x="66" y="636" font-size="16" font-weight="700" fill="#334155">两个代价</text>
+    <text x="66" y="672" font-size="13.5" fill="#111827">Token 消耗：每轮重发全部历史，随轮次近似指数膨胀</text>
+    <text x="66" y="702" font-size="13.5" fill="#111827">上下文过载：上下文越长，模型越容易出错、越不确定</text>
+    <text x="66" y="738" font-size="13" fill="#6B7280">装得下 ≠ 能处理好</text>
+
+    <!-- 最佳实践① -->
+    <rect x="612" y="602" width="548" height="160" rx="10" fill="#FEF6EC" stroke="#B45309" stroke-width="1.6"/>
+    <text x="638" y="636" font-size="16" font-weight="700" fill="#92400E">最佳实践①</text>
+    <text x="638" y="672" font-size="13.5" fill="#111827">每一个会话应该保持独立和连续</text>
+    <text x="638" y="702" font-size="13.5" fill="#111827">一个会话只围绕一件事；独立的事果断新开会话</text>
+    <text x="638" y="738" font-size="13" fill="#6B7280">修不好的 bug，别在同一会话里硬耗——新开更有效</text>
+
+    <!-- 底部要点 -->
+    <rect x="40" y="788" width="1120" height="56" rx="10" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.6"/>
+    <text x="600" y="822" font-size="15" fill="#1F2937" text-anchor="middle">「装得下，但记不住」——上下文窗口大，不等于处理能力强</text>
+
+  </g>
+</svg>

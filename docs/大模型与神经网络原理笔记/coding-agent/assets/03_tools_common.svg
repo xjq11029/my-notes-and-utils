@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="780" viewBox="0 0 1200 780">
+  <rect width="1200" height="780" fill="#FFFFFF"/>
+  <g font-family="'Microsoft YaHei','PingFang SC','Noto Sans CJK SC',sans-serif">
+
+    <!-- 标题 -->
+    <text x="60" y="48" font-size="26" font-weight="700" fill="#1F2937">必备工具四件套</text>
+    <text x="60" y="78" font-size="15" fill="#6B7280">不同 Coding Agent 传的工具集不完全一样，但这四项必定会有</text>
+
+    <!-- command -->
+    <rect x="40" y="140" width="262" height="300" rx="10" fill="#EFF4FE" stroke="#2563EB" stroke-width="1.6"/>
+    <text x="171" y="182" font-size="20" font-weight="700" fill="#1D4ED8" text-anchor="middle" font-family="Consolas,monospace">command</text>
+    <text x="171" y="212" font-size="13" fill="#374151" text-anchor="middle">执行命令</text>
+    <path d="M64,232 H278" stroke="#BFDBFE" stroke-width="1.4" fill="none"/>
+    <text x="66" y="262" font-size="12.5" fill="#475569">查看文件与文件夹</text>
+    <text x="66" y="288" font-size="12.5" fill="#475569">新建目录</text>
+    <text x="66" y="314" font-size="12.5" fill="#475569">写入文件</text>
+    <text x="66" y="352" font-size="12.5" fill="#6B7280">要开发就必然要执行命令</text>
+    <text x="66" y="374" font-size="12.5" fill="#6B7280">它是四件套的底座</text>
+
+    <!-- read -->
+    <rect x="326" y="140" width="262" height="300" rx="10" fill="#EDF7F5" stroke="#0F766E" stroke-width="1.6"/>
+    <text x="457" y="182" font-size="20" font-weight="700" fill="#0F766E" text-anchor="middle" font-family="Consolas,monospace">read</text>
+    <text x="457" y="212" font-size="13" fill="#374151" text-anchor="middle">读取文件内容</text>
+    <path d="M350,232 H564" stroke="#99F6E4" stroke-width="1.4" fill="none"/>
+    <text x="352" y="262" font-size="12.5" fill="#475569">拿到某个文件的</text>
+    <text x="352" y="288" font-size="12.5" fill="#475569">全部文本内容</text>
+    <text x="352" y="352" font-size="12.5" fill="#6B7280">模型「看工程」靠它</text>
+    <text x="352" y="374" font-size="12.5" fill="#6B7280">读完再由 Agent 回灌</text>
+
+    <!-- write -->
+    <rect x="612" y="140" width="262" height="300" rx="10" fill="#FEF6EC" stroke="#B45309" stroke-width="1.6"/>
+    <text x="743" y="182" font-size="20" font-weight="700" fill="#92400E" text-anchor="middle" font-family="Consolas,monospace">write</text>
+    <text x="743" y="212" font-size="13" fill="#374151" text-anchor="middle">写入文件</text>
+    <path d="M636,232 H850" stroke="#FCD9A8" stroke-width="1.4" fill="none"/>
+    <text x="638" y="262" font-size="12.5" fill="#475569">把内容写进指定文件</text>
+    <text x="638" y="288" font-size="12.5" fill="#475569">（新建或覆盖）</text>
+    <text x="638" y="352" font-size="12.5" fill="#6B7280">「动手改工程」靠它</text>
+    <text x="638" y="374" font-size="12.5" fill="#6B7280">写入后由 Agent 回灌</text>
+
+    <!-- delete -->
+    <rect x="898" y="140" width="262" height="300" rx="10" fill="#FDF0F0" stroke="#B91C1C" stroke-width="1.6"/>
+    <text x="1029" y="182" font-size="20" font-weight="700" fill="#B91C1C" text-anchor="middle" font-family="Consolas,monospace">delete</text>
+    <text x="1029" y="212" font-size="13" fill="#374151" text-anchor="middle">删除文件</text>
+    <path d="M922,232 H1136" stroke="#FECACA" stroke-width="1.4" fill="none"/>
+    <text x="924" y="262" font-size="12.5" fill="#475569">删除指定文件</text>
+    <text x="924" y="288" font-size="12.5" fill="#475569">很多时候也基于</text>
+    <text x="924" y="314" font-size="12.5" fill="#475569">command 实现</text>
+    <text x="924" y="352" font-size="12.5" fill="#6B7280">要开发就必然要删文件</text>
+    <text x="924" y="374" font-size="12.5" fill="#6B7280">属必备四件套之一</text>
+
+    <!-- 说明框 -->
+    <rect x="40" y="472" width="1120" height="164" rx="10" fill="#F1F5F9" stroke="#475569" stroke-width="1.6"/>
+    <text x="68" y="506" font-size="16" font-weight="700" fill="#334155">为什么偏偏是这四件套</text>
+    <text x="68" y="544" font-size="14" fill="#111827">要开发，就必然要读写删和执行命令——所以各家工具集可以不一样，但这四项必定会有。</text>
+    <text x="68" y="578" font-size="14" fill="#111827">其中 command 是底座：不少功能（包括 delete）都是基于它实现的。</text>
+    <text x="68" y="612" font-size="13" fill="#6B7280">读代码靠 read，改代码靠 write，跑命令靠 command，清理靠 delete——四件套覆盖了「动工程」的全部动作。</text>
+
+    <!-- 底部要点 -->
+    <rect x="40" y="668" width="1120" height="56" rx="10" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.6"/>
+    <text x="600" y="702" font-size="15" fill="#1F2937" text-anchor="middle">模型只知道「有哪些工具可用」，具体怎么用、什么时候用，都写在提示词的约定里</text>
+
+  </g>
+</svg>

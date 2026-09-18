@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700" viewBox="0 0 1200 700">
+  <rect width="1200" height="700" fill="#FFFFFF"/>
+  <g font-family="'Microsoft YaHei','PingFang SC','Noto Sans CJK SC',sans-serif">
+
+    <!-- 标题 -->
+    <text x="60" y="48" font-size="26" font-weight="700" fill="#1F2937">工具调用的 JSON 约定</text>
+    <text x="60" y="78" font-size="15" fill="#6B7280">这个格式是在提示词里一开始就约定好的，而且约定得非常细致</text>
+
+    <!-- 左：JSON 代码块 -->
+    <rect x="40" y="120" width="560" height="310" rx="10" fill="#F8FAFC" stroke="#475569" stroke-width="1.6"/>
+    <text x="68" y="156" font-size="15" font-weight="700" fill="#334155">模型返回的内容（不是答案，是一段 JSON）</text>
+    <rect x="68" y="180" width="504" height="218" rx="8" fill="#0F172A" stroke="#1E293B" stroke-width="1.4"/>
+    <text x="92" y="222" font-size="14" fill="#E2E8F0" font-family="Consolas,'Courier New',monospace">{</text>
+    <text x="92" y="258" font-size="14" fill="#E2E8F0" font-family="Consolas,'Courier New',monospace">  "type": "use-tool",</text>
+    <text x="92" y="294" font-size="14" fill="#E2E8F0" font-family="Consolas,'Courier New',monospace">  "name": "command",</text>
+    <text x="92" y="330" font-size="14" fill="#E2E8F0" font-family="Consolas,'Courier New',monospace">  "parameters": { }</text>
+    <text x="92" y="366" font-size="14" fill="#E2E8F0" font-family="Consolas,'Courier New',monospace">}</text>
+
+    <!-- 右：逐字段解释 -->
+    <rect x="640" y="120" width="520" height="88" rx="10" fill="#EFF4FE" stroke="#2563EB" stroke-width="1.6"/>
+    <text x="668" y="158" font-size="17" font-weight="700" fill="#1D4ED8" font-family="Consolas,'Courier New',monospace">type: "use-tool"</text>
+    <text x="668" y="188" font-size="13.5" fill="#374151">表示这是一次工具调用</text>
+
+    <rect x="640" y="228" width="520" height="88" rx="10" fill="#FEF6EC" stroke="#B45309" stroke-width="1.6"/>
+    <text x="668" y="266" font-size="17" font-weight="700" fill="#92400E" font-family="Consolas,'Courier New',monospace">name: "command"</text>
+    <text x="668" y="296" font-size="13.5" fill="#374151">表示要执行哪个工具（这里是执行命令）</text>
+
+    <rect x="640" y="336" width="520" height="88" rx="10" fill="#EDF7F5" stroke="#0F766E" stroke-width="1.6"/>
+    <text x="668" y="374" font-size="17" font-weight="700" fill="#0F766E" font-family="Consolas,'Courier New',monospace">parameters</text>
+    <text x="668" y="404" font-size="13.5" fill="#374151">携带具体参数（如命令内容、文件路径）</text>
+
+    <!-- 完整链路 -->
+    <text x="40" y="472" font-size="15" font-weight="700" fill="#334155">拿到 JSON 之后的完整链路</text>
+
+    <rect x="40" y="490" width="200" height="76" rx="9" fill="#F4F0FE" stroke="#6D28D9" stroke-width="1.6"/>
+    <text x="140" y="522" font-size="15" font-weight="700" fill="#5B21B6" text-anchor="middle">大模型</text>
+    <text x="140" y="546" font-size="12" fill="#6B7280" text-anchor="middle">只决定调用什么</text>
+
+    <path d="M240,528 H266" stroke="#94A3B8" stroke-width="1.6" fill="none"/>
+    <polygon points="258,523 258,533 268,528" fill="#94A3B8"/>
+
+    <rect x="270" y="490" width="200" height="76" rx="9" fill="#F8FAFC" stroke="#475569" stroke-width="1.6"/>
+    <text x="370" y="522" font-size="15" font-weight="700" fill="#334155" text-anchor="middle">返回 JSON</text>
+    <text x="370" y="546" font-size="12" fill="#6B7280" text-anchor="middle">要调哪个工具、什么参数</text>
+
+    <path d="M470,528 H496" stroke="#94A3B8" stroke-width="1.6" fill="none"/>
+    <polygon points="488,523 488,533 498,528" fill="#94A3B8"/>
+
+    <rect x="500" y="490" width="200" height="76" rx="9" fill="#FEF6EC" stroke="#B45309" stroke-width="1.6"/>
+    <text x="600" y="522" font-size="15" font-weight="700" fill="#92400E" text-anchor="middle">Agent 解析</text>
+    <text x="600" y="546" font-size="12" fill="#6B7280" text-anchor="middle">读懂 JSON 的意图</text>
+
+    <path d="M700,528 H726" stroke="#94A3B8" stroke-width="1.6" fill="none"/>
+    <polygon points="718,523 718,533 728,528" fill="#94A3B8"/>
+
+    <rect x="730" y="490" width="200" height="76" rx="9" fill="#FEF6EC" stroke="#B45309" stroke-width="1.6"/>
+    <text x="830" y="522" font-size="15" font-weight="700" fill="#92400E" text-anchor="middle">执行工具</text>
+    <text x="830" y="546" font-size="12" fill="#6B7280" text-anchor="middle">打开命令行、读写文件</text>
+
+    <path d="M930,528 H956" stroke="#94A3B8" stroke-width="1.6" fill="none"/>
+    <polygon points="948,523 948,533 958,528" fill="#94A3B8"/>
+
+    <rect x="960" y="490" width="200" height="76" rx="9" fill="#EDF7F5" stroke="#0F766E" stroke-width="1.6"/>
+    <text x="1060" y="522" font-size="15" font-weight="700" fill="#0F766E" text-anchor="middle">回灌模型</text>
+    <text x="1060" y="546" font-size="12" fill="#6B7280" text-anchor="middle">把结果作为文本喂回去</text>
+
+    <!-- 底部要点 -->
+    <rect x="40" y="600" width="1120" height="56" rx="10" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.6"/>
+    <text x="600" y="634" font-size="15" fill="#1F2937" text-anchor="middle">JSON 只承载「意图」——真正的执行发生在 Agent 那一侧，模型始终只碰文本</text>
+
+  </g>
+</svg>

@@ -1,0 +1,13 @@
+{
+  "name": "my-notes-and-utils-scripts",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "仓库本地脚本的依赖声明（仅 svg-to-png.mjs 使用）",
+  "scripts": {
+    "svg2png": "node svg-to-png.mjs"
+  },
+  "dependencies": {
+    "@resvg/resvg-js": "^2.6.2"
+  }
+}

@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="990" viewBox="0 0 1200 990">
+  <rect width="1200" height="990" fill="#FFFFFF"/>
+  <g font-family="'Microsoft YaHei','PingFang SC','Noto Sans CJK SC',sans-serif">
+
+    <!-- 标题 -->
+    <text x="60" y="48" font-size="26" font-weight="700" fill="#1F2937">MCP 完整时序：两个嵌套的循环</text>
+    <text x="60" y="78" font-size="15" fill="#6B7280">MCP 就是一个 Tool 的集合——第三方编写、独立进程运行、走标准化协议；Agent ↔ MCP 的通信与模型无关</text>
+
+    <!-- 泳道头 -->
+    <rect x="40" y="104" width="200" height="46" rx="9" fill="#EFF4FE" stroke="#2563EB" stroke-width="1.6"/>
+    <text x="140" y="133" font-size="16" font-weight="700" fill="#1D4ED8" text-anchor="middle">user</text>
+
+    <rect x="320" y="104" width="200" height="46" rx="9" fill="#FEF6EC" stroke="#B45309" stroke-width="1.6"/>
+    <text x="420" y="133" font-size="16" font-weight="700" fill="#92400E" text-anchor="middle">agent</text>
+
+    <rect x="620" y="104" width="200" height="46" rx="9" fill="#EDF7F5" stroke="#0F766E" stroke-width="1.6"/>
+    <text x="720" y="133" font-size="16" font-weight="700" fill="#0F766E" text-anchor="middle">mcp-server</text>
+
+    <rect x="940" y="104" width="200" height="46" rx="9" fill="#F4F0FE" stroke="#6D28D9" stroke-width="1.6"/>
+    <text x="1040" y="133" font-size="16" font-weight="700" fill="#5B21B6" text-anchor="middle">model</text>
+
+    <!-- 注册提示 -->
+    <rect x="40" y="166" width="1120" height="36" rx="8" fill="#FEF9E7" stroke="#D97706" stroke-width="1.4"/>
+    <text x="600" y="190" font-size="13.5" fill="#92400E" text-anchor="middle">注册 MCP —— 本质就是写一份配置：启动命令 + 参数 + 环境变量 + 工作目录</text>
+
+    <!-- 生命线 -->
+    <path d="M140,216 V950" stroke="#94A3B8" stroke-width="1.2" stroke-dasharray="5 5" fill="none"/>
+    <path d="M420,216 V950" stroke="#94A3B8" stroke-width="1.2" stroke-dasharray="5 5" fill="none"/>
+    <path d="M720,216 V950" stroke="#94A3B8" stroke-width="1.2" stroke-dasharray="5 5" fill="none"/>
+    <path d="M1040,216 V950" stroke="#94A3B8" stroke-width="1.2" stroke-dasharray="5 5" fill="none"/>
+
+    <!-- 循环框 -->
+    <rect x="56" y="500" width="1108" height="438" rx="8" fill="none" stroke="#2563EB" stroke-width="1.5"/>
+    <rect x="56" y="488" width="126" height="24" rx="6" fill="#EFF4FE" stroke="#2563EB" stroke-width="1.4"/>
+    <text x="119" y="505" font-size="12.5" font-weight="700" fill="#1D4ED8" text-anchor="middle">[对话循环]</text>
+
+    <rect x="336" y="622" width="828" height="204" rx="8" fill="none" stroke="#6D28D9" stroke-width="1.5"/>
+    <rect x="336" y="610" width="160" height="24" rx="6" fill="#F4F0FE" stroke="#6D28D9" stroke-width="1.4"/>
+    <text x="416" y="627" font-size="12.5" font-weight="700" fill="#5B21B6" text-anchor="middle">[MCP 调用循环]</text>
+
+    <!-- ① 启动 MCP 服务 -->
+    <text x="570" y="254" font-size="12.5" fill="#1F2937" text-anchor="middle">① 启动 MCP 服务（本地进程 / 远程 HTTP）</text>
+    <path d="M420,264 H710" stroke="#B45309" stroke-width="1.6" fill="none"/>
+    <polygon points="710,259 710,269 720,264" fill="#B45309"/>
+
+    <!-- ② 发现工具 -->
+    <text x="570" y="302" font-size="12.5" fill="#1F2937" text-anchor="middle">② 发现工具：agent 问「你提供哪些工具」</text>
+    <path d="M420,312 H710" stroke="#B45309" stroke-width="1.6" fill="none"/>
+    <polygon points="710,307 710,317 720,312" fill="#B45309"/>
+
+    <!-- ③ 工具列表 -->
+    <text x="570" y="350" font-size="12.5" fill="#1F2937" text-anchor="middle">③ 工具列表（标准化 JSON：函数名、参数、说明）</text>
+    <path d="M720,360 H430" stroke="#0F766E" stroke-width="1.6" stroke-dasharray="7 5" fill="none"/>
+    <polygon points="430,355 430,365 420,360" fill="#0F766E"/>
+
+    <!-- ④ 新会话 -->
+    <text x="280" y="398" font-size="12.5" fill="#1F2937" text-anchor="middle">④ 新会话</text>
+    <path d="M140,408 H410" stroke="#2563EB" stroke-width="1.6" fill="none"/>
+    <polygon points="410,403 410,413 420,408" fill="#2563EB"/>
+
+    <!-- ⑤ 下发工具提示 -->
+    <text x="730" y="446" font-size="12.5" fill="#1F2937" text-anchor="middle">⑤ 各种提示词 + MCP 工具提示，一起下发给模型</text>
+    <path d="M420,456 H1030" stroke="#B45309" stroke-width="1.6" fill="none"/>
+    <polygon points="1030,451 1030,461 1040,456" fill="#B45309"/>
+
+    <!-- ⑥ 用户消息 -->
+    <text x="280" y="526" font-size="12.5" fill="#1F2937" text-anchor="middle">⑥ 用户消息</text>
+    <path d="M140,536 H410" stroke="#2563EB" stroke-width="1.6" fill="none"/>
+    <polygon points="410,531 410,541 420,536" fill="#2563EB"/>
+
+    <!-- ⑦ agent 转给模型 -->
+    <text x="730" y="574" font-size="12.5" fill="#1F2937" text-anchor="middle">⑦ 用户消息（agent 转给模型）</text>
+    <path d="M420,584 H1030" stroke="#B45309" stroke-width="1.6" fill="none"/>
+    <polygon points="1030,579 1030,589 1040,584" fill="#B45309"/>
+
+    <!-- ⑧ 模型决定调用 -->
+    <text x="730" y="646" font-size="12.5" fill="#1F2937" text-anchor="middle">⑧ 模型返回「请帮我调用某个 MCP 工具」</text>
+    <path d="M1040,656 H430" stroke="#6D28D9" stroke-width="1.6" stroke-dasharray="7 5" fill="none"/>
+    <polygon points="430,651 430,661 420,656" fill="#6D28D9"/>
+
+    <!-- ⑨ 调用工具 -->
+    <text x="570" y="694" font-size="12.5" fill="#1F2937" text-anchor="middle">⑨ 调用工具</text>
+    <path d="M420,704 H710" stroke="#B45309" stroke-width="1.6" fill="none"/>
+    <polygon points="710,699 710,709 720,704" fill="#B45309"/>
+
+    <!-- ⑩ 返回结果 -->
+    <text x="570" y="742" font-size="12.5" fill="#1F2937" text-anchor="middle">⑩ 返回结果</text>
+    <path d="M720,752 H430" stroke="#0F766E" stroke-width="1.6" stroke-dasharray="7 5" fill="none"/>
+    <polygon points="430,747 430,757 420,752" fill="#0F766E"/>
+
+    <!-- ⑪ 调用结果回灌 -->
+    <text x="730" y="790" font-size="12.5" fill="#1F2937" text-anchor="middle">⑪ 调用结果回灌模型 → 不够就再循环</text>
+    <path d="M420,800 H1030" stroke="#B45309" stroke-width="1.6" fill="none"/>
+    <polygon points="1030,795 1030,805 1040,800" fill="#B45309"/>
+
+    <!-- ⑫ 最终回复 -->
+    <text x="730" y="854" font-size="12.5" fill="#1F2937" text-anchor="middle">⑫ 信息足够 → 模型输出最终回复</text>
+    <path d="M1040,864 H430" stroke="#6D28D9" stroke-width="1.6" stroke-dasharray="7 5" fill="none"/>
+    <polygon points="430,859 430,869 420,864" fill="#6D28D9"/>
+
+    <!-- ⑬ 转给用户 -->
+    <text x="280" y="902" font-size="12.5" fill="#1F2937" text-anchor="middle">⑬ agent 把回复转给用户</text>
+    <path d="M420,912 H150" stroke="#2563EB" stroke-width="1.6" fill="none"/>
+    <polygon points="150,907 150,917 140,912" fill="#2563EB"/>
+
+    <!-- 底部说明 -->
+    <text x="600" y="972" font-size="14" fill="#1F2937" text-anchor="middle">外层「对话循环」里嵌套内层「MCP 调用循环」——这与第 1 章内置 Tools 的逻辑完全一致：换汤不换药</text>
+
+  </g>
+</svg>
