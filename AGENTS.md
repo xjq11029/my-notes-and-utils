@@ -2,7 +2,7 @@
 
 ## 工程功能
 
-`my-notes-and-utils` 是个人知识库与工具仓库，把**体系化学习指南**、**技术专题深度笔记**、**可复用工具函数**统一归档，便于检索与复用。以 Markdown 为主要载体（516 个文件，其中 485 篇 Markdown、约 25 万行；统计不含 `.git/` 与内部目录 `.workbuddy/`、`.workbuddy-ai/`）。
+`my-notes-and-utils` 是个人知识库与工具仓库，把**体系化学习指南**、**技术专题深度笔记**、**可复用工具函数**统一归档，便于检索与复用。以 Markdown 为主要载体（518 个文件，其中 487 篇 Markdown、约 25 万行；统计不含 `.git/` 与内部目录 `.workbuddy/`、`.workbuddy-ai/`）。
 
 内容分两条主线：
 
@@ -26,8 +26,7 @@ my-notes-and-utils/
 ├── AGENTS.md                   # 本文件，面向 Agent 的工程说明
 ├── LICENSE                     # MIT
 ├── docs/                       # 技术专题深度笔记
-│   ├── TOC.md                  #   全仓库文档目录
-│   ├── harness/                #   Agent Harness 深度讲解（精读版 HTML + 纯文本版 MD + minimal_harness.py + images + 自身 AGENTS.md/README.md）
+│   ├── harness/                #   Agent Harness 深度讲解（精读版 HTML + 纯文本版 MD + minimal_harness.py + images + 自身 README.md）
 │   └── 大模型与神经网络原理笔记/  #   大模型课程笔记 ch01–ch10 + assets/ + README.md
 ├── guides/                     # 体系化学习指南
 │   ├── backend/                #   README.md、_CHANGELOG.md、知识导览.md、路线图 PNG
