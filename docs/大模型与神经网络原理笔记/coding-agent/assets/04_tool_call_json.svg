@@ -3,8 +3,8 @@
   <g font-family="'Microsoft YaHei','PingFang SC','Noto Sans CJK SC',sans-serif">
 
     <!-- 标题 -->
-    <text x="60" y="48" font-size="26" font-weight="700" fill="#1F2937">工具调用的 JSON 约定</text>
-    <text x="60" y="78" font-size="15" fill="#6B7280">这个格式是在提示词里一开始就约定好的，而且约定得非常细致</text>
+    <text x="60" y="48" font-size="26" font-weight="700" fill="#1F2937">工具调用的 JSON 约定（示意形态）</text>
+    <text x="60" y="78" font-size="15" fill="#6B7280">格式在提示词里一开始就约定好，且约定得非常细致（字段名以各家实现为准）</text>
 
     <!-- 左：JSON 代码块 -->
     <rect x="40" y="120" width="560" height="310" rx="10" fill="#F8FAFC" stroke="#475569" stroke-width="1.6"/>

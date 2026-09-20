@@ -172,16 +172,16 @@ flowchart TD
     E --> F["Engine Pipeline<br/>执行 Engine 层 Valve 链"]
     F --> G["Host Pipeline<br/>执行 Host 层 Valve 链"]
     G --> H["Context Pipeline<br/>执行 Context 层 Valve 链"]
-    H --> I["Wrapper 调用 FilterChain<br/>执行所有匹配的 Filter"]
+    H --> I["Wrapper 调用 FilterChain（责任链模式）<br/>执行所有匹配的 Filter"]
     I --> J["Filter1 → Filter2 → Filter3"]
-    J --> K["Servlet.service()<br/>根据 HTTP 方法分发"]
+    J --> K["Servlet.service()（模板方法模式）<br/>根据 HTTP 方法分发"]
     K --> L["doGet() / doPost() / doPut() / doDelete()"]
     L --> M["业务逻辑处理<br/>生成响应内容"]
     M --> N["响应逆序返回<br/>Servlet → Filter3 → Filter2 → Filter1"]
     N --> O["通过 Connector 返回客户端"]
 
-    style I["FilterChain（责任链模式）"]
-    style K["Servlet 分发（模板方法模式）"]
+    style I fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+    style K fill:#fff3e0,stroke:#f57c00,stroke-width:2px
 ```
 
 > 📖 **参考链接**：

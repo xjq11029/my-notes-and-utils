@@ -2,7 +2,7 @@
 
 ## 工程定位与技术栈
 
-`my-notes-and-utils` 是个人知识库与工具仓库：**体系化学习指南** + **技术专题深度笔记** + **可复用工具函数**，以 Markdown 为主要载体（568 个文件 / 502 篇 Markdown / 约 25.6 万行）。
+`my-notes-and-utils` 是个人知识库与工具仓库：**体系化学习指南** + **技术专题深度笔记** + **可复用工具函数**，以 Markdown 为主要载体（559 个文件 / 501 篇 Markdown / 约 25.6 万行）。
 
 技术栈：主体为 Markdown（无构建系统、无 CI）；`src/js/` 为 JavaScript / Node.js（按需 `require` 第三方依赖）；`src/python/` 仅标准库；`scripts/` 为本地脚本（Shell + Node ESM，依赖按需 `npm install`）。
 

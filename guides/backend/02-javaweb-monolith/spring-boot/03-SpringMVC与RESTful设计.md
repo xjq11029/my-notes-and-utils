@@ -128,16 +128,16 @@ flowchart TD
     G --> H{"preHandle 返回 true？"}
     H -->|"否"| I["请求被拦截，直接返回"]
     H -->|"是"| J["HandlerAdapter.handle()<br/>调用 Controller 方法"]
-    J --> K["参数解析：HandlerMethodArgumentResolver<br/>@RequestParam / @PathVariable / @RequestBody"]
+    J --> K["参数解析（核心扩展点）<br/>HandlerMethodArgumentResolver<br/>@RequestParam / @PathVariable / @RequestBody"]
     K --> L["Controller 执行业务逻辑"]
-    L --> M["返回值处理：HandlerMethodReturnValueHandler<br/>@ResponseBody → JSON 序列化"]
+    L --> M["返回值处理（核心扩展点）<br/>HandlerMethodReturnValueHandler<br/>@ResponseBody → JSON 序列化"]
     M --> N["执行拦截器链 postHandle()"]
     N --> O["processDispatchResult()<br/>视图渲染 / 异常处理"]
     O --> P["执行拦截器链 afterCompletion()"]
     P --> Q["响应返回客户端"]
 
-    style K["参数解析（核心扩展点）"]
-    style M["返回值处理（核心扩展点）"]
+    style K fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+    style M fill:#fff3e0,stroke:#f57c00,stroke-width:2px
 ```
 
 **DispatcherServlet 流程关键扩展点详解：**

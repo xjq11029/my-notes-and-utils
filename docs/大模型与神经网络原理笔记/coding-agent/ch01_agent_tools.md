@@ -31,7 +31,7 @@
 |---|---|---|
 | IDE 集成 | 编辑器工作区 | VSCode、Cursor、Trae… |
 | Coding Agent | 执行工具调用的代理 | Claude Code、Codex、OpenCode… |
-| 模型 | 负责决策的推理内核 | Claude Sonnet / Opus、GPT Codex、Gemini、Kimi、GLM、MiniMax… |
+| 模型 | 负责决策的推理内核 | Claude Sonnet / Opus、Codex、Gemini、Kimi、GLM、MiniMax… |
 
 三层可自由组合。讲师的态度是：**选哪个都行，差异不大**——因为底层原理一致。
 
@@ -98,10 +98,12 @@ graph TD
 ```
 
 - `type: "use-tool"` —— 表示这是一次工具调用
-- `name: "command"` —— 表示要执行一个命令
+- `name: "command"` —— 表示要执行哪个工具（这里是执行命令）
 - `parameters` —— 携带具体参数
 
 这个格式是**在提示词里一开始就约定好的**，而且约定得非常细致。
+
+> 注：这段 JSON 是讲师**现场凭记忆**敲出的，念到字段名时自己也说「这叫啥来的」「好像叫 `type` 吧」「**具体我忘了**」——口述把第二个字段念作「toolname」、第三个念作「parameter」，而**手上实际敲的是 `name` 与 `parameters`**（见课件拍照 `assets/_原始拍照/04_tool_call_json.jpg`）。此处**以演示实际写法为准**；各家实现可能不同，理解结构即可。
 
 ### 2.4 常用工具
 
@@ -124,6 +126,14 @@ graph TD
 
 这解释了为什么**模型永远看不到执行结果本身**——它只能看到 Agent 喂给它的文本。
 
+### 2.6 例外：模型原生支持 Tool Use
+
+上面讲的「用提示词约定 JSON」并不是唯一路径。有些模型服务**原生支持 Tool Use / Function Calling**：工具定义可以直接通过 API 接口透传过去，模型本身就认识这套格式，**不需要再写提示词去约定**。这时 2.3 那套提示词约定就是多余的。
+
+但要注意，**并非每个模型服务商都提供完整功能**。同一件事，有的服务商已经在服务端处理好了，有的没有。所以 Coding Agent 工具通常仍要做一层封装。
+
+封装策略之一是**先探测模型已具备哪些能力，已有的就不再重复封装**；剩下的缺口才由 Agent 自己用提示词补上。这也是前面「执行权在 Agent」的一个自然延伸：能力边界不同，封装层就得随之调整。
+
 ## 三、演示步骤（按讲解顺序还原）
 
 讲师用「手工模拟 Agent」的方式把这套流程走了一遍：
@@ -144,7 +154,7 @@ graph TD
 
 ![必备工具四件套：command / read / write / delete](assets/03_tools_common.png)
 
-![工具调用的 JSON 约定：type / name / parameters 三个字段](assets/04_tool_call_json.png)
+![工具调用的 JSON 约定（示意形态）：type / name / parameters 三个字段](assets/04_tool_call_json.png)
 
 ![课程全景：课件大纲与 8 章主线](assets/05_tool_usage.png)
 
@@ -157,6 +167,7 @@ graph TD
 5. **模型只负责「决定调用」，Agent 才是执行者**——Agent 是一个程序（TS / Node / Python 写的）。
 6. **三层选型（IDE / Coding Agent / 模型）可自由组合**，选哪个差异不大，因为底层原理一致。
 7. **技术认知 > 范式 > 工具使用**——理解原理才具备跨工具迁移的能力。
+8. **有些模型原生支持 Tool Use / Function Calling**，工具定义可直接通过 API 透传、无需提示词约定；但服务商能力不齐，Coding Agent 仍要做一层封装——先探测已有能力，已有的不再重复封装。
 
 ## 本节要点回顾
 
@@ -164,7 +175,8 @@ graph TD
 - Agent = 代理用户与模型通信的**程序**；不是严格技术名词（类比 H5）。
 - 大模型只会做概率预测，**「总结项目」的能力来自 Tools，不来自模型**。
 - 六步流程是全部机制的骨架，后面讲的 MCP、Skill 都是它的变体。
-- 工具调用走 JSON：`type: use-tool` + `name` + `parameters`。
+- 工具调用走 JSON：`type` + `name` + `parameters`。
 - 必备工具四件套：`command` / `read` / `write` / `delete`。
 - **执行权在 Agent，模型只输出意图**——这是理解后续所有机制的前提。
 - 开发范式两个名词：vibe coding（氛围编程）/ spec coding（规范驱动开发）。
+- 例外情形：模型原生支持 Tool Use 时可直接走 API 透传，不需要提示词；服务商能力不齐，故 Agent 仍需封装（先探测已有能力）。

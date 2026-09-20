@@ -103,6 +103,7 @@ td code{font-size:12.5px}
 .cb pre::-webkit-scrollbar{height:8px}
 .cb pre::-webkit-scrollbar-thumb{background:#2a3644;border-radius:4px}
 .k{color:#c792ea} .s{color:#a5d6a7} .c{color:#5f7183;font-style:italic} .n{color:#f0a04b} .f{color:#7cc4ff} .t2{color:#2dd4a7}
+.zh{color:#d8c9a6;font-family:var(--sans);font-style:normal}
 
 /* ---------- SVG 图 ---------- */
 figure{margin:30px 0;padding:22px 18px 14px;background:var(--bg-soft);border:1px solid var(--border-soft);border-radius:12px}
@@ -202,7 +203,7 @@ ol.refs li{margin:9px 0}
   <p class="sub">网上讲 Harness 的文章很多，但大多从"组件清单"讲起，读完还是不知道它为什么必须存在。这篇换一条路：先用一个类比建立心智模型，再用第一性原理推导出每个组件为什么必然出现，最后用 Codex 的源码和实测数据逐条验证。</p>
   <div class="meta">
     <span>约 3.9 万字 · 精读版</span>
-    <span>9 张手绘图示</span>
+    <span>10 张手绘图示</span>
     <span>含可运行的最小 Harness 代码</span>
     <span>含 Codex 源码级细节</span>
     <span>数据来源分级标注</span>
@@ -225,7 +226,63 @@ ol.refs li{margin:9px 0}
 </table>
 </div>
 
-<p>本文讲的 <strong>Agent Harness</strong>（中文常译"智能体脚手架"或"运行时控制层"），指的是<em>模型之外的一切</em>：编排循环、工具、上下文管理、状态持久化、权限控制、验证回路、错误恢复。</p>
+<p>本文讲的 <strong>Agent Harness</strong>（中文常译"智能体脚手架"或"运行时控制层"）。先定范畴：<strong>它的本义是一套运行时系统（runtime）</strong>——一个具体的东西，不是思想，也不是设计模式。它覆盖的<em>范围</em>是模型之外的一切：编排循环、工具、上下文管理、状态持久化、权限控制、验证回路、错误恢复。</p>
+
+<h3>先分清：harness 这个词的三个层次</h3>
+
+<p>上面那句给的是<strong>范围</strong>（覆盖什么），没有回答<strong>范畴</strong>（它属于哪一类东西）。而这个词被同时用在三个层次上，混着说就必然读糊涂——很多人问"harness 是思想还是设计模式"，卡点就在这里。</p>
+
+<figure>
+<svg viewBox="0 0 680 288" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="harness 一词的三个层次：本义是一套运行时系统，衍生出工程学科与视角两种用法，三者都不是设计模式">
+  <rect x="40" y="30" width="600" height="62" rx="12" fill="#0d2b26" stroke="#2dd4a7" stroke-width="1.4"/>
+  <text x="64" y="54" fill="#2dd4a7" font-size="14.5" font-weight="700" font-family="sans-serif">① 本义 · 一套运行时系统（runtime）</text>
+  <text x="64" y="76" fill="#7fa89c" font-size="13" font-family="sans-serif">有代码 · 有进程 · 有配置 · 有失败；能跑起来才算数</text>
+
+  <rect x="40" y="112" width="290" height="68" rx="10" fill="#101d2e" stroke="#4dabf7" stroke-width="1"/>
+  <text x="60" y="136" fill="#4dabf7" font-size="14" font-weight="600" font-family="sans-serif">② Harness Engineering</text>
+  <text x="60" y="158" fill="#7d9cbb" font-size="13" font-family="sans-serif">设计与维护 ① 的工程学科</text>
+  <text x="60" y="176" fill="#6b87a5" font-size="12" font-family="sans-serif">例：犯错就固化一条约束</text>
+
+  <rect x="350" y="112" width="290" height="68" rx="10" fill="#1a1428" stroke="#b98ce8" stroke-width="1"/>
+  <text x="370" y="136" fill="#b98ce8" font-size="14" font-weight="600" font-family="sans-serif">③ Harness 思想 / 视角</text>
+  <text x="370" y="158" fill="#9a86c4" font-size="13" font-family="sans-serif">从「模型缺什么」倒推补什么</text>
+  <text x="370" y="176" fill="#83739f" font-size="12" font-family="sans-serif">例：Guides / Sensors、质量左移</text>
+
+  <rect x="40" y="200" width="600" height="68" rx="12" fill="none" stroke="#6b7a8d" stroke-width="0.8" stroke-dasharray="5 4"/>
+  <text x="64" y="224" fill="#93a1b1" font-size="14" font-weight="600" font-family="sans-serif">以上都不是「设计模式」</text>
+  <text x="64" y="246" fill="#7d8b9c" font-size="13" font-family="sans-serif">设计模式有固定结构（类图、接口契约）；harness 没有。</text>
+  <text x="64" y="264" fill="#7d8b9c" font-size="13" font-family="sans-serif">论文实测：11 个生产 harness 互不相同，无一 import 通用 agent 框架。</text>
+</svg>
+<figcaption><b>图 1</b>　harness 一词的三个层次。<b>① 是它的本义</b>，②③ 都是围绕 ① 衍生出来的说法。三者都不是设计模式。</figcaption>
+</figure>
+
+<div class="tw">
+<table>
+<thead><tr><th>层次</th><th>是什么</th><th>判据</th></tr></thead>
+<tbody>
+<tr><td><b>① Harness</b><br>名词，可数</td><td>一套跑起来的<strong>运行时系统</strong></td><td>能不能"跑"起来。跑得起来的才叫 harness，跑不起来的只是设计文档</td></tr>
+<tr><td><b>② Harness Engineering</b><br>不可数</td><td>设计和维护 ① 的<strong>工程学科</strong></td><td>它是一套做事的方法，不是一套代码</td></tr>
+<tr><td><b>③ Harness 思想 / 视角</b></td><td>从"模型缺什么"倒推该补什么的<strong>视角</strong></td><td>它解释"为什么这么设计"，不产出可运行的东西</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="note">
+<span class="t">它明确不是「设计模式」</span>
+<p>设计模式的定义是"<em>可复用的代码结构解法</em>"——Factory、Observer 有类图、有接口契约，换个语言结构照样能搬。harness 一样都不占：</p>
+<ul>
+<li><b>没有标准接口。</b> 11 个生产 harness（Claude Code / Codex / Gemini CLI / Aider / OpenHands / Mini-SWE-Agent 等）的源码解剖结论是：它们<b>互不相同</b>，而且<b>没有任何一个 import 通用 agent 框架</b>，全是手写的异步循环<span class="pill">据 arXiv:2609.00006</span>。</li>
+<li><b>换模型基本不用改，换 harness 表现天差地别。</b> 同一个底层模型配上不同的 harness，用户体验到的行为主要由 harness 决定（见 1.3）。这说明它是<b>架构角色 / 系统层</b>，不是模式。</li>
+<li><b>模式可以套用，harness 只能长出来。</b> 它是被一次次真实失败逼出来的，不是一个可以照抄的骨架。</li>
+</ul>
+<p>它也<b>不是「纯思想」</b>：它受 token 成本、延迟、权限边界、进程崩溃、缓存命中率这些硬约束支配。思想不遵守物理定律，harness 遵守。</p>
+</div>
+
+<div class="key">
+<span class="t">实用判据</span>
+<p>拿到任何一个 agent 产品，把<b>模型那部分挖掉</b>，剩下的全部——循环、工具、上下文组装、状态存储、权限检查、错误恢复、日志——就是它的 harness。</p>
+<p>换句话说：<b>能跑起来的是 harness，跑不起来的只是设计文档。</b></p>
+</div>
 
 <p>Anthropic 在 Claude Code 的文档里写得很直白：SDK 就是"驱动 Claude Code 的 agent harness"。OpenAI 的 Codex 团队用同一套说法，明确把 "agent" 和 "harness" 当作同义词，都用来指代让 LLM 变得有用的那部分非模型基础设施。</p>
 
@@ -276,29 +333,35 @@ ol.refs li{margin:9px 0}
 
 <h3 id="s1-1">1.1 裸 LLM 是一颗没有内存、没有硬盘、没有 I/O 的 CPU</h3>
 
-<p>这个类比来自 Beren Millidge 在 2023 年 4 月写的文章《Scaffolded LLMs as natural language computers》。他在文中把硬件映射讲得很具体，原话是：</p>
+<p>这个类比来自 Beren Millidge 在 2023 年 4 月写的文章《Scaffolded LLMs as natural language computers》。他在文中把硬件映射讲得很具体，原话是（每段英文原文下方附中文翻译）：</p>
 
-<div class="cb"><div class="hd"><span class="fn">Millidge 原文（逐字引用）</span></div><pre><span class="c">// 关于整体架构</span>
+<div class="cb"><div class="hd"><span class="fn">Millidge 原文（逐字引用 · 附中译）</span></div><pre style="white-space:pre-wrap"><span class="c">// 关于整体架构</span>
 "What we have essentially done here is <span class="t2">reinvented the von-Neumann architecture</span>
  and, what is more, we have reinvented the general purpose computer."
+<span class="zh">→ 我们在这里实际做的事，是重新发明了冯·诺依曼架构；更进一步说，我们重新发明了通用计算机。</span>
 
 <span class="c">// CPU</span>
 "The LLM itself is clearly equivalent to the CPU. ... unlike the CPU, the units upon
  which it operates are tokens in the context window, not bits in registers."
+<span class="zh">→ LLM 本身显然等同于 CPU。……但与 CPU 不同，它操作的单位是上下文窗口里的 token，而不是寄存器里的比特。</span>
 
 <span class="c">// RAM</span>
 "The prompt and 'context' is directly equivalent to the RAM."
+<span class="zh">→ 提示词与「上下文」直接等同于 RAM。</span>
 
 <span class="c">// 磁盘</span>
 "...directly equivalent to the vector database memory of scaffolded LLMs."
+<span class="zh">→ ……直接等同于脚手架式 LLM 的向量数据库记忆。</span>
 
 <span class="c">// 设备驱动</span>
 "In digital computers, this occurs through 'drivers' ... For scaffolded LLMs,
  we have plugins and equivalent mechanisms."
+<span class="zh">→ 在数字计算机里，这通过「驱动程序」实现……对脚手架式 LLM 而言，对应物是插件与等效机制。</span>
 
 <span class="c">// 脚手架本身</span>
 "there is also the 'scaffolding' code which surrounds the LLM core. ...
- Such protocols are the <span class="t2">'programs'</span> that run on our natural language computer."</pre></div>
+ Such protocols are the <span class="t2">'programs'</span> that run on our natural language computer."
+<span class="zh">→ 此外还有围绕 LLM 核心的「脚手架」代码。……这些协议，就是运行在我们的自然语言计算机上的「程序」。</span></pre></div>
 
 <div class="warn">
 <span class="t">一处需要澄清的常见误引</span>
@@ -369,7 +432,7 @@ ol.refs li{margin:9px 0}
   <text x="452" y="328" fill="#4dabf7" font-size="14.5" font-weight="700" text-anchor="middle" font-family="sans-serif">Harness</text>
   <text x="452" y="348" fill="#7d9cbb" font-size="11.5" text-anchor="middle" font-family="sans-serif">编排 · 约束 · 反馈 · 恢复</text>
 </svg>
-<figcaption><b>图 1</b>　冯·诺依曼架构与 LLM Agent 的逐层同构。前四行的映射出自 Millidge 原文；最后一行"操作系统 ↔ Harness"是社区延伸（他的原话是 "programs"）。另外他说的"磁盘"对应的是<b>向量数据库</b>，"文件系统"是后续 agent 实践补上的对应物。</figcaption>
+<figcaption><b>图 2</b>　冯·诺依曼架构与 LLM Agent 的逐层同构。前四行的映射出自 Millidge 原文；最后一行"操作系统 ↔ Harness"是社区延伸（他的原话是 "programs"）。另外他说的"磁盘"对应的是<b>向量数据库</b>，"文件系统"是后续 agent 实践补上的对应物。</figcaption>
 </figure>
 
 <p>这个对应关系值得逐条说明为什么成立：</p>
@@ -410,9 +473,17 @@ ol.refs li{margin:9px 0}
 
 <p>这也解释了一个常见困惑：为什么"Agent"和"Harness"经常被当同义词用？因为 Agent 是<em>涌现出来的行为</em>（目标导向、会用工具、能自我纠错），harness 是<em>产生这种行为的机器</em>。谈行为时叫 Agent，谈实现时叫 Harness，指的是同一件事的两面。</p>
 
+<div class="note">
+<span class="t">别忘了它的范畴</span>
+<p>回到第 0 章那个分类：这里的 <b>Harness 是一套系统</b>——有代码、有进程、有配置、有失败模式，<b>关掉进程它就不存在了</b>。所以"我设计了一套 harness"这句话，最终必须落到能跑起来的代码上；只有一份架构图不算。</p>
+<p>它<b>不是设计模式</b>（没有类图与接口契约，11 个生产 harness 互不相同），也<b>不是纯思想</b>（它受 token 成本、延迟、权限、进程崩溃、缓存命中率这些硬约束支配）。这两个否定句值得记住——它们是读后面所有内容时的"防跑偏"锚点。</p>
+</div>
+
 <h3 id="s1-4">1.4 三层同心圆：Prompt ⊂ Context ⊂ Harness</h3>
 
 <p>围绕模型的工程实践，这几年经历了三次扩展。它们不是并列的三个东西，而是三个同心圆。</p>
+
+<p><b>先说清这张图的层次：</b>它讲的是<em>工程实践的扩张</em>——也就是第 0 章的 <b>② 层（学科）</b>，回答"哪些实践属于 harness 工程"。它<b>不</b>回答"harness 里有哪些模块"（那是 <b>① 层（实体）</b>的问题，见第 3 章的 12 个组件）。两个层次混着看，就会以为"harness = 上下文工程 + 一些约束"。</p>
 
 <figure>
 <svg viewBox="0 0 680 330" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Prompt、Context、Harness 三层同心圆关系">
@@ -433,7 +504,7 @@ ol.refs li{margin:9px 0}
   <text x="340" y="274" fill="#8a76ab" font-size="12" text-anchor="middle" font-family="sans-serif">权限边界 · 子 Agent 交接 · 上下文压缩 · 可观测性</text>
   <text x="340" y="308" fill="#5f7183" font-size="11.5" text-anchor="middle" font-family="sans-serif">每一层都包含内层，但解决的问题比内层大一个数量级</text>
 </svg>
-<figcaption><b>图 2</b>　三层同心圆。Prompt Engineering 只打磨指令；Context Engineering 管理模型看到什么；Harness Engineering 覆盖整个应用基础设施。</figcaption>
+<figcaption><b>图 3</b>　三层同心圆。Prompt Engineering 只打磨指令；Context Engineering 管理模型看到什么；Harness Engineering 覆盖整个应用基础设施。</figcaption>
 </figure>
 
 <div class="tw">
@@ -466,67 +537,55 @@ ol.refs li{margin:9px 0}
 <h3 id="s2-2">2.2 五个必然问题</h3>
 
 <figure>
-<svg viewBox="0 0 680 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="长周期任务的五个必然问题及其对应的 harness 机制">
-  <text x="340" y="24" fill="#93a1b1" font-size="13" font-weight="700" text-anchor="middle" font-family="sans-serif">任务变长 → 五个必然问题 → 对应机制</text>
+<svg viewBox="0 0 680 340" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="长周期任务的五个必然问题，以及每一个问题各自对应的 harness 对冲机制（一对一映射）">
+  <defs>
+    <marker id="ar7" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto">
+      <path d="M0,0 L7,3.2 L0,6.4 z" fill="#4a5a6c"/>
+    </marker>
+  </defs>
+
+  <text x="340" y="22" fill="#93a1b1" font-size="13" font-weight="700" text-anchor="middle" font-family="sans-serif">任务变长 → 五个必然问题 → 各自的对冲机制</text>
+  <text x="340" y="42" fill="#6b7a8d" font-size="11.5" text-anchor="middle" font-family="sans-serif">五个问题都源自模型的三个结构属性（无状态 · 无 I/O · 无自验），模型本身解决不了</text>
 
   <g font-family="sans-serif">
-    <!-- 行 1 -->
-    <rect x="24" y="46" width="196" height="40" rx="8" fill="#2a1f24" stroke="#f0655f" stroke-width="1.3"/>
-    <text x="122" y="64" fill="#f0655f" font-size="12.5" font-weight="650" text-anchor="middle">① 上下文膨胀与腐化</text>
-    <text x="122" y="79" fill="#9c7b7b" font-size="10.5" text-anchor="middle">关键信息被挤到中间就失效</text>
-
-    <rect x="242" y="46" width="196" height="40" rx="8" fill="#2a1f24" stroke="#f0655f" stroke-width="1.3"/>
-    <text x="340" y="64" fill="#f0655f" font-size="12.5" font-weight="650" text-anchor="middle">② 错误累积</text>
-    <text x="340" y="79" fill="#9c7b7b" font-size="10.5" text-anchor="middle">每步 99% → 十步只剩 90%</text>
-
-    <rect x="460" y="46" width="196" height="40" rx="8" fill="#2a1f24" stroke="#f0655f" stroke-width="1.3"/>
-    <text x="558" y="64" fill="#f0655f" font-size="12.5" font-weight="650" text-anchor="middle">③ 跨会话失忆</text>
-    <text x="558" y="79" fill="#9c7b7b" font-size="10.5" text-anchor="middle">新会话不知道上次做了什么</text>
-
-    <!-- 行 2 -->
-    <rect x="24" y="106" width="196" height="40" rx="8" fill="#2a1f24" stroke="#f0655f" stroke-width="1.3"/>
-    <text x="122" y="124" fill="#f0655f" font-size="12.5" font-weight="650" text-anchor="middle">④ 权限越界</text>
-    <text x="122" y="139" fill="#9c7b7b" font-size="10.5" text-anchor="middle">不可逆的副作用无法撤回</text>
-
-    <rect x="242" y="106" width="196" height="40" rx="8" fill="#2a1f24" stroke="#f0655f" stroke-width="1.3"/>
-    <text x="340" y="124" fill="#f0655f" font-size="12.5" font-weight="650" text-anchor="middle">⑤ 无法自验</text>
-    <text x="340" y="139" fill="#9c7b7b" font-size="10.5" text-anchor="middle">模型不知道自己错了</text>
-
-    <rect x="460" y="106" width="196" height="40" rx="8" fill="#1a222e" stroke="#232d3b" stroke-width="1.2"/>
-    <text x="558" y="130" fill="#6b7a8d" font-size="11.5" text-anchor="middle">（模型本身解决不了）</text>
-  </g>
-
-  <!-- 箭头 -->
-  <path d="M122,150 L122,168" stroke="#4a5a6c" stroke-width="1.4"/>
-  <path d="M340,150 L340,168" stroke="#4a5a6c" stroke-width="1.4"/>
-  <path d="M558,150 L558,168" stroke="#4a5a6c" stroke-width="1.4"/>
-  <path d="M122,168 L558,168" stroke="#4a5a6c" stroke-width="1.4"/>
-
-  <g font-family="sans-serif">
-    <rect x="24" y="182" width="196" height="46" rx="8" fill="#122b26" stroke="#2dd4a7" stroke-width="1.4"/>
-    <text x="122" y="201" fill="#2dd4a7" font-size="12.5" font-weight="650" text-anchor="middle">上下文压缩 + 记忆</text>
-    <text x="122" y="217" fill="#7fa89c" font-size="10.5" text-anchor="middle">压旧留新 · 关键实体保真</text>
-
-    <rect x="242" y="182" width="196" height="46" rx="8" fill="#122b26" stroke="#2dd4a7" stroke-width="1.4"/>
-    <text x="340" y="201" fill="#2dd4a7" font-size="12.5" font-weight="650" text-anchor="middle">验证回路 + 纠偏</text>
-    <text x="340" y="217" fill="#7fa89c" font-size="10.5" text-anchor="middle">测试 / lint / 截图 / 评审</text>
-
-    <rect x="460" y="182" width="196" height="46" rx="8" fill="#122b26" stroke="#2dd4a7" stroke-width="1.4"/>
-    <text x="558" y="201" fill="#2dd4a7" font-size="12.5" font-weight="650" text-anchor="middle">状态持久化 + 检查点</text>
-    <text x="558" y="217" fill="#7fa89c" font-size="10.5" text-anchor="middle">文件系统 / git / 进度文件</text>
-  </g>
-
-  <g font-family="sans-serif">
-    <rect x="24" y="244" width="196" height="46" rx="8" fill="#122b26" stroke="#2dd4a7" stroke-width="1.4"/>
-    <text x="122" y="263" fill="#2dd4a7" font-size="12.5" font-weight="650" text-anchor="middle">权限边界 + 沙箱</text>
-    <text x="122" y="279" fill="#7fa89c" font-size="10.5" text-anchor="middle">审批策略 · 前缀规则 · OS 沙箱</text>
-
-    <rect x="242" y="244" width="196" height="46" rx="8" fill="#122b26" stroke="#2dd4a7" stroke-width="1.4"/>
-    <text x="340" y="263" fill="#2dd4a7" font-size="12.5" font-weight="650" text-anchor="middle">工具输出截断 + 检索</text>
-    <text x="340" y="279" fill="#7fa89c" font-size="10.5" text-anchor="middle">不把整份文件塞进上下文</text>
+    <rect x="24" y="58" width="250" height="46" rx="8" fill="#2a1f24" stroke="#f0655f" stroke-width="1.3"/>
+    <text x="149" y="77" fill="#f0655f" font-size="12.5" font-weight="650" text-anchor="middle">① 上下文膨胀与腐化</text>
+    <text x="149" y="92" fill="#9c7b7b" font-size="10.5" text-anchor="middle">装不下 · 装得下但用不好</text>
+    <line x1="282" y1="81" x2="326" y2="81" stroke="#4a5a6c" stroke-width="1.4" marker-end="url(#ar7)"/>
+    <rect x="334" y="58" width="322" height="46" rx="8" fill="#122b26" stroke="#2dd4a7" stroke-width="1.4"/>
+    <text x="495" y="77" fill="#2dd4a7" font-size="12.5" font-weight="650" text-anchor="middle">上下文管理 + Prompt 构造</text>
+    <text x="495" y="92" fill="#7fa89c" font-size="10.5" text-anchor="middle">压缩 · 遮蔽 · 即时检索 · 顺序与优先级</text>
+    <rect x="24" y="112" width="250" height="46" rx="8" fill="#2a1f24" stroke="#f0655f" stroke-width="1.3"/>
+    <text x="149" y="131" fill="#f0655f" font-size="12.5" font-weight="650" text-anchor="middle">② 错误累积</text>
+    <text x="149" y="146" fill="#9c7b7b" font-size="10.5" text-anchor="middle">每步 99% → 十步只剩 90%</text>
+    <line x1="282" y1="135" x2="326" y2="135" stroke="#4a5a6c" stroke-width="1.4" marker-end="url(#ar7)"/>
+    <rect x="334" y="112" width="322" height="46" rx="8" fill="#122b26" stroke="#2dd4a7" stroke-width="1.4"/>
+    <text x="495" y="131" fill="#2dd4a7" font-size="12.5" font-weight="650" text-anchor="middle">输出解析 + 错误处理</text>
+    <text x="495" y="146" fill="#7fa89c" font-size="10.5" text-anchor="middle">结构化动作 · 分类重试 · 回喂</text>
+    <rect x="24" y="166" width="250" height="46" rx="8" fill="#2a1f24" stroke="#f0655f" stroke-width="1.3"/>
+    <text x="149" y="185" fill="#f0655f" font-size="12.5" font-weight="650" text-anchor="middle">③ 跨会话失忆</text>
+    <text x="149" y="200" fill="#9c7b7b" font-size="10.5" text-anchor="middle">新会话不知道上次做了什么</text>
+    <line x1="282" y1="189" x2="326" y2="189" stroke="#4a5a6c" stroke-width="1.4" marker-end="url(#ar7)"/>
+    <rect x="334" y="166" width="322" height="46" rx="8" fill="#122b26" stroke="#2dd4a7" stroke-width="1.4"/>
+    <text x="495" y="185" fill="#2dd4a7" font-size="12.5" font-weight="650" text-anchor="middle">记忆 + 状态管理</text>
+    <text x="495" y="200" fill="#7fa89c" font-size="10.5" text-anchor="middle">跨会话知识 · 检查点 · 恢复回放</text>
+    <rect x="24" y="220" width="250" height="46" rx="8" fill="#2a1f24" stroke="#f0655f" stroke-width="1.3"/>
+    <text x="149" y="239" fill="#f0655f" font-size="12.5" font-weight="650" text-anchor="middle">④ 权限越界</text>
+    <text x="149" y="254" fill="#9c7b7b" font-size="10.5" text-anchor="middle">不可逆副作用 · 提示注入</text>
+    <line x1="282" y1="243" x2="326" y2="243" stroke="#4a5a6c" stroke-width="1.4" marker-end="url(#ar7)"/>
+    <rect x="334" y="220" width="322" height="46" rx="8" fill="#122b26" stroke="#2dd4a7" stroke-width="1.4"/>
+    <text x="495" y="239" fill="#2dd4a7" font-size="12.5" font-weight="650" text-anchor="middle">工具 + 护栏与安全</text>
+    <text x="495" y="254" fill="#7fa89c" font-size="10.5" text-anchor="middle">schema 约束 · 输入输出工具三层拦截</text>
+    <rect x="24" y="274" width="250" height="46" rx="8" fill="#2a1f24" stroke="#f0655f" stroke-width="1.3"/>
+    <text x="149" y="293" fill="#f0655f" font-size="12.5" font-weight="650" text-anchor="middle">⑤ 无法自验</text>
+    <text x="149" y="308" fill="#9c7b7b" font-size="10.5" text-anchor="middle">模型不知道自己错了</text>
+    <line x1="282" y1="297" x2="326" y2="297" stroke="#4a5a6c" stroke-width="1.4" marker-end="url(#ar7)"/>
+    <rect x="334" y="274" width="322" height="46" rx="8" fill="#122b26" stroke="#2dd4a7" stroke-width="1.4"/>
+    <text x="495" y="293" fill="#2dd4a7" font-size="12.5" font-weight="650" text-anchor="middle">验证回路</text>
+    <text x="495" y="308" fill="#7fa89c" font-size="10.5" text-anchor="middle">测试 · lint · 截图 · LLM-as-judge</text>
   </g>
 </svg>
-<figcaption><b>图 3</b>　长周期任务必然遇到的五个问题，以及 harness 用来对冲它们的机制。第 3 章的 12 个组件，全部可以回溯到这张图。</figcaption>
+<figcaption><b>图 4</b>　长周期任务必然遇到的五个问题，以及每一个问题各自对应的对冲机制——<b>一一对应，没有交叉</b>。五个问题都源自模型"无状态、无 I/O、无自验"这三个结构属性，模型本身解决不了，所以必须由 harness 在外面补。第 3 章的 12 个组件都能挂回这五个问题，完整映射见 <a href="#s3-1">3.1 节</a>。</figcaption>
 </figure>
 
 <h4>① 上下文膨胀与腐化</h4>
@@ -536,6 +595,10 @@ ol.refs li{margin:9px 0}
 <p><b>装不下。</b> 一个复杂重构任务，光读代码就可能产生几十万 token 的工具输出，直接超过窗口上限，API 报错。</p>
 
 <p><b>装得下但用不好。</b> 这是更隐蔽的问题。斯坦福的 "Lost in the Middle" 研究发现，当关键信息落在上下文窗口的<em>中间位置</em>时，模型的检索和推理能力会明显下降。Chroma 的后续研究把这种现象称为 <b>context rot（上下文腐化）</b>，测出的性能下降幅度超过 30%。也就是说，即使有百万 token 的窗口，随着上下文变长，指令遵循能力也会退化。</p>
+
+<p>为什么会这样？原因不在"模型没看到"，而在<b>注意力分布本身就不均匀</b>。一是<b>训练语料的先验</b>：真实文本里需要被记住的信息大多出现在开头（标题、摘要、主题句）和结尾（结论、总结），中间段落多是展开与过渡，模型由此学出"中间可以略读"的习惯。二是<b>注意力的位置不对称</b>：序列开头会吸收异常大的注意力（即 attention sink 现象——那几个 token 即使语义无关也不能删，删了性能反而崩），末尾 token 则因"刚被看过"、KV 衰减最少，中间两头都不占。三是<b>位置编码的衰减</b>：相对位置编码让注意力随距离自然衰减，而中间内容离序列开头和当前生成位置都远。</p>
+
+<p>论文还排除了几个更朴素的解释：不是"上下文太长"（控制总长度后 U 形依旧），不是"模型不知道答案在哪"（显式提示答案位置也没用），也不是"检索环节出错"（实验直接控制文档位置，绕过了检索）。可见它是<b>结构性</b>的——换一个更擅长长上下文的模型，U 形只会变浅，不会消失。</p>
 
 <p>所以"上下文越长越好"是个错觉。Anthropic 在上下文工程指南里把目标讲得很清楚：<em>找到尽可能小、但信号密度最高的一组 token，让达成期望结果的概率最大化。</em></p>
 
@@ -658,7 +721,7 @@ P(整条链路成功) = 0.99^100 ≈ <span class="n">0.366</span>     <span clas
     <text x="144" y="340" fill="#6b7a8d" font-size="10.5" text-anchor="end">先看结果，再决定是否放行</text>
   </g>
 </svg>
-<figcaption><b>图 4</b>　受控自治循环的八个步骤。关键在于第 6 步：<b>不是模型说什么都算数</b>，而是由 harness 判断结果是否通过校验、是否越权，再决定放行还是纠偏。</figcaption>
+<figcaption><b>图 5</b>　受控自治循环的八个步骤。关键在于第 6 步：<b>不是模型说什么都算数</b>，而是由 harness 判断结果是否通过校验、是否越权，再决定放行还是纠偏。</figcaption>
 </figure>
 
 <h3 id="s2-4">2.4 本质：推理与控制的解耦</h3>
@@ -703,7 +766,7 @@ P(整条链路成功) = 0.99^100 ≈ <span class="n">0.366</span>     <span clas
 <tr><td>1</td><td><b>编排循环</b></td><td>全部（这是骨架）</td><td>Thought-Action-Observation 的 while 循环</td></tr>
 <tr><td>2</td><td><b>工具</b></td><td>④ 权限越界</td><td>模型的手，附带 schema 与沙箱执行</td></tr>
 <tr><td>3</td><td><b>记忆</b></td><td>③ 跨会话失忆</td><td>跨会话持久化的知识</td></tr>
-<tr><td>4</td><td><b>上下文管理</b></td><td>① 上下文膨胀与腐化</td><td>压缩、遮蔽、按需检索、子 Agent 委派</td></tr>
+<tr><td>4</td><td><b>上下文管理</b></td><td>① 上下文膨胀与腐化</td><td>压缩、遮蔽、即时检索、结构化记笔记、子 Agent 委派</td></tr>
 <tr><td>5</td><td><b>Prompt 构造</b></td><td>① 腐化（顺序与优先级）</td><td>决定每一轮模型真正看到什么、按什么顺序</td></tr>
 <tr><td>6</td><td><b>输出解析</b></td><td>② 错误累积</td><td>把模型输出变成结构化动作</td></tr>
 <tr><td>7</td><td><b>状态管理</b></td><td>③ 失忆</td><td>状态建模、检查点、恢复、回放</td></tr>
@@ -716,31 +779,239 @@ P(整条链路成功) = 0.99^100 ≈ <span class="n">0.366</span>     <span clas
 </table>
 </div>
 
+<p>把这张表画出来就是下图——左列是第 2 章的五个必然问题，右列是承载对应机制的具体组件。<b>问题的个数和组件的个数并不相等</b>：一个问题往往要拆给两三个组件去扛，这是理解后面 12 个组件的关键。</p>
+
+<figure>
+<svg viewBox="0 0 680 400" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="五个必然问题与 12 个组件的映射：每一行是一个问题及其对冲机制，右侧方块是承载该机制的具体组件，最下方两个组件贯穿全程">
+  <defs>
+    <marker id="ar31" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto">
+      <path d="M0,0 L7,3.2 L0,6.4 z" fill="#4a5a6c"/>
+    </marker>
+  </defs>
+
+  <text x="340" y="22" fill="#93a1b1" font-size="13" font-weight="700" text-anchor="middle" font-family="sans-serif">五个必然问题 → 各自的对冲机制 → 12 个组件的落点</text>
+  <text x="340" y="42" fill="#6b7a8d" font-size="11.5" text-anchor="middle" font-family="sans-serif">每一行是一个必然问题，右侧方块是承载该机制的具体组件；方块里的数字与 3.1 的组件表一致</text>
+
+  <g font-family="sans-serif">
+    <!-- ① 上下文膨胀与腐化 -->
+    <rect x="24" y="62" width="210" height="40" rx="8" fill="#2a1f24" stroke="#f0655f" stroke-width="1.3"/>
+    <text x="40" y="79" fill="#f0655f" font-size="12.5" font-weight="650">① 上下文膨胀与腐化</text>
+    <text x="40" y="94" fill="#7fa89c" font-size="10.5">→ 上下文管理 + Prompt 构造</text>
+    <line x1="238" y1="82" x2="256" y2="82" stroke="#4a5a6c" stroke-width="1.4" marker-end="url(#ar31)"/>
+    <rect x="262" y="69" width="122" height="26" rx="6" fill="#122b26" stroke="#2dd4a7" stroke-width="1.2"/>
+    <text x="276" y="86" fill="#2dd4a7" font-size="11" font-weight="700">4</text>
+    <text x="294" y="86" fill="#cfe3dc" font-size="11.5">上下文管理</text>
+    <rect x="398" y="69" width="122" height="26" rx="6" fill="#122b26" stroke="#2dd4a7" stroke-width="1.2"/>
+    <text x="412" y="86" fill="#2dd4a7" font-size="11" font-weight="700">5</text>
+    <text x="430" y="86" fill="#cfe3dc" font-size="11.5">Prompt 构造</text>
+    <rect x="534" y="69" width="122" height="26" rx="6" fill="#122b26" stroke="#2dd4a7" stroke-width="1.2"/>
+    <text x="548" y="86" fill="#2dd4a7" font-size="11" font-weight="700">11</text>
+    <text x="566" y="86" fill="#cfe3dc" font-size="11.5">子 Agent 编排</text>
+
+    <!-- ② 错误累积 -->
+    <rect x="24" y="108" width="210" height="40" rx="8" fill="#2a1f24" stroke="#f0655f" stroke-width="1.3"/>
+    <text x="40" y="125" fill="#f0655f" font-size="12.5" font-weight="650">② 错误累积</text>
+    <text x="40" y="140" fill="#7fa89c" font-size="10.5">→ 输出解析 + 错误处理</text>
+    <line x1="238" y1="128" x2="256" y2="128" stroke="#4a5a6c" stroke-width="1.4" marker-end="url(#ar31)"/>
+    <rect x="262" y="115" width="122" height="26" rx="6" fill="#122b26" stroke="#2dd4a7" stroke-width="1.2"/>
+    <text x="276" y="132" fill="#2dd4a7" font-size="11" font-weight="700">6</text>
+    <text x="294" y="132" fill="#cfe3dc" font-size="11.5">输出解析</text>
+    <rect x="398" y="115" width="122" height="26" rx="6" fill="#122b26" stroke="#2dd4a7" stroke-width="1.2"/>
+    <text x="412" y="132" fill="#2dd4a7" font-size="11" font-weight="700">8</text>
+    <text x="430" y="132" fill="#cfe3dc" font-size="11.5">错误处理</text>
+
+    <!-- ③ 跨会话失忆 -->
+    <rect x="24" y="154" width="210" height="40" rx="8" fill="#2a1f24" stroke="#f0655f" stroke-width="1.3"/>
+    <text x="40" y="171" fill="#f0655f" font-size="12.5" font-weight="650">③ 跨会话失忆</text>
+    <text x="40" y="186" fill="#7fa89c" font-size="10.5">→ 记忆 + 状态管理</text>
+    <line x1="238" y1="174" x2="256" y2="174" stroke="#4a5a6c" stroke-width="1.4" marker-end="url(#ar31)"/>
+    <rect x="262" y="161" width="122" height="26" rx="6" fill="#122b26" stroke="#2dd4a7" stroke-width="1.2"/>
+    <text x="276" y="178" fill="#2dd4a7" font-size="11" font-weight="700">3</text>
+    <text x="294" y="178" fill="#cfe3dc" font-size="11.5">记忆</text>
+    <rect x="398" y="161" width="122" height="26" rx="6" fill="#122b26" stroke="#2dd4a7" stroke-width="1.2"/>
+    <text x="412" y="178" fill="#2dd4a7" font-size="11" font-weight="700">7</text>
+    <text x="430" y="178" fill="#cfe3dc" font-size="11.5">状态管理</text>
+    <rect x="534" y="161" width="122" height="26" rx="6" fill="#122b26" stroke="#2dd4a7" stroke-width="1.2"/>
+    <text x="548" y="178" fill="#2dd4a7" font-size="11" font-weight="700">11</text>
+    <text x="566" y="178" fill="#cfe3dc" font-size="11.5">子 Agent 编排</text>
+
+    <!-- ④ 权限越界 -->
+    <rect x="24" y="200" width="210" height="40" rx="8" fill="#2a1f24" stroke="#f0655f" stroke-width="1.3"/>
+    <text x="40" y="217" fill="#f0655f" font-size="12.5" font-weight="650">④ 权限越界</text>
+    <text x="40" y="232" fill="#7fa89c" font-size="10.5">→ 工具 + 护栏与安全</text>
+    <line x1="238" y1="220" x2="256" y2="220" stroke="#4a5a6c" stroke-width="1.4" marker-end="url(#ar31)"/>
+    <rect x="262" y="207" width="122" height="26" rx="6" fill="#122b26" stroke="#2dd4a7" stroke-width="1.2"/>
+    <text x="276" y="224" fill="#2dd4a7" font-size="11" font-weight="700">2</text>
+    <text x="294" y="224" fill="#cfe3dc" font-size="11.5">工具</text>
+    <rect x="398" y="207" width="122" height="26" rx="6" fill="#122b26" stroke="#2dd4a7" stroke-width="1.2"/>
+    <text x="412" y="224" fill="#2dd4a7" font-size="11" font-weight="700">9</text>
+    <text x="430" y="224" fill="#cfe3dc" font-size="11.5">护栏与安全</text>
+
+    <!-- ⑤ 无法自验 -->
+    <rect x="24" y="246" width="210" height="40" rx="8" fill="#2a1f24" stroke="#f0655f" stroke-width="1.3"/>
+    <text x="40" y="263" fill="#f0655f" font-size="12.5" font-weight="650">⑤ 无法自验</text>
+    <text x="40" y="278" fill="#7fa89c" font-size="10.5">→ 验证回路</text>
+    <line x1="238" y1="266" x2="256" y2="266" stroke="#4a5a6c" stroke-width="1.4" marker-end="url(#ar31)"/>
+    <rect x="262" y="253" width="122" height="26" rx="6" fill="#122b26" stroke="#2dd4a7" stroke-width="1.2"/>
+    <text x="276" y="270" fill="#2dd4a7" font-size="11" font-weight="700">10</text>
+    <text x="294" y="270" fill="#cfe3dc" font-size="11.5">验证回路</text>
+
+    <line x1="24" y1="300" x2="656" y2="300" stroke="#2a3644" stroke-width="1"/>
+
+    <!-- 贯穿全程 -->
+    <rect x="24" y="312" width="210" height="40" rx="8" fill="#2a2320" stroke="#e8a34b" stroke-width="1.3"/>
+    <text x="40" y="329" fill="#e8a34b" font-size="12.5" font-weight="650">贯穿全程：骨架与横切</text>
+    <text x="40" y="344" fill="#b09a7c" font-size="10.5">不属于任何单一问题</text>
+    <line x1="238" y1="332" x2="256" y2="332" stroke="#4a5a6c" stroke-width="1.4" marker-end="url(#ar31)"/>
+    <rect x="262" y="319" width="190" height="26" rx="6" fill="#2a2320" stroke="#e8a34b" stroke-width="1.2"/>
+    <text x="276" y="336" fill="#e8a34b" font-size="11" font-weight="700">1</text>
+    <text x="294" y="336" fill="#f0dcc0" font-size="11.5">编排循环 · 骨架</text>
+    <rect x="466" y="319" width="190" height="26" rx="6" fill="#2a2320" stroke="#e8a34b" stroke-width="1.2"/>
+    <text x="480" y="336" fill="#e8a34b" font-size="11" font-weight="700">12</text>
+    <text x="498" y="336" fill="#f0dcc0" font-size="11.5">可观测性 · 横切</text>
+
+    <!-- 图例 -->
+    <rect x="26" y="371" width="10" height="10" rx="2" fill="#2a1f24" stroke="#f0655f" stroke-width="1.2"/>
+    <text x="42" y="380" fill="#8b98a8" font-size="10.5">必然问题（源自模型结构属性）</text>
+    <rect x="252" y="371" width="10" height="10" rx="2" fill="#122b26" stroke="#2dd4a7" stroke-width="1.2"/>
+    <text x="268" y="380" fill="#8b98a8" font-size="10.5">harness 组件（对冲手段）</text>
+    <rect x="436" y="371" width="10" height="10" rx="2" fill="#2a2320" stroke="#e8a34b" stroke-width="1.2"/>
+    <text x="452" y="380" fill="#8b98a8" font-size="10.5">贯穿全程，不挂单一问题</text>
+  </g>
+</svg>
+<figcaption><b>图 6</b>　把 <a href="#s2-2">2.2 节</a>的五个必然问题与本节 12 个组件叠成一张图：<b>每一行 = 一个问题 → 一种对冲机制 → 承载它的组件</b>，方块里的数字与上表编号一致。三点值得注意：① 上下文腐化、③ 跨会话失忆各由三个组件分担，而 ⑤ 无法自验只对应一个——验证回路是薄、但不能省的一环；组件 11（子 Agent 编排）同时挂在 ① 与 ③ 上，是唯一跨两行的组件；组件 1（编排循环）是骨架、组件 12（可观测性）是横切，两者不挂任何单一问题。图 4 的五个机制框，在这里被展开成了 12 个具体组件。</figcaption>
+</figure>
+
+<h4>为什么五个问题会变成十二个组件</h4>
+
+<p>图 6 里"一个问题 → 两三个组件"不是排版凑数。拆分的判据有三条，<b>先记判据，就不必背清单</b>——12 这个数字，本来就是这三条判据作用在五个问题上的结果。</p>
+
+<div class="tw">
+<table>
+<thead><tr><th>判据</th><th>含义</th><th>在 12 个组件上的落地</th></tr></thead>
+<tbody>
+<tr>
+<td><b>一 · 一个问题的失效模式不止一种</b></td>
+<td>同一顶帽子底下可能有两种完全不同的坏法，而一种机制只治得住一种。</td>
+<td>① 腐化分"装不下"（压缩 · 遮蔽 · 即时检索 · 结构化记笔记 · 子 Agent 委派 → 组件 4）与"装得下但用不好"（顺序与优先级 → 组件 5）；③ 失忆分"跨会话的知识"（组件 3 记忆）与"单次任务的状态"（组件 7 状态管理）——只做其中一个，就会出现"记得住项目约定，却恢复不了半成品"。</td>
+</tr>
+<tr>
+<td><b>二 · 机制要按「决定 / 执行 / 观测」切开</b></td>
+<td>决定做什么、真的去做、事后知道做了什么，是三种性质不同的职责，混在一个模块里就没法单独替换。</td>
+<td>权限上最清楚：组件 2 工具管"能做什么"，组件 9 护栏管"允不允许做"——<a href="#s2-2">2.2 节</a> Anthropic 那条"权限执行与模型推理解耦"就落在这里。上下文上同样：组件 4 管"留下什么"，组件 5 管"看到什么、按什么顺序"。验证上更绝对：组件 10 必须独立于生成侧——<b>验证者不能是被验证者</b>，所以它不会和组件 6 / 8 合并。</td>
+</tr>
+<tr>
+<td><b>三 · 横切关注点不挂任何单一问题</b></td>
+<td>有些职责服务于全部问题，因此不属于任何一行。</td>
+<td>组件 1 编排循环是骨架、组件 12 可观测性是横切，两者不占五行中的任何一行；组件 11 子 Agent 编排同时服务 ① 与 ③——一次调用买到两件事（上下文防火墙 + 跨上下文接力）。</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<p>三条判据给出的是"<b>必需</b>"，不是"<b>够数</b>"。它们解释了为什么组件必须多于一个，但解释不了为什么停在 12——真正把数量往上推的是<b>生产化纵深</b>：安全、合规、审计、成本、恢复这些要求，并不来自模型的三个结构属性，而来自"要长期跑在真实环境里"这件事本身。arXiv:2609.00006 对 11 个生产 harness 的源码解剖给出的结论最直白：<em>生产级复杂度是被安全性、用户体验和传输层需求驱动的，而不是被任务完成能力驱动的。</em><span class="pill">据 arXiv:2609.00006</span></p>
+
+<p>所以 8 到 15 这个浮动区间里，差的往往就是这些"非能力"组件——按需加、按环境加，不按模型能力加。第 10 章的 8 个子节，正是这条逻辑的展开。</p>
+
+<div class="note">
+<span class="t">这三条判据也可以反过来当体检表</span>
+<p>如果你的 harness 里某个组件<b>既不对应任何单一失效模式、又不构成职责分离的一环、也不服务全部问题</b>，那它很可能是拍脑袋加的层——9.1 节里那条"越厚越安全"的误区，就是这么来的。</p>
+</div>
+
 <h3 id="s3-2">3.2 逐个拆解</h3>
+
+<p>下面逐个拆解。每个组件都先交代<b>它负责什么、对冲哪个必然问题</b>，再讲具体实现——实现可以换（换模型、换框架都会变），但它存在的理由不会变。</p>
 
 <h4>组件 1 · 编排循环</h4>
 
 <p>这是 Agent 的心跳。典型形态就是 ReAct：组装 prompt → 调用模型 → 解析输出 → 执行工具 → 把结果喂回模型 → 循环，直到任务完成。</p>
 
+<figure>
+<svg viewBox="0 0 680 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Agent Loop 的完整回路：组装 prompt、调用模型、解析输出、执行工具、结果回灌五步首尾相接">
+  <defs>
+    <marker id="arL1" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto">
+      <path d="M0,0 L7,3.2 L0,6.4 z" fill="#4a5a6c"/>
+    </marker>
+    <marker id="arL1g" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto">
+      <path d="M0,0 L7,3.2 L0,6.4 z" fill="#2dd4a7"/>
+    </marker>
+  </defs>
+
+  <!-- 唯一出口：终止 -->
+  <rect x="150" y="6" width="280" height="42" rx="8" fill="#122b26" stroke="#2dd4a7" stroke-width="1.4"/>
+  <text x="290" y="24" fill="#2dd4a7" font-size="12" font-weight="700" text-anchor="middle" font-family="sans-serif">终止：跳出循环</text>
+  <text x="290" y="40" fill="#a8d8c8" font-size="10.5" text-anchor="middle" font-family="sans-serif">最终答案 / 超最大轮次 / 预算耗尽 / 护栏触发</text>
+  <line x1="290" y1="98" x2="290" y2="52" stroke="#2dd4a7" stroke-width="1.4" marker-end="url(#arL1g)"/>
+
+  <!-- 循环体 -->
+  <rect x="17" y="62" width="646" height="224" rx="12" fill="#141c26" stroke="#3a4a5e" stroke-dasharray="6 5"/>
+  <text x="34" y="82" fill="#6b7a8d" font-size="11" font-family="monospace">while True</text>
+
+  <!-- 五步 -->
+  <rect x="26" y="98" width="100" height="84" rx="9" fill="#1b2532" stroke="#3a4a5e"/>
+  <text x="76" y="130" fill="#dfe6ee" font-size="13" font-weight="650" text-anchor="middle" font-family="sans-serif">组装 prompt</text>
+  <text x="76" y="152" fill="#7d8b9c" font-size="10.5" text-anchor="middle" font-family="sans-serif">决定本轮上下文</text>
+
+  <rect x="158" y="98" width="100" height="84" rx="9" fill="#1b2532" stroke="#3a4a5e"/>
+  <text x="208" y="130" fill="#dfe6ee" font-size="13" font-weight="650" text-anchor="middle" font-family="sans-serif">调用模型</text>
+  <text x="208" y="152" fill="#7d8b9c" font-size="10.5" text-anchor="middle" font-family="sans-serif">无状态推理</text>
+
+  <rect x="290" y="98" width="100" height="84" rx="9" fill="#1b2532" stroke="#3a4a5e"/>
+  <text x="340" y="130" fill="#dfe6ee" font-size="13" font-weight="650" text-anchor="middle" font-family="sans-serif">解析输出</text>
+  <text x="340" y="152" fill="#7d8b9c" font-size="10.5" text-anchor="middle" font-family="sans-serif">结构化动作</text>
+
+  <rect x="422" y="98" width="100" height="84" rx="9" fill="#2a2320" stroke="#e8a34b" stroke-width="1.4"/>
+  <text x="472" y="130" fill="#f0dcc0" font-size="13" font-weight="650" text-anchor="middle" font-family="sans-serif">执行工具</text>
+  <text x="472" y="152" fill="#c9a97a" font-size="10.5" text-anchor="middle" font-family="sans-serif">校验后执行</text>
+
+  <rect x="554" y="98" width="100" height="84" rx="9" fill="#1b2532" stroke="#3a4a5e"/>
+  <text x="604" y="130" fill="#dfe6ee" font-size="13" font-weight="650" text-anchor="middle" font-family="sans-serif">结果回灌</text>
+  <text x="604" y="152" fill="#7d8b9c" font-size="10.5" text-anchor="middle" font-family="sans-serif">更新 state</text>
+
+  <!-- 步与步之间 -->
+  <g stroke="#4a5a6c" stroke-width="1.4" marker-end="url(#arL1)">
+    <line x1="128" y1="140" x2="156" y2="140"/>
+    <line x1="260" y1="140" x2="288" y2="140"/>
+    <line x1="392" y1="140" x2="420" y2="140"/>
+    <line x1="524" y1="140" x2="552" y2="140"/>
+  </g>
+
+  <!-- 回环：这就是「循环」本身 -->
+  <path d="M604,182 V246 H76 V184" fill="none" stroke="#2dd4a7" stroke-width="1.6" marker-end="url(#arL1g)"/>
+  <text x="340" y="238" fill="#2dd4a7" font-size="11" text-anchor="middle" font-family="sans-serif">把 observation 追加进上下文 → 下一轮重新组装 prompt</text>
+</svg>
+<figcaption><b>图 7</b>　Agent Loop 的完整回路：五个步骤首尾相接，“结果回灌”把工具输出变成 observation 送回上下文，循环由此自持；唯一的出口是上方那条绿色分支。循环体本身只有十几行代码，真正复杂的是它管理的所有东西——上下文、工具、状态、错误、安全、终止，各组件的落位见 <a href="#s3-3">3.3 节</a>。</figcaption>
+</figure>
+
 <p>表面看它只是一个 while 循环。但真正复杂的部分不在循环本身，而在循环<em>管理的所有东西</em>：上下文、工具、状态、错误、安全和终止条件。</p>
 
 <div class="cb"><div class="hd"><span class="fn">编排循环的最小形态</span></div><pre><span class="k">while</span> <span class="k">True</span>:
-    prompt  = assemble_context(state)          <span class="c"># 组件 5</span>
-    output  = model(prompt, tools)             <span class="c"># 模型</span>
-    action  = parse(output)                    <span class="c"># 组件 6</span>
+    <span class="c"># 组件 5 · Prompt 构造：模型是无状态的，每一轮都要重新装配"它这一轮能看到的全部输入"</span>
+    prompt  = assemble_context(state)
+    <span class="c"># 模型本身（不属于 12 个组件）：整个循环里唯一不能由 harness 提供的一行</span>
+    output  = model(prompt, tools)
+    <span class="c"># 组件 6 · 输出解析：把概率性文本变成可安全消费的结构化动作，失败时产出可回喂的报错</span>
+    action  = parse(output)
+    <span class="c"># 终止判断：唯一的正常出口；另有最大轮次 / 预算耗尽 / 护栏触发 / 用户中断</span>
     <span class="k">if</span> action.is_final: <span class="k">break</span>
-    verdict = policy.check(action)             <span class="c"># 组件 9</span>
-    result  = execute(action) <span class="k">if</span> verdict.ok <span class="k">else</span> verdict.denial   <span class="c"># 组件 2</span>
-    state   = update(state, action, result)    <span class="c"># 组件 7</span>
-    <span class="k">if</span> should_compact(state): state = compact(state)   <span class="c"># 组件 4</span></pre></div>
+    <span class="c"># 组件 9 · 护栏与安全：独立于模型——模型可以提出请求，但不能批准自己</span>
+    verdict = policy.check(action)
+    <span class="c"># 组件 2 · 工具：真的执行，不让模型"假装已执行"；被拒绝也是一次合法的观察结果</span>
+    result  = execute(action) <span class="k">if</span> verdict.ok <span class="k">else</span> verdict.denial
+    <span class="c"># 组件 7 · 状态管理：检查点落盘——崩溃后可恢复，也是跨上下文窗口接力的前提</span>
+    state   = update(state, action, result)
+    <span class="c"># 组件 4 · 上下文管理：窗口将满时压缩旧内容——保信息密度，而不是保长度</span>
+    <span class="k">if</span> should_compact(state): state = compact(state)
+    <span class="c"># 这九行只覆盖 12 个组件中的 7 个（① 编排循环即 while 本身）。</span>
+    <span class="c"># ③ 记忆 / ⑧ 错误处理 / ⑩ 验证回路 / ⑪ 子 Agent 编排 / ⑫ 可观测性 按需触发，落位见图 13。</span></pre></div>
 
 <p>终止条件是分层的，任何一层满足都该停下来：模型生成了不含工具调用的响应、超过最大轮次、token 预算耗尽、护栏触发、用户中断、安全拒答。</p>
 
 <h4>组件 2 · 工具</h4>
 
-<p>工具以 schema 的形式暴露给模型（名称、描述、参数类型），让模型知道自己能用什么。工具层负责注册、schema 校验、参数抽取、沙箱执行、结果捕获，并把结果格式化成模型能读懂的观察结果。</p>
+<p>工具以 schema 的形式暴露给模型（工具的 <code>name</code>、<code>description</code> 与 <code>parameters</code>），让模型知道自己能用什么。工具层负责注册、schema 校验、参数抽取、沙箱执行、结果捕获，并把结果格式化成模型能读懂的观察结果。</p>
 
-<p>据公开资料，Claude Code 的工具大致分为六类：文件操作、搜索、执行、网页访问、代码智能、子 agent 生成<span class="pill">二手来源</span>；OpenAI 的 Agents SDK 支持 function tools、托管工具（WebSearch / CodeInterpreter / FileSearch）以及 MCP server tools。</p>
+<p>据公开资料，Claude Code 的工具大致分为六类：文件操作、搜索、执行、网页访问、代码智能、子 Agent 生成<span class="pill">二手来源</span>；OpenAI 的 Agents SDK 支持 function tools、托管工具（WebSearch / CodeInterpreter / FileSearch）以及 MCP server tools。</p>
 
 <div class="warn">
 <span class="t">工具越多，性能往往越差</span>
@@ -757,11 +1028,97 @@ P(整条链路成功) = 0.99^100 ≈ <span class="n">0.366</span>     <span clas
 <li><b>长期记忆</b>：跨会话持久化。Anthropic 用项目里的 <code>CLAUDE.md</code> 和自动生成的 <code>MEMORY.md</code>；LangGraph 用按命名空间组织的 JSON Stores；OpenAI 支持由 SQLite 或 Redis 承载的 Sessions。</li>
 </ul>
 
+<figure>
+<svg viewBox="0 0 680 212" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="记忆的三个时间尺度：单轮对话由组件 4 管、一次任务由组件 7 管、跨会话由组件 3 管">
+  <defs>
+    <marker id="arMEM" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto">
+      <path d="M0,0 L7,3.2 L0,6.4 z" fill="#6b7a8d"/>
+    </marker>
+  </defs>
+  <text x="340" y="22" fill="#93a1b1" font-size="13" font-weight="700" text-anchor="middle" font-family="sans-serif">记忆的三个时间尺度</text>
+  <text x="340" y="42" fill="#6b7a8d" font-size="11.5" text-anchor="middle" font-family="sans-serif">同一个"失忆"问题，在不同尺度上是三件不同的事，由三个组件分别负责</text>
+
+  <line x1="40" y1="64" x2="632" y2="64" stroke="#4a5a6c" stroke-width="1.2" marker-end="url(#arMEM)"/>
+  <text x="340" y="58" fill="#6b7a8d" font-size="11" text-anchor="middle" font-family="sans-serif">时间尺度递增</text>
+
+  <rect x="40" y="76" width="190" height="116" rx="10" fill="#1b2532" stroke="#3a4a5e"/>
+  <text x="135" y="98" fill="#dfe6ee" font-size="13" font-weight="700" text-anchor="middle" font-family="sans-serif">单轮对话</text>
+  <text x="135" y="122" fill="#7d8b9c" font-size="11.5" text-anchor="middle" font-family="sans-serif">上下文窗口</text>
+  <text x="135" y="146" fill="#7d8b9c" font-size="11.5" text-anchor="middle" font-family="sans-serif">组件 4 · 上下文管理</text>
+  <text x="135" y="170" fill="#6b7a8d" font-size="11" text-anchor="middle" font-family="sans-serif">涨满 → 压缩 / 遮蔽 / 检索</text>
+
+  <rect x="245" y="76" width="190" height="116" rx="10" fill="#1d2b3d" stroke="#4dabf7"/>
+  <text x="340" y="98" fill="#dfe6ee" font-size="13" font-weight="700" text-anchor="middle" font-family="sans-serif">一次任务</text>
+  <text x="340" y="122" fill="#7d9cbb" font-size="11.5" text-anchor="middle" font-family="sans-serif">状态 + 检查点</text>
+  <text x="340" y="146" fill="#7d9cbb" font-size="11.5" text-anchor="middle" font-family="sans-serif">组件 7 · 状态管理</text>
+  <text x="340" y="170" fill="#6b87a5" font-size="11" text-anchor="middle" font-family="sans-serif">进程崩溃 → 从检查点恢复</text>
+
+  <rect x="450" y="76" width="190" height="116" rx="10" fill="#122b26" stroke="#2dd4a7"/>
+  <text x="545" y="98" fill="#a8d8c8" font-size="13" font-weight="700" text-anchor="middle" font-family="sans-serif">跨会话</text>
+  <text x="545" y="122" fill="#7fa89c" font-size="11.5" text-anchor="middle" font-family="sans-serif">CLAUDE.md / MEMORY.md</text>
+  <text x="545" y="146" fill="#7fa89c" font-size="11.5" text-anchor="middle" font-family="sans-serif">组件 3 · 记忆</text>
+  <text x="545" y="170" fill="#6f9c8c" font-size="11" text-anchor="middle" font-family="sans-serif">新会话一无所知 → 启动时注入</text>
+</svg>
+<figcaption><b>图 8</b>　记忆的三个时间尺度。<b>同一个"失忆"问题，在不同尺度上是三件不同的事</b>：单轮对话里是上下文装不下（组件 4 管），一次任务里是进程崩溃后进度丢失（组件 7 管），跨会话是根本不知道上一个会话做过什么（组件 3 管）。三者用的机制完全不同——压缩、检查点、记忆文件——混为一谈就会出现"记得住项目约定，却恢复不了半成品"的窘境。图 11 会展开中间那一列。</figcaption>
+</figure>
+
 <p>Claude Code 的实践里有一条关键设计原则：<em>记忆只能当线索，不能当事实</em>。记忆是可能过期的，用它时必须回源验证。</p>
 
 <h4>组件 4 · 上下文管理</h4>
 
-<p>这是很多 agent 静默失败的地方。生产系统里常见的五种策略：</p>
+<p id="silent-failure"><b>先说清一个词：</b><b>静默失败</b>（silent failure）指系统没有抛异常、没有报错、也没有触发任何告警，<em>只是结果悄悄变差了</em>。它与"显式失败"的差别不在严重程度，而在<b>有没有信号</b>——显式失败会立刻停下，日志里有堆栈可查；静默失败会一路跑到底，直到某个环节的结果错得离谱才被发现，而那时错误往往已经写进上下文，成了后续推理的前提。</p>
+
+<p><b>上下文管理是它的头号高发区</b>：压缩、遮蔽、检索这些动作本身都不会报错。摘要里漏掉一条关键约束，模型照样会输出一段通顺、自信、但前提错误的推理——你看不到任何异常，只会觉得"这次怎么这么笨"。</p>
+
+<figure>
+<svg viewBox="0 0 680 312" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="静默失败的自我放大回路：模型给出貌似正确的结果后，若没有验证回路，错误会被写进上下文并在下一轮变成前提；右侧为验证回路介入后的纠偏路径">
+  <defs>
+    <marker id="arSF" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto">
+      <path d="M0,0 L7,3.2 L0,6.4 z" fill="#4a5a6c"/>
+    </marker>
+    <marker id="arSFg" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto">
+      <path d="M0,0 L7,3.2 L0,6.4 z" fill="#2dd4a7"/>
+    </marker>
+  </defs>
+
+  <text x="340" y="22" fill="#93a1b1" font-size="13" font-weight="700" text-anchor="middle" font-family="sans-serif">静默失败为什么会自我放大</text>
+  <text x="340" y="42" fill="#6b7a8d" font-size="11.5" text-anchor="middle" font-family="sans-serif">显式失败会停下来；静默失败会继续往下滚 —— 而 agent 的产出，正是它下一轮的输入</text>
+
+  <g font-family="sans-serif">
+    <rect x="24" y="60" width="316" height="46" rx="8" fill="#2a1f24" stroke="#f0655f" stroke-width="1.3"/>
+    <text x="182" y="87" fill="#f0655f" font-size="12" text-anchor="middle">模型输出一个貌似正确的结果</text>
+    <line x1="182" y1="106" x2="182" y2="120" stroke="#4a5a6c" stroke-width="1.4" marker-end="url(#arSF)"/>
+
+    <rect x="24" y="122" width="316" height="46" rx="8" fill="#2a1f24" stroke="#f0655f" stroke-width="1.3"/>
+    <text x="182" y="149" fill="#f0655f" font-size="12" text-anchor="middle">没有验证 → 直接采信</text>
+    <line x1="182" y1="168" x2="182" y2="182" stroke="#4a5a6c" stroke-width="1.4" marker-end="url(#arSF)"/>
+
+    <rect x="24" y="184" width="316" height="46" rx="8" fill="#2a1f24" stroke="#f0655f" stroke-width="1.3"/>
+    <text x="182" y="211" fill="#f0655f" font-size="12" text-anchor="middle">写进上下文 / 状态 / 记忆</text>
+    <line x1="182" y1="230" x2="182" y2="244" stroke="#4a5a6c" stroke-width="1.4" marker-end="url(#arSF)"/>
+
+    <rect x="24" y="246" width="316" height="46" rx="8" fill="#2a1f24" stroke="#f0655f" stroke-width="1.6"/>
+    <text x="182" y="273" fill="#f0655f" font-size="12" text-anchor="middle">下一轮把它当事实 → 错误变成前提</text>
+
+    <line x1="340" y1="145" x2="376" y2="145" stroke="#2dd4a7" stroke-width="1.4" marker-end="url(#arSFg)"/>
+
+    <rect x="380" y="122" width="276" height="46" rx="8" fill="#122b26" stroke="#2dd4a7" stroke-width="1.4"/>
+    <text x="518" y="149" fill="#2dd4a7" font-size="12" text-anchor="middle">验证回路介入：测试 · lint · 截图</text>
+    <line x1="518" y1="168" x2="518" y2="182" stroke="#2dd4a7" stroke-width="1.4" marker-end="url(#arSFg)"/>
+
+    <rect x="380" y="184" width="276" height="46" rx="8" fill="#122b26" stroke="#2dd4a7" stroke-width="1.4"/>
+    <text x="518" y="211" fill="#2dd4a7" font-size="12" text-anchor="middle">失败 → 作为 error result 回喂</text>
+
+    <path d="M380,207 L362,207 L362,83 L344,83" fill="none" stroke="#2dd4a7" stroke-width="1.4" marker-end="url(#arSFg)"/>
+    <text x="518" y="273" fill="#7fa89c" font-size="11.5" text-anchor="middle">模型改道重试，错误不再往下走</text>
+  </g>
+</svg>
+<figcaption><b>图 9</b>　静默失败为什么会自我放大。<b>左列</b>是"没有验证"的路径：错误不触发任何异常，被写进上下文后，下一轮就变成了推理的前提——<b>agent 的产出正是它下一轮的输入</b>，所以错误会自我强化，越滚越像真的。<b>右列</b>是"有验证回路"的路径：在采信之前先拿到一个确定性信号（测试 / lint / 截图 / 裁判），失败则作为 error result 回喂，模型改道重试。两条路径的差别只有一个：<b>有没有一个独立的、不依赖模型自评的检查点</b>。</figcaption>
+</figure>
+
+<p>但上下文管理还有一个更基本的存在理由：<b>窗口装不下</b>。图 7 的 Agent Loop 只往上下文里<em>追加</em> observation，从不删除；而工具输出恰好是最占地方的一类内容。窗口是有限的，涨满只是时间问题——届时没有别的出路，只能把信息移出上下文。</p>
+
+<p>两件事就此接上：<b>上下文管理必须做删除，而删除恰恰是前面那个静默失败回路的入口</b>——被删掉的那条约束不会报错，只会让模型在几轮之后给出一个前提错误的结论。下面这五种策略，本质上都是把信息移出上下文的不同档位，区别只在<em>移到哪</em>、<em>什么时候移</em>：</p>
 
 <div class="tw">
 <table>
@@ -771,7 +1128,7 @@ P(整条链路成功) = 0.99^100 ≈ <span class="n">0.366</span>     <span clas
 <tr><td><b>观察结果遮蔽</b></td><td>隐藏旧的工具输出，但保留工具调用可见</td><td>需要模型重新调用工具取数</td></tr>
 <tr><td><b>即时检索</b></td><td>只维护轻量标识符，需要时动态加载</td><td>多一次往返</td></tr>
 <tr><td><b>结构化记笔记</b></td><td>把关键结论写进外部文件，上下文里只留指针</td><td>需要额外的写入纪律</td></tr>
-<tr><td><b>子 Agent 委派</b></td><td>每个子 agent 充分探索，只返回浓缩摘要</td><td>增加路由开销，交接会丢上下文</td></tr>
+<tr><td><b>子 Agent 委派</b></td><td>每个子 Agent 充分探索，只返回浓缩摘要</td><td>增加路由开销，交接会丢上下文</td></tr>
 </tbody>
 </table>
 </div>
@@ -780,25 +1137,114 @@ P(整条链路成功) = 0.99^100 ≈ <span class="n">0.366</span>     <span clas
 
 <div class="key">
 <span class="t">还有一条与"信息价值"冲突的约束</span>
-<p>上面五种策略都假设"该保留信息量最大的内容"。但工业实践里还有一条方向相反的约束——<b>prompt cache 的前缀稳定性</b>。缓存基于严格的前缀比对，改动头部会摧毁整个缓存；而缓存命中率同时决定成本基线和交互延迟，进而决定子 agent 等架构是否可行。</p>
-<p>结果是：<b>该删哪一端</b>变成了一个真实的设计张力——按信息价值该删最旧的，按缓存价值该删最新的。第 <a href="#s5-5">5.5 节</a>会展开这个冲突。</p>
+<p>上面五种策略都假设"该保留信息量最大的内容"。但工业实践里还有一条方向相反的约束——<b>prompt cache 的前缀稳定性</b>。缓存基于严格的前缀比对，改动点<em>之后</em>的所有内容全部无法命中；而上下文里的位置顺序就是时间顺序，最旧的内容恰好排在最前面，也就是前缀本身。</p>
+<p>于是<b>该删哪一端</b>变成了一个真实的设计张力——按信息价值该删最旧的，按缓存价值该删最新的。它的分量在于同时决定<b>成本基线</b>与<b>交互延迟</b>：命中率一低，每次请求全价、首 token 延迟高出一个数量级，靠频繁冷启动的子 Agent 架构就直接不可行了。第 <a href="#s5-5">5.5 节</a>会展开这个冲突与调和办法。</p>
 </div>
 
 <h4>组件 5 · Prompt 构造</h4>
 
 <p>这一步负责组装模型每一轮真正看到的内容：系统提示词、工具定义、记忆文件、对话历史、当前用户消息。</p>
 
-<p>顺序很重要。为了对冲 "Lost in the Middle"，重要上下文要放在 prompt 的<b>开头和结尾</b>，而不是中间。</p>
+<p>顺序很重要。既然注意力分布是两头重、中间轻（<a href="#s2-2">2.2 节</a> 讲过它的三层成因），重要上下文就该放在 prompt 的<b>开头和结尾</b>，而不是中间。注意这只是<em>缓解</em>而非消除——落在中间的内容依然有损失，彻底的解法仍是不让上下文变长。</p>
 
 <p>OpenAI 的 Codex 使用一个严格的优先级栈：系统指令最高，开发者指令其次，用户指令再次，然后才是历史上下文。这个顺序不是审美问题——它决定了指令冲突时谁说了算。</p>
 
+<p>先分清这三个角色分别是谁。它们不是按"说话的人"分的，而是按<b>谁写的</b>分的：<code>user</code> 是终端用户这一轮的输入；<code>system</code> 与 <code>developer</code> 都不是终端用户写的，而是"构建这个 agent 的人"写的，区别只在写在哪一层。</p>
+
+<div class="tw">
+<table>
+<thead><tr><th>role</th><th>谁写的</th><th>典型内容</th></tr></thead>
+<tbody>
+<tr><td><code>system</code></td><td>模型 / 平台方</td><td>身份定义、安全与内容政策、工具使用规范——终端用户通常既看不到原文，也改不了</td></tr>
+<tr><td><code>developer</code></td><td>应用开发者；当产品把配置层开放给用户时，也包含用户自己写的长期规则</td><td>harness 如何组装上下文、沙箱与权限说明、项目级长期规范</td></tr>
+<tr><td><code>user</code></td><td>终端用户</td><td>这一轮的实际输入</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>这里有一个容易忽略的点：<code>developer</code> 是 OpenAI 在 2024 年 9 月随 o1 引入的 role，用来取代 <code>system</code>——在支持的模型上，<code>system</code> 会被当作 <code>developer</code> 处理，所以两者在 API 层面属于同一族；Codex 把它们排成两级，是因为在实际组装里它们承载了<b>不同来源</b>的内容。另外，据源码分析，<code>AGENTS.md</code> 这类项目规范在 Codex 里是以 <code>role=user</code> 注入的，且规则是"更具体者靠后"<span class="pill">单一来源，未交叉验证</span>——也就是说，<b>同一个人写的配置，可能落在不同层级上</b>。</p>
+
+<figure>
+<svg viewBox="0 0 680 284" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="prompt 的分层组装：前三层相对稳定可命中缓存，后两层每轮变化">
+  <text x="340" y="22" fill="#93a1b1" font-size="13" font-weight="700" text-anchor="middle" font-family="sans-serif">prompt 是怎么组装出来的</text>
+  <text x="340" y="42" fill="#6b7a8d" font-size="11.5" text-anchor="middle" font-family="sans-serif">前部尽量稳定、尾部允许增长 —— 顺序决定了缓存能不能命中</text>
+
+  <rect x="40" y="64" width="430" height="44" rx="8" fill="#122b26" stroke="#2dd4a7"/>
+  <text x="64" y="86" fill="#a8d8c8" font-size="12.5" font-family="sans-serif">system prompt + 工具定义</text>
+  <text x="490" y="86" fill="#2dd4a7" font-size="11.5" font-family="sans-serif">几乎不变 → 命中缓存</text>
+
+  <rect x="40" y="116" width="430" height="44" rx="8" fill="#122b26" stroke="#2dd4a7"/>
+  <text x="64" y="138" fill="#a8d8c8" font-size="12.5" font-family="sans-serif">developer 指令 + 项目规范</text>
+  <text x="490" y="138" fill="#2dd4a7" font-size="11.5" font-family="sans-serif">配置变时才动</text>
+
+  <rect x="40" y="168" width="430" height="44" rx="8" fill="#1b2532" stroke="#3a4a5e"/>
+  <text x="64" y="190" fill="#dfe6ee" font-size="12.5" font-family="sans-serif">对话历史</text>
+  <text x="490" y="190" fill="#7d8b9c" font-size="11.5" font-family="sans-serif">只追加，不改写</text>
+
+  <rect x="40" y="220" width="430" height="44" rx="8" fill="#1d2b3d" stroke="#4dabf7"/>
+  <text x="64" y="242" fill="#dfe6ee" font-size="12.5" font-family="sans-serif">当前用户消息</text>
+  <text x="490" y="242" fill="#4dabf7" font-size="11.5" font-family="sans-serif">每轮都变</text>
+</svg>
+<figcaption><b>图 10</b>　prompt 的分层组装。<b>前两层</b>（system prompt、工具定义、developer 指令）几乎是常量，构成缓存前缀；<b>第三层</b>（对话历史）只追加、不改写；<b>第四层</b>（当前用户消息）每轮都变。<b>顺序不是审美问题</b>：前缀一旦改动，从改动点往后的缓存全部失效——所以配置变更的正确做法是"追加一条新消息"，而不是回头改历史（5.5 节会展开）。</figcaption>
+</figure>
+
 <h4>组件 6 · 输出解析</h4>
+
+<p>模型只会吐文本，而 harness 需要的是<b>可执行的动作</b>。输出解析负责把概率性的自由文本变成结构化的、可以安全消费的指令——它是对冲 <b>② 错误累积</b> 的第一道关口：一个格式错误却未被识别的调用，会被当成正常结果一路执行下去。</p>
 
 <p>现代 harness 依赖原生 tool calling：模型返回结构化的 <code>tool_calls</code> 对象，而不是从自由文本里正则匹配。harness 的判断逻辑很简单：有工具调用就执行并继续循环，没有就是最终答案。</p>
 
 <p>对于需要严格结构的输出，OpenAI 和 LangChain 都支持用 Pydantic 模型做 schema 约束响应。旧的 <code>RetryWithErrorOutputParser</code> 方案仍然适用于边缘场景：把原始 prompt、失败的模型输出、解析错误一起喂回去让模型重试。</p>
 
 <h4>组件 7 · 状态管理</h4>
+
+<p>模型是无状态的，但任务不是。状态管理负责把"进行到哪了"这件事<b>建模、落盘、并允许恢复</b>——它对应 <b>③ 失忆</b> 里"单次任务的状态"那一半（另一半"跨会话的知识"归组件 3 记忆）。</p>
+
+<figure>
+<svg viewBox="0 0 680 336" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="状态管理：把进度从进程内存搬到持久化存储，崩溃后从最近的检查点恢复">
+  <defs>
+    <marker id="arST" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto">
+      <path d="M0,0 L7,3.2 L0,6.4 z" fill="#4dabf7"/>
+    </marker>
+    <marker id="arSTg" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto">
+      <path d="M0,0 L7,3.2 L0,6.4 z" fill="#2dd4a7"/>
+    </marker>
+  </defs>
+
+  <text x="340" y="22" fill="#93a1b1" font-size="13" font-weight="700" text-anchor="middle" font-family="sans-serif">状态管理解决什么</text>
+  <text x="340" y="42" fill="#6b7a8d" font-size="11.5" text-anchor="middle" font-family="sans-serif">进度只存在进程里，进程一死就全没了 —— 搬到进程之外，才能接着干</text>
+
+  <rect x="40" y="62" width="600" height="84" rx="12" fill="none" stroke="#3a4a5e" stroke-dasharray="6 5"/>
+  <text x="60" y="80" fill="#7d8b9c" font-size="11.5" font-family="sans-serif">进程内存（崩溃即清空）</text>
+
+  <rect x="67" y="94" width="126" height="40" rx="8" fill="#1b2532" stroke="#3a4a5e"/>
+  <text x="130" y="114" fill="#dfe6ee" font-size="12" text-anchor="middle" font-family="sans-serif">步骤 1</text>
+  <rect x="207" y="94" width="126" height="40" rx="8" fill="#1b2532" stroke="#3a4a5e"/>
+  <text x="270" y="114" fill="#dfe6ee" font-size="12" text-anchor="middle" font-family="sans-serif">步骤 2</text>
+  <rect x="347" y="94" width="126" height="40" rx="8" fill="#1b2532" stroke="#3a4a5e"/>
+  <text x="410" y="114" fill="#dfe6ee" font-size="12" text-anchor="middle" font-family="sans-serif">步骤 3</text>
+  <rect x="487" y="94" width="126" height="40" rx="8" fill="#2a1f24" stroke="#f0655f" stroke-dasharray="5 4"/>
+  <text x="550" y="114" fill="#f0655f" font-size="12" text-anchor="middle" font-family="sans-serif">进程崩溃</text>
+
+  <line x1="130" y1="134" x2="130" y2="170" stroke="#4dabf7" stroke-width="1.4" marker-end="url(#arST)"/>
+  <line x1="270" y1="134" x2="270" y2="170" stroke="#4dabf7" stroke-width="1.4" marker-end="url(#arST)"/>
+  <line x1="410" y1="134" x2="410" y2="170" stroke="#4dabf7" stroke-width="1.4" marker-end="url(#arST)"/>
+  <text x="196" y="154" fill="#4dabf7" font-size="11" font-family="sans-serif">每步落盘</text>
+
+  <rect x="40" y="176" width="600" height="66" rx="12" fill="#0f1e2b" stroke="#4dabf7"/>
+  <text x="60" y="194" fill="#85b7eb" font-size="11.5" font-family="sans-serif">持久化存储（进程之外，不随进程消失）</text>
+  <text x="130" y="222" fill="#4dabf7" font-size="12" text-anchor="middle" font-family="sans-serif">cp1</text>
+  <text x="270" y="222" fill="#4dabf7" font-size="12" text-anchor="middle" font-family="sans-serif">cp2</text>
+  <text x="410" y="222" fill="#4dabf7" font-size="12" text-anchor="middle" font-family="sans-serif">cp3</text>
+
+  <line x1="340" y1="242" x2="340" y2="268" stroke="#2dd4a7" stroke-width="1.6" marker-end="url(#arSTg)"/>
+  <text x="352" y="257" fill="#2dd4a7" font-size="11" font-family="sans-serif">重启后读回 cp3</text>
+
+  <rect x="140" y="272" width="400" height="44" rx="8" fill="#122b26" stroke="#2dd4a7"/>
+  <text x="340" y="294" fill="#a8d8c8" font-size="12" text-anchor="middle" font-family="sans-serif">重启新进程 → 从 cp3 恢复 → 继续第 4 步</text>
+</svg>
+<figcaption><b>图 11</b>　状态管理在解决什么。<b>上半</b>是进程内存：步骤一步接一步地跑，直到崩溃——内存里的东西随之全部消失。<b>下半</b>是进程之外的持久化存储：每走完一步就把状态落盘一次（cp1–cp3），所以崩溃丢掉的只有当前这一步；重启后的新进程从最近的检查点读回状态，接着往下走。<b>这张图的重点在那个"进程之外"</b>——状态管理的各种机制（reducer、checkpoint、Thread）归根到底只在回答两个问题：把什么存出去、什么时候存。它同时也是<b>跨上下文窗口接力</b>的前提：窗口满了要换新会话时，接手的 agent 靠的正是这份落盘状态，而不是上一轮的对话记录。</figcaption>
+</figure>
 
 <p>LangGraph 把状态建模为带类型的字典，在图的节点之间流动，通过 reducer 合并各节点产生的更新；它在 super-step 边界做 checkpoint，因此任务中断后可以恢复，也支持"时间旅行"式的调试。</p>
 
@@ -807,6 +1253,8 @@ P(整条链路成功) = 0.99^100 ≈ <span class="n">0.366</span>     <span clas
 <p>Codex 的选择更有意思：它把 Thread（线程）做成一等概念，可以创建、恢复、分叉（fork）、归档，事件历史被持久化，客户端重连后能渲染出一致的时间线。这在第 5 章会展开。</p>
 
 <h4>组件 8 · 错误处理</h4>
+
+<p>长链路里错误是必然的（② 那笔概率账已经算过）。错误处理负责<b>分辨错误的性质，再决定怎么处置</b>——重试、回喂给模型、升级给人，还是直接抛出。分类之所以是核心，是因为用错处置比不处置更糟：把不可恢复的错误反复重试，只会烧钱。</p>
 
 <p>LangGraph 把错误分成四类，每类有不同的处置方式，这个分类法很值得借用：</p>
 
@@ -826,6 +1274,8 @@ P(整条链路成功) = 0.99^100 ≈ <span class="n">0.366</span>     <span clas
 
 <h4>组件 9 · 护栏与安全</h4>
 
+<p>模型可以提出任何请求，但不能自己批准自己。护栏负责在<b>输入、输出、工具调用</b>三个位置独立地校验与拦截，对冲 <b>④ 权限越界</b>——尤其是提示注入引发的越权（第 2 章那个 <code>rm -rf /</code> 的例子就落在这里）。它有一条硬约束：<b>执行与推理解耦</b>，护栏必须独立于模型。</p>
+
 <p>OpenAI 的 SDK 实现三层护栏：<b>输入护栏</b>（在第一个 agent 上运行）、<b>输出护栏</b>（在最终输出上运行）、<b>工具护栏</b>（在每次工具调用上运行）。其中还有一种 tripwire（触发线）机制，触发时立刻停止 agent。</p>
 
 <p>据公开资料，Claude Code 会把约 40 个独立的工具能力分别做权限控制<span class="pill">二手来源</span>，分成三个阶段：项目加载时建立信任关系、每次工具调用前做权限检查、对高风险操作要求用户显式确认。</p>
@@ -837,7 +1287,7 @@ P(整条链路成功) = 0.99^100 ≈ <span class="n">0.366</span>     <span clas
 <ul>
 <li><b>基于规则的反馈</b>：测试、linter、类型检查器——提供确定性真值。</li>
 <li><b>视觉反馈</b>：UI 任务用 Playwright 截图，让模型"看见"结果。</li>
-<li><b>LLM-as-judge</b>：用单独的子 agent 评估输出——能捕捉语义问题，但会增加延迟。</li>
+<li><b>LLM-as-judge</b>：用单独的子 Agent 评估输出——能捕捉语义问题，但会增加延迟。</li>
 </ul>
 
 <p>Martin Fowler 的 Thoughtworks 团队给这类机制分了两类，这个分法很有洞察力：</p>
@@ -855,99 +1305,118 @@ P(整条链路成功) = 0.99^100 ≈ <span class="n">0.366</span>     <span clas
 
 <h4>组件 11 · 子 Agent 编排</h4>
 
-<p>子 agent 的核心价值不是"并行"，而是<b>上下文防火墙</b>：每个子 agent 可以充分探索（读 50 个文件、试 10 种方案），但只把 1000–2000 token 的浓缩摘要返回给父 agent。父 agent 的上下文因此保持干净。</p>
+<p>子 Agent 的核心价值不是"并行"，而是<b>上下文防火墙</b>：每个子 Agent 可以充分探索（读 50 个文件、试 10 种方案），但只把 1000–2000 token 的浓缩摘要返回给父 Agent。父 Agent 的上下文因此保持干净。</p>
 
-<p>Anthropic 的实现里有三种执行模型（第 6 章展开）；OpenAI 的 SDK 支持 agents-as-tools（把 agent 当作工具调用）和 handoffs（把控制权完整移交）；LangGraph 把子 agent 实现为嵌套状态图。</p>
+<figure>
+<svg viewBox="0 0 680 290" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="子 Agent 的上下文防火墙：探索过程留在子 Agent 里，只把浓缩摘要带回父 Agent">
+  <defs>
+    <marker id="arFW" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto">
+      <path d="M0,0 L7,3.2 L0,6.4 z" fill="#2dd4a7"/>
+    </marker>
+  </defs>
+  <text x="340" y="22" fill="#93a1b1" font-size="13" font-weight="700" text-anchor="middle" font-family="sans-serif">子 Agent 的上下文防火墙</text>
+  <text x="340" y="42" fill="#6b7a8d" font-size="11.5" text-anchor="middle" font-family="sans-serif">探索可以很脏，但只把结论带回主上下文</text>
+
+  <rect x="40" y="64" width="600" height="76" rx="10" fill="#122b26" stroke="#2dd4a7"/>
+  <text x="64" y="86" fill="#a8d8c8" font-size="12.5" font-weight="700" font-family="sans-serif">父 Agent 的上下文 —— 保持干净</text>
+  <text x="64" y="112" fill="#7fa89c" font-size="11.5" font-family="sans-serif">任务描述 + 子 Agent 返回的摘要（1000–2000 token），其余什么都没有</text>
+
+  <line x1="340" y1="180" x2="340" y2="144" stroke="#2dd4a7" stroke-width="1.6" marker-end="url(#arFW)"/>
+  <text x="352" y="162" fill="#2dd4a7" font-size="11" font-family="sans-serif">只回浓缩摘要</text>
+
+  <rect x="40" y="180" width="600" height="90" rx="10" fill="#1b2532" stroke="#3a4a5e"/>
+  <text x="64" y="202" fill="#dfe6ee" font-size="12.5" font-weight="700" font-family="sans-serif">子 Agent 的上下文 —— 可以很脏</text>
+  <text x="64" y="228" fill="#7d8b9c" font-size="11.5" font-family="sans-serif">读了 50 个文件、试了 10 种方案，几万 token 的中间过程</text>
+  <text x="64" y="250" fill="#6b7a8d" font-size="11.5" font-family="sans-serif">这些内容全部留在子 Agent 里，一步都不进入父 Agent 的窗口</text>
+</svg>
+<figcaption><b>图 12</b>　子 Agent 的上下文防火墙。<b>核心不是"并行"，而是隔离</b>：子 Agent 可以读几十个文件、试十种方案，把上下文撑得很脏；但它返回给父 Agent 的只有一份浓缩摘要。父 Agent 的窗口因此始终干净，能继续跑很长的任务。代价在下半张图里——那份脏上下文连同其中的细节一起被丢弃了，父 Agent 拿到的只有结论；如果后续还需要那些细节，得重新取一次。</figcaption>
+</figure>
+
+<p>它特殊在<b>同时服务两个必然问题</b>：既是 ① 上下文腐化的对冲（防火墙把脏内容挡在主上下文之外），也是 ③ 失忆的对冲（子 Agent 的任务状态独立于父 Agent，父 Agent 崩溃不影响已完成的子任务）。§3.1 的映射表里，只有它跨了两行。</p>
+
+<p>Anthropic 的实现里有三种执行模型（第 6 章展开）；OpenAI 的 SDK 支持 agents-as-tools（把 agent 当作工具调用）和 handoffs（把控制权完整移交）；LangGraph 把子 Agent 实现为嵌套状态图。</p>
+
+<p>代价也要说清：拆分不是免费的。路由本身要额外的 LLM 调用，而交接（handoff）会丢掉上下文——<b>子 Agent 从零开始，父 Agent 积累的历史它一条都不继承</b>。这既是防火墙的工作原理，也是它的成本。什么时候才值得拆，见 <a href="#s8">第 8 章</a>；它与 prompt cache 的冲突见 <a href="#s5-5">5.5 节</a>。</p>
 
 <h4>组件 12 · 可观测性</h4>
 
 <p>日志、追踪、成本与延迟计量。这个组件在 demo 阶段完全可以省略，但在生产里是刚需——因为当 agent 失败时，你需要知道<em>它是在第 37 步开始跑偏的</em>，而不是只知道"它没做出来"。</p>
+
+<p>它和组件 1 一样是<b>横切</b>的：不挂靠任何单一问题，而是覆盖整条链路——每一步、每次工具调用、每个中间结果都要留下记录。§3.1 的映射表里，它和编排循环一样不占行。</p>
+
+<p>有一条设计约束值得单独记：<b>tracing 必须独立于业务逻辑</b>。如果观测代码和业务代码写在一起，它记录的往往只是"设计者以为会发生的事"，而不是真实发生的事——那恰恰是它最没有价值的形态。生产环境下它还会延伸出成本与预算治理、评测与回归两个方向，见 <a href="#s10">第 10 章</a>。</p>
 
 <h3 id="s3-3">3.3 串起来：一轮循环走一遍</h3>
 
 <p>现在把 12 个组件放进一轮真实的循环里，看它们如何协作。</p>
 
 <figure>
-<svg viewBox="0 0 680 340" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="一轮 Agent Loop 中 12 个组件的协作顺序">
-  <defs>
-    <marker id="ar3" markerWidth="8" markerHeight="8" refX="6.5" refY="3" orient="auto">
-      <path d="M0,0 L6.5,3 L0,6 z" fill="#4a5a6c"/>
-    </marker>
-  </defs>
-  <g font-family="sans-serif" font-size="12">
-    <!-- 七个步骤横向 -->
-    <rect x="16" y="52" width="86" height="66" rx="8" fill="#1b2532" stroke="#3a4a5e"/>
-    <text x="59" y="72" fill="#4dabf7" font-size="11" font-weight="700" text-anchor="middle">Step 1</text>
-    <text x="59" y="90" fill="#dfe6ee" font-size="11.5" font-weight="600" text-anchor="middle">Prompt</text>
-    <text x="59" y="105" fill="#dfe6ee" font-size="11.5" font-weight="600" text-anchor="middle">组装</text>
+<svg viewBox="0 0 680 330" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="12 个组件在一轮 Agent Loop 中的落位">
+  <rect x="18" y="12" width="104" height="42" rx="7" fill="#1b2532" stroke="#3a4a5e"/>
+  <text x="70" y="30" fill="#4dabf7" font-size="10.5" font-weight="700" text-anchor="middle" font-family="sans-serif">Step 1</text>
+  <text x="70" y="47" fill="#dfe6ee" font-size="11.5" font-weight="650" text-anchor="middle" font-family="sans-serif">组装 prompt</text>
 
-    <rect x="112" y="52" width="86" height="66" rx="8" fill="#1b2532" stroke="#3a4a5e"/>
-    <text x="155" y="72" fill="#4dabf7" font-size="11" font-weight="700" text-anchor="middle">Step 2</text>
-    <text x="155" y="90" fill="#dfe6ee" font-size="11.5" font-weight="600" text-anchor="middle">模型</text>
-    <text x="155" y="105" fill="#dfe6ee" font-size="11.5" font-weight="600" text-anchor="middle">推理</text>
+  <rect x="126" y="12" width="104" height="42" rx="7" fill="#1b2532" stroke="#3a4a5e"/>
+  <text x="178" y="30" fill="#4dabf7" font-size="10.5" font-weight="700" text-anchor="middle" font-family="sans-serif">Step 2</text>
+  <text x="178" y="47" fill="#dfe6ee" font-size="11.5" font-weight="650" text-anchor="middle" font-family="sans-serif">模型推理</text>
 
-    <rect x="208" y="52" width="86" height="66" rx="8" fill="#1b2532" stroke="#3a4a5e"/>
-    <text x="251" y="72" fill="#4dabf7" font-size="11" font-weight="700" text-anchor="middle">Step 3</text>
-    <text x="251" y="90" fill="#dfe6ee" font-size="11.5" font-weight="600" text-anchor="middle">输出</text>
-    <text x="251" y="105" fill="#dfe6ee" font-size="11.5" font-weight="600" text-anchor="middle">分类</text>
+  <rect x="234" y="12" width="104" height="42" rx="7" fill="#1b2532" stroke="#3a4a5e"/>
+  <text x="286" y="30" fill="#4dabf7" font-size="10.5" font-weight="700" text-anchor="middle" font-family="sans-serif">Step 3</text>
+  <text x="286" y="47" fill="#dfe6ee" font-size="11.5" font-weight="650" text-anchor="middle" font-family="sans-serif">输出解析</text>
 
-    <rect x="304" y="52" width="86" height="66" rx="8" fill="#2a2320" stroke="#e8a34b" stroke-width="1.4"/>
-    <text x="347" y="72" fill="#e8a34b" font-size="11" font-weight="700" text-anchor="middle">Step 4</text>
-    <text x="347" y="90" fill="#f0dcc0" font-size="11.5" font-weight="600" text-anchor="middle">工具</text>
-    <text x="347" y="105" fill="#f0dcc0" font-size="11.5" font-weight="600" text-anchor="middle">执行</text>
+  <rect x="342" y="12" width="104" height="42" rx="7" fill="#2a2320" stroke="#e8a34b" stroke-width="1.4"/>
+  <text x="394" y="30" fill="#e8a34b" font-size="10.5" font-weight="700" text-anchor="middle" font-family="sans-serif">Step 4</text>
+  <text x="394" y="47" fill="#f0dcc0" font-size="11.5" font-weight="650" text-anchor="middle" font-family="sans-serif">工具执行</text>
 
-    <rect x="400" y="52" width="86" height="66" rx="8" fill="#1b2532" stroke="#3a4a5e"/>
-    <text x="443" y="72" fill="#4dabf7" font-size="11" font-weight="700" text-anchor="middle">Step 5</text>
-    <text x="443" y="90" fill="#dfe6ee" font-size="11.5" font-weight="600" text-anchor="middle">结果</text>
-    <text x="443" y="105" fill="#dfe6ee" font-size="11.5" font-weight="600" text-anchor="middle">封装</text>
+  <rect x="450" y="12" width="104" height="42" rx="7" fill="#1b2532" stroke="#3a4a5e"/>
+  <text x="502" y="30" fill="#4dabf7" font-size="10.5" font-weight="700" text-anchor="middle" font-family="sans-serif">Step 5</text>
+  <text x="502" y="47" fill="#dfe6ee" font-size="11.5" font-weight="650" text-anchor="middle" font-family="sans-serif">结果封装</text>
 
-    <rect x="496" y="52" width="86" height="66" rx="8" fill="#1b2532" stroke="#3a4a5e"/>
-    <text x="539" y="72" fill="#4dabf7" font-size="11" font-weight="700" text-anchor="middle">Step 6</text>
-    <text x="539" y="90" fill="#dfe6ee" font-size="11.5" font-weight="600" text-anchor="middle">上下文</text>
-    <text x="539" y="105" fill="#dfe6ee" font-size="11.5" font-weight="600" text-anchor="middle">更新</text>
+  <rect x="558" y="12" width="104" height="42" rx="7" fill="#1b2532" stroke="#3a4a5e"/>
+  <text x="610" y="30" fill="#4dabf7" font-size="10.5" font-weight="700" text-anchor="middle" font-family="sans-serif">Step 6</text>
+  <text x="610" y="47" fill="#dfe6ee" font-size="11.5" font-weight="650" text-anchor="middle" font-family="sans-serif">上下文更新</text>
 
-    <rect x="592" y="52" width="72" height="66" rx="8" fill="#122b26" stroke="#2dd4a7" stroke-width="1.4"/>
-    <text x="628" y="72" fill="#2dd4a7" font-size="11" font-weight="700" text-anchor="middle">Step 7</text>
-    <text x="628" y="90" fill="#a8d8c8" font-size="11.5" font-weight="600" text-anchor="middle">回到</text>
-    <text x="628" y="105" fill="#a8d8c8" font-size="11.5" font-weight="600" text-anchor="middle">Step 1</text>
+  <rect x="23" y="64" width="94" height="26" rx="6" fill="#151c26" stroke="#232d3b"/>
+  <text x="70" y="81" fill="#93a1b1" font-size="10.5" text-anchor="middle" font-family="sans-serif">⑤ Prompt 构造</text>
+  <rect x="23" y="98" width="94" height="26" rx="6" fill="#151c26" stroke="#232d3b"/>
+  <text x="70" y="115" fill="#93a1b1" font-size="10.5" text-anchor="middle" font-family="sans-serif">④ 上下文管理</text>
 
-    <g stroke="#4a5a6c" stroke-width="1.3" marker-end="url(#ar3)">
-      <line x1="104" y1="85" x2="110" y2="85"/>
-      <line x1="200" y1="85" x2="206" y2="85"/>
-      <line x1="296" y1="85" x2="302" y2="85"/>
-      <line x1="392" y1="85" x2="398" y2="85"/>
-      <line x1="488" y1="85" x2="494" y2="85"/>
-      <line x1="584" y1="85" x2="590" y2="85"/>
-    </g>
+  <rect x="131" y="64" width="94" height="26" rx="6" fill="#151c26" stroke="#232d3b"/>
+  <text x="178" y="81" fill="#6b7a8d" font-size="10.5" text-anchor="middle" font-family="sans-serif">（模型本身）</text>
 
-    <!-- 组件归属 -->
-    <text x="59" y="42" fill="#6b7a8d" font-size="10.5" text-anchor="middle">⑤ Prompt 构造</text>
-    <text x="155" y="42" fill="#6b7a8d" font-size="10.5" text-anchor="middle">（模型）</text>
-    <text x="251" y="42" fill="#6b7a8d" font-size="10.5" text-anchor="middle">⑥ 输出解析</text>
-    <text x="347" y="42" fill="#6b7a8d" font-size="10.5" text-anchor="middle">② 工具 ⑨ 护栏</text>
-    <text x="443" y="42" fill="#6b7a8d" font-size="10.5" text-anchor="middle">⑧ 错误处理</text>
-    <text x="539" y="42" fill="#6b7a8d" font-size="10.5" text-anchor="middle">④ 上下文管理</text>
-    <text x="628" y="42" fill="#6b7a8d" font-size="10.5" text-anchor="middle">① 循环</text>
+  <rect x="239" y="64" width="94" height="26" rx="6" fill="#151c26" stroke="#232d3b"/>
+  <text x="286" y="81" fill="#93a1b1" font-size="10.5" text-anchor="middle" font-family="sans-serif">⑥ 输出解析</text>
 
-    <!-- 底部说明 -->
-    <rect x="16" y="146" width="648" height="82" rx="9" fill="#151c26" stroke="#232d3b"/>
-    <text x="32" y="168" fill="#dfe6ee" font-size="12" font-weight="650">Step 4 的细节（最关键的一步）</text>
-    <text x="32" y="188" fill="#93a1b1" font-size="11.5">校验参数 → 检查权限 → 在沙箱中执行 → 捕获结果</text>
-    <text x="32" y="206" fill="#93a1b1" font-size="11.5">只读操作可以并发执行；会修改状态的操作必须串行执行</text>
-    <text x="32" y="222" fill="#e8a34b" font-size="11.5">错误在这里被捕获，并作为 error result 返回给模型，让它自我修正</text>
+  <rect x="347" y="64" width="94" height="26" rx="6" fill="#151c26" stroke="#3d3223"/>
+  <text x="394" y="81" fill="#c9a97a" font-size="10.5" text-anchor="middle" font-family="sans-serif">② 工具</text>
+  <rect x="347" y="98" width="94" height="26" rx="6" fill="#151c26" stroke="#3d3223"/>
+  <text x="394" y="115" fill="#c9a97a" font-size="10.5" text-anchor="middle" font-family="sans-serif">⑨ 护栏</text>
 
-    <!-- 终止条件 -->
-    <rect x="16" y="240" width="648" height="82" rx="9" fill="#151c26" stroke="#232d3b"/>
-    <text x="32" y="262" fill="#dfe6ee" font-size="12" font-weight="650">终止条件是分层的，任一层满足就停</text>
-    <g font-size="11.5" fill="#93a1b1">
-      <text x="32" y="284">· 模型生成了不含工具调用的响应</text>
-      <text x="32" y="302">· 超过最大轮次 / token 预算耗尽</text>
-      <text x="360" y="284">· 护栏 tripwire 被触发</text>
-      <text x="360" y="302">· 用户中断 / 返回安全拒答</text>
-    </g>
-  </g>
+  <rect x="455" y="64" width="94" height="26" rx="6" fill="#151c26" stroke="#232d3b"/>
+  <text x="502" y="81" fill="#93a1b1" font-size="10.5" text-anchor="middle" font-family="sans-serif">⑧ 错误处理</text>
+
+  <rect x="563" y="64" width="94" height="26" rx="6" fill="#151c26" stroke="#232d3b"/>
+  <text x="610" y="81" fill="#93a1b1" font-size="10.5" text-anchor="middle" font-family="sans-serif">⑦ 状态管理</text>
+  <rect x="563" y="98" width="94" height="26" rx="6" fill="#151c26" stroke="#232d3b"/>
+  <text x="610" y="115" fill="#93a1b1" font-size="10.5" text-anchor="middle" font-family="sans-serif">④ 上下文管理</text>
+
+  <rect x="18" y="138" width="644" height="30" rx="7" fill="#151c26" stroke="#232d3b"/>
+  <text x="34" y="157" fill="#6b7a8d" font-size="11" font-family="sans-serif">① 编排循环：贯穿全程的骨架　·　⑫ 可观测性：横切全程（日志 / 追踪 / 成本与延迟计量）</text>
+
+  <rect x="18" y="182" width="316" height="126" rx="9" fill="#151c26" stroke="#232d3b"/>
+  <text x="34" y="204" fill="#dfe6ee" font-size="12" font-weight="650" font-family="sans-serif">Step 4 的细节（最关键的一步）</text>
+  <text x="34" y="228" fill="#93a1b1" font-size="11" font-family="sans-serif">校验参数 → 检查权限 → 在沙箱中执行 → 捕获结果</text>
+  <text x="34" y="250" fill="#93a1b1" font-size="11" font-family="sans-serif">只读操作可并行；会改状态的操作必须串行</text>
+  <text x="34" y="272" fill="#e8a34b" font-size="11" font-family="sans-serif">错误在此捕获，作为 error result 回喂给模型</text>
+
+  <rect x="346" y="182" width="316" height="126" rx="9" fill="#151c26" stroke="#232d3b"/>
+  <text x="362" y="204" fill="#dfe6ee" font-size="12" font-weight="650" font-family="sans-serif">终止条件是分层的，任一层满足就停</text>
+  <text x="362" y="228" fill="#93a1b1" font-size="11" font-family="sans-serif">· 模型生成了不含工具调用的响应</text>
+  <text x="362" y="248" fill="#93a1b1" font-size="11" font-family="sans-serif">· 超过最大轮次 / token 预算耗尽</text>
+  <text x="362" y="268" fill="#93a1b1" font-size="11" font-family="sans-serif">· 护栏 tripwire 被触发</text>
+  <text x="362" y="288" fill="#93a1b1" font-size="11" font-family="sans-serif">· 用户中断 / 返回安全拒答</text>
 </svg>
-<figcaption><b>图 5</b>　一轮 Agent Loop 的七个步骤，以及 12 个组件在其中的位置。一个简单问题可能只需 1–2 轮；一次复杂重构可能跨几十轮、串起几十次工具调用。</figcaption>
+<figcaption><b>图 13</b>　12 个组件在一轮循环中的落位：① 编排循环是骨架、⑫ 可观测性横切全程，其余组件各自挂在它负责的那一步上。一个简单问题可能只需 1–2 轮；一次复杂重构可能跨几十轮、串起几十次工具调用。循环本身的走法见 <a href="#s3-2">3.2 节图 7</a>。</figcaption>
 </figure>
 
 <div class="summary">
@@ -1340,7 +1809,7 @@ src/calc.py 是否还存在：<span class="no">否 —— 已被 rm -rf 删除</
     <text x="36" y="378" fill="#7d9cbb" font-size="11.5">全部在「一致的政策模型」下参与 Agent Loop</text>
   </g>
 </svg>
-<figcaption><b>图 6</b>　Codex 的三层架构。所有入口共享同一个 harness，这也是"Codex 模型在 Codex 自己的产品界面里比在普通聊天窗口里更好用"的架构原因。</figcaption>
+<figcaption><b>图 14</b>　Codex 的三层架构。所有入口共享同一个 harness，这也是"Codex 模型在 Codex 自己的产品界面里比在普通聊天窗口里更好用"的架构原因。</figcaption>
 </figure>
 
 <p>这里有一个值得学的演进故事。App Server 最初只是为了在 VS Code 扩展里复用同一套 Agent Loop，团队<em>最初的尝试是"把 Codex 作为 MCP 服务器暴露"</em>，但在 VS Code 场景下维持 MCP 语义非常困难——因为 Codex 需要的能力远超简单的请求/响应：探索工作区、在推理时流式传输进度、发出 diff。</p>
@@ -1494,7 +1963,7 @@ src/calc.py 是否还存在：<span class="no">否 —— 已被 rm -rf 删除</
     <text x="166" y="412" fill="#9c7b7b" font-size="10.5">ApplyPatchFailure 专门携带失败前已提交的 delta</text>
   </g>
 </svg>
-<figcaption><b>图 7</b>　apply_patch 的六阶段链路与三条失败分支。最重要的分界是 <code>parse</code>、<code>verify</code>、<code>commit</code>——把三件事分开，可以在写入发生以前暴露大部分语法错误、路径冲突和上下文漂移。</figcaption>
+<figcaption><b>图 15</b>　apply_patch 的六阶段链路与三条失败分支。最重要的分界是 <code>parse</code>、<code>verify</code>、<code>commit</code>——把三件事分开，可以在写入发生以前暴露大部分语法错误、路径冲突和上下文漂移。</figcaption>
 </figure>
 
 <h4>四轮容错匹配：一个很聪明的工程细节</h4>
@@ -1586,14 +2055,14 @@ cursor = <span class="n">0</span>
     <rect x="464" y="46" width="196" height="96" rx="10" fill="#122b26" stroke="#2dd4a7" stroke-width="1.5"/>
     <text x="562" y="72" fill="#2dd4a7" font-size="13.5" font-weight="700" text-anchor="middle">Archived Memory</text>
     <text x="562" y="94" fill="#a8d8c8" font-size="12" text-anchor="middle">长期记忆</text>
-    <text x="562" y="114" fill="#6f9c8c" font-size="11" text-anchor="middle">按需检索</text>
+    <text x="562" y="114" fill="#6f9c8c" font-size="11" text-anchor="middle">按需加载</text>
     <text x="562" y="131" fill="#547a6e" font-size="10.5" text-anchor="middle">记忆只当线索，不当事实</text>
 
     <text x="340" y="26" fill="#93a1b1" font-size="12.5" font-weight="650" text-anchor="middle">越往右越省 token，但越需要回源验证</text>
     <text x="340" y="176" fill="#5f7183" font-size="11.5" text-anchor="middle">对应源码：codex-rs/core/src/context_manager/history.rs 中的 ContextManager</text>
   </g>
 </svg>
-<figcaption><b>图 8</b>　Codex 的三层上下文结构。Token 计数按内容类型分别处理，图片和音频有独立的成本常量。</figcaption>
+<figcaption><b>图 16</b>　Codex 的三层上下文结构。Token 计数按内容类型分别处理，图片和音频有独立的成本常量。</figcaption>
 </figure>
 
 <h4>Token 估算：字节数换算 + 自适应修正</h4>
@@ -1701,7 +2170,7 @@ cursor = <span class="n">0</span>
 
 <div class="key">
 <span class="t">这个差距决定的是架构可行性</span>
-<p>13 秒的首 token 延迟会让 <b>sub-agent 并行、speculation（推测执行）、background agent</b> 这些交互模式失去可行性——没有用户愿意等一个子 agent 冷启动 13 秒再返回结果。500 毫秒则让这些模式变得可用。</p>
+<p>13 秒的首 token 延迟会让 <b>sub-agent 并行、speculation（推测执行）、background agent</b> 这些交互模式失去可行性——没有用户愿意等一个子 Agent 冷启动 13 秒再返回结果。500 毫秒则让这些模式变得可用。</p>
 <p>换句话说：<b>cache hit rate 决定的是哪些系统架构能够存在，而不是已有架构运行得多快。</b></p>
 </div>
 
@@ -1782,12 +2251,12 @@ cursor = <span class="n">0</span>
 
 <h4>子 Agent 的缓存盲区</h4>
 
-<p>当 harness 引入子 agent 架构时，缓存约束会以一种不易察觉的方式传播：<b>每个子 agent 启动时都会建立自己的 API 会话和独立的缓存前缀，主 agent 精心维护的缓存对它完全无效。</b></p>
+<p>当 harness 引入子 Agent 架构时，缓存约束会以一种不易察觉的方式传播：<b>每个子 Agent 启动时都会建立自己的 API 会话和独立的缓存前缀，主 Agent 精心维护的缓存对它完全无效。</b></p>
 
 <ul>
-<li>如果子 agent 的任务很短（比如只做一次工具调用就返回），它的缓存根本来不及被复用就过期了。这是一个<b>隐性成本放大器</b>：每一个短生命周期的子 agent 都意味着一次缓存冷启动。</li>
+<li>如果子 Agent 的任务很短（比如只做一次工具调用就返回），它的缓存根本来不及被复用就过期了。这是一个<b>隐性成本放大器</b>：每一个短生命周期的子 Agent 都意味着一次缓存冷启动。</li>
 <li>一个具体的坑：某些 harness 在派发简单子任务时会把 <code>reasoning_effort</code> 设为 low，期望减少 output token 从而降低成本。但这个参数的变化会改变 API 请求的参数签名，<em>导致与正常请求的缓存无法共享</em>——看似在省钱，实际因 cache miss 付出更多。</li>
-<li>子 agent 的 system prompt 若要与主 agent 共享一部分（比如通用的安全规则），这部分内容必须放在<b>最前面且与主 agent 完全一致</b>。任何差异，哪怕只是为了简化而删了几行，都意味着无法复用缓存。</li>
+<li>子 Agent 的 system prompt 若要与主 Agent 共享一部分（比如通用的安全规则），这部分内容必须放在<b>最前面且与主 Agent 完全一致</b>。任何差异，哪怕只是为了简化而删了几行，都意味着无法复用缓存。</li>
 </ul>
 
 <p>这给第 3 章的"子 Agent 编排"补上了一个重要维度：<b>拆分粒度不只是上下文和延迟的权衡，也是缓存的权衡。</b></p>
@@ -1801,7 +2270,7 @@ cursor = <span class="n">0</span>
 <ol>
 <li>每次 API 调用的 cache hit / miss / creation tokens 的记录与聚合。</li>
 <li><b>按 cache break 来源分类的计数器</b>：system prompt 变更、tool list 变更、历史消息修改、compaction 触发等。</li>
-<li>主 agent 与子 agent <b>分别统计</b>——两者的模式通常差异显著。</li>
+<li>主 Agent 与子 Agent <b>分别统计</b>——两者的模式通常差异显著。</li>
 </ol>
 
 <p>据公开资料，Claude Code 源码中有一个 <code>promptCacheBreakDetection.ts</code> 模块，专门做这件事：系统性地追踪缓存断裂的来源，并把每一类断裂归因到具体的变更类型上，形成可观测的指标<span class="pill">二手来源</span>。这个思路值得借鉴——它把一个模糊的成本问题，转化成了可归因的工程问题。</p>
@@ -1826,7 +2295,7 @@ cursor = <span class="n">0</span>
 <p><b>结论：缓存纪律与采样策略是两条相互竞争的约束。</b>同时使用时必须降级其一——要么把 N 压小、把预算挪到更便宜的验证器上，要么把采样限制在"前缀短、轨迹短"的局部环节（例如单个函数的生成），而不是整条 agent 轨迹。</p>
 
 <div class="summary">
-<b>本节小结：</b>Prompt caching 不是上线后的成本优化手段，而是<b>应该在架构设计阶段就纳入的一等约束</b>。它同时决定成本基线和交互延迟，进而划定了子 agent、speculation、background agent 等架构的可行边界。它的连锁后果包括压缩顺序、工具排序、内容裁剪时机和子 agent 前缀共享——这些子系统看起来互不相关，却因为共享同一个底层约束而产生了耦合。
+<b>本节小结：</b>Prompt caching 不是上线后的成本优化手段，而是<b>应该在架构设计阶段就纳入的一等约束</b>。它同时决定成本基线和交互延迟，进而划定了子 Agent、speculation、background agent 等架构的可行边界。它的连锁后果包括压缩顺序、工具排序、内容裁剪时机和子 Agent 前缀共享——这些子系统看起来互不相关，却因为共享同一个底层约束而产生了耦合。
 </div>
 
 <h3 id="s5-6">5.6 三层安全防线</h3>
@@ -1885,7 +2354,7 @@ cursor = <span class="n">0</span>
     <text x="519" y="366" fill="#7d8b9c" font-size="10.5" text-anchor="middle">+ Job Objects</text>
   </g>
 </svg>
-<figcaption><b>图 9</b>　Codex 的三层安全防线。前两层是"软"控制（决定是否执行），第三层是"硬"控制（限制进程实际能做什么）。三层不是简单串联，而是有复杂的交互。</figcaption>
+<figcaption><b>图 17</b>　Codex 的三层安全防线。前两层是"软"控制（决定是否执行），第三层是"硬"控制（限制进程实际能做什么）。三层不是简单串联，而是有复杂的交互。</figcaption>
 </figure>
 
 <h4>第一层：AskForApproval</h4>
@@ -2242,7 +2711,7 @@ Types → Config → Repo → Service → Runtime → UI
 
 <p>LangGraph 走的是另一条路：不隐藏循环，而是把它画出来。它有两个节点（<code>llm_call</code> 和 <code>tool_node</code>）通过条件边连接——有工具调用就路由到 <code>tool_node</code>，没有就路由到 END。</p>
 
-<p>它把状态建模为带类型的字典，在节点之间流动，通过 reducer 合并各节点产生的更新；在 super-step 边界做 checkpoint，因此任务中断后可以恢复，也支持"时间旅行"式的调试。它是从 LangChain 的 <code>AgentExecutor</code> 演进来的，后者在 v0.2 被弃用，因为它难以扩展且缺少多 agent 支持。</p>
+<p>它把状态建模为带类型的字典，在节点之间流动，通过 reducer 合并各节点产生的更新；在 super-step 边界做 checkpoint，因此任务中断后可以恢复，也支持"时间旅行"式的调试。它是从 LangChain 的 <code>AgentExecutor</code> 演进来的，后者在 v0.2 被弃用，因为它难以扩展且缺少多 Agent 支持。</p>
 
 <h4>一个教科书级的案例：只改 harness，排名从 30 名外到第 5</h4>
 
@@ -2452,7 +2921,7 @@ Agent Response</pre></div>
 
 <p>据公开资料，Anthropic 和 OpenAI 在这一点上口径一致：<b>先把单个 agent 做到极致。</b><span class="pill">二手来源</span></p>
 
-<p>多 agent 系统的成本是实在的：路由需要额外的 LLM 调用，handoff 会丢失上下文，调试难度上升一个数量级。只有在两种情况下才值得拆分：</p>
+<p>多 Agent 系统的成本是实在的：路由需要额外的 LLM 调用，handoff 会丢失上下文，调试难度上升一个数量级。只有在两种情况下才值得拆分：</p>
 
 <ul>
 <li>工具过载——重叠工具超过约 10 个，模型的选择质量开始下降；</li>
@@ -2477,7 +2946,7 @@ Agent Response</pre></div>
 
 <h3>决策 3 · 上下文窗口管理策略</h3>
 
-<p>五种主流做法（时间驱动清理、对话总结、观察结果遮蔽、结构化记笔记、子 agent 委派）不是互斥的，生产系统通常组合使用。真正的决策点有两个，而且它们会互相拉扯：</p>
+<p>组件 4 列出的五种做法（压缩、观察结果遮蔽、即时检索、结构化记笔记、子 Agent 委派）不是互斥的，生产系统通常组合使用——其中压缩按触发方式又分时间驱动清理与对话总结两种。真正的决策点有两个，而且它们会互相拉扯：</p>
 
 <ul>
 <li><b>信息保真的底线设在哪里。</b> 据公开的源码分析，Codex 的答案是一个显式常量——关键实体保留率不低于 70%（<code>MIN_ENTITY_PRESERVATION_RATIO = 0.7</code>）<span class="pill">单一来源，未交叉验证</span>。这个阈值可以按任务调：任务越依赖精确细节（比如重构代码），阈值就该越高。</li>
@@ -2752,7 +3221,7 @@ GPT-5.6 Sol + OpenCode
 
 <h4>趋势三：从静态配置走向编译器</h4>
 
-<p>最前沿的方向已经超出单 agent 的范畴：</p>
+<p>最前沿的方向已经超出单 Agent 的范畴：</p>
 
 <ul>
 <li>编排多个并行工作的 agent；</li>
@@ -3117,23 +3586,25 @@ GPT-5.6 Sol + OpenCode
 
 <h3>A.2 参考资料</h3>
 
-<p>下面按可信度排序。<b>一手来源</b>指厂商官方发布；<b>源码分析</b>指基于开源仓库代码的第三方解读；<b>二手报道</b>指媒体或社区转述，其中的数字建议交叉验证。</p>
+<p>下面按可信度排序。<b>一手来源</b>指厂商官方发布与学术论文原文；<b>源码分析</b>指基于开源仓库代码的第三方解读；<b>二手报道</b>指媒体或社区转述，其中的数字建议交叉验证。</p>
 
-<h4>一手来源（厂商官方）</h4>
+<h4>一手来源与学术论文</h4>
 <ol class="refs">
 <li>OpenAI — <b>Harness Engineering</b>（2026-02-11，作者 Ryan Lopopolo）。0 行手写代码实验的完整记录，含 AGENTS.md 失败分析、docs/ 目录结构、应用可读性、垃圾回收机制。<br><span class="pill">openai.com/index/harness-engineering/</span></li>
 <li>OpenAI — <b>Unlocking the Codex harness: how we built the App Server</b>（2026-02-04，作者 Celia Chen）。三层架构、Item/Turn/Thread 三原语、initialize 握手、三种客户端集成模式。<br><span class="pill">openai.com/index/unlocking-the-codex-harness/</span></li>
-<li>Anthropic — <b>Effective harnesses for long-running agents</b>（2025-11-26，作者 Justin Young）。换班工程师类比、Initializer + Coding 双 agent、feature list JSON、四大失败模式对照表。<br><span class="pill">anthropic.com/engineering/effective-harnesses-for-long-running-agents</span></li>
+<li>Anthropic — <b>Effective harnesses for long-running agents</b>（2025-11-26，作者 Justin Young）。换班工程师类比、Initializer + Coding 双 Agent、feature list JSON、四大失败模式对照表。<br><span class="pill">anthropic.com/engineering/effective-harnesses-for-long-running-agents</span></li>
 <li>Anthropic — <b>Building effective agents</b>（工作流 vs agent 的基础分类）。<br><span class="pill">anthropic.com/research/building-effective-agents</span></li>
 <li>Scale AI — <b>HarnessOpt-Bench: Evaluating LLMs at Harness Optimization</b>（2026-08）。GPT-5.6 Sol + Codex vs + OpenCode 的对照数据与 Resolution Band 方法论。<br><span class="pill">arXiv 2608.06301</span></li>
 <li>Beren Millidge — <b>Scaffolded LLMs as natural language computers</b>（2023-04-11）。冯·诺依曼类比的思想源头，也是本文第 1 章硬件映射表的出处。<br><span class="pill">beren.io</span></li>
 <li>Manus — <b>Context Engineering for AI Agents: Lessons from Building Manus</b>。提出了 keep prefix stable / make context append-only / mask tools don't remove them 三条缓存原则，以及 input/output token 比约 100:1 的数据。<br><span class="pill">manus.im/blog</span></li>
 <li>Anthropic / OpenAI / DeepSeek / Google — <b>Prompt Caching 官方文档</b>。缓存价格折扣、前缀匹配机制、cache tokens 字段的定义来源。</li>
 <li>香港城市大学 + 微软亚洲研究院 — <b>Retrospective Harness Optimization</b>（2026-06-04）。无标准答案下的 harness 自我优化：核心集筛选（DPP）、组内轨迹自验证 + 自一致性、3 套 harness 方案 Best-of-N 择优。据二手报道 SWE-Bench Pro 59% → 78%。<br><span class="pill">arXiv 2606.05922</span></li>
+<li>Liu et al. — <b>Lost in the Middle: How Language Models Use Long Contexts</b>（TACL 2024）。关键信息位于上下文中段时性能显著下降的原始研究，含 U 形曲线与"中段低于闭卷基线"的对照。本文 2.2 节成因说明的依据。<br><span class="pill">arXiv 2307.03172</span></li>
+<li>Xiao et al. — <b>Efficient Streaming Language Models with Attention Sinks</b>（2023）。序列开头少数 token 吸收异常大注意力的现象来源，即 attention sink。<br><span class="pill">arXiv 2309.17453</span></li>
 </ol>
 
 <h4>源码分析</h4>
-<ol class="refs" start="10">
+<ol class="refs" start="12">
 <li><b>Codex CLI Deep Dive</b>（Liang Cui）。以 OpenAI Codex CLI 开源源码为依据的技术解析，含多平台 Sandbox、Context 管理、App Server 等章节。<br><span class="pill">book.cuiliang.ai/codex-deep-dive/</span></li>
 <li>侯瑞哲 — <b>OpenAI Codex 的执行安全模型：三层防线</b>（2026-06-08）。AskForApproval 五模式、ExecPolicy 前缀规则引擎、BANNED_PREFIX_SUGGESTIONS、WritableRoot 的源码级分析。<br><span class="pill">ruizhehou.github.io</span></li>
 <li>VerySmallWoods — <b>Codex 怎样用 apply_patch 编辑文件？</b>（2026-09-13）。apply_patch 的语法、解析、上下文匹配、预验证、部分失败边界的完整拆解。<br><span class="pill">verysmallwoods.com</span></li>
@@ -3142,13 +3613,13 @@ GPT-5.6 Sol + OpenCode
 </ol>
 
 <h4>二手报道与社区分析</h4>
-<ol class="refs" start="15">
+<ol class="refs" start="17">
 <li><b>Harness Engineering：OpenAI Codex 团队经验总结</b>（中文译文，含实测数据整理）。</li>
 <li><b>同样是 GPT-5.6，为什么原生 Codex Harness 更适合 GPT</b>（2026-09-08，掘金）。含 HarnessOpt-Bench 数据、claudex 实验、jcode bench 反例的整理。</li>
 <li><b>Claude Code、Codex、Cursor、OpenCode Harness 架构与执行逻辑深度对比</b>（2026-06-21）。<span class="warn" style="display:inline;padding:2px 8px;font-size:12.5px;margin-left:6px">注意：该文中的部分性能数字（如具体 tokens/秒、成功率提升百分比）缺少可验证来源，本文未采用</span></li>
 <li>Agent Wiki — <b>Agent Harness（Agent 脚手架 / 运行时控制层）</b>。概念辨析与最小闭环伪代码。<br><span class="pill">learnagent.wiki</span></li>
 <li>jcode bench 排行榜。<span class="pill">jcode.sh/jcode-bench</span></li>
-<li><b>Prompt Caching 作为 Harness 工程的一等约束</b>（2026-04-04）。本文 5.5 节的主要依据，含缓存价格/延迟数据、压缩顺序的 PR 案例、子 agent 缓存盲区分析。<br><span class="pill">yage.ai/share</span></li>
+<li><b>Prompt Caching 作为 Harness 工程的一等约束</b>（2026-04-04）。本文 5.5 节的主要依据，含缓存价格/延迟数据、压缩顺序的 PR 案例、子 Agent 缓存盲区分析。<br><span class="pill">yage.ai/share</span></li>
 <li>OpenClaw 公开 PR 记录（#58036 压缩顺序、#58037 工具列表确定性排序、#58038 延迟裁剪图片）。这些是对已有系统的修补，反映的是实践中逐步形成的 cache discipline。<br><span class="pill">github.com/openclaw/openclaw/pulls</span></li>
 <li>LangChain — <b>不换模型，只改 harness：Terminal Bench 2.0 从 Top 30 开外到 Top 5</b>（2026-03）。本文 6.2 节案例的主要依据，含 52.8% → 66.5% 的完整分数变化、五个失败模式、四层中间件设计、推理三明治策略。<br><span class="pill">LangChain 官方博客 + jerry609.github.io 技术拆解</span></li>
 <li>Geoffrey Huntley — <b>Ralph Wiggum Loop</b>。agent 试图退出时强制其继续执行的模式来源，被 Codex 与 LangChain 分别采用。</li>

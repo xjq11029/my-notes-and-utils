@@ -310,8 +310,8 @@ flowchart TD
     S --> T["@PreDestroy 释放资源"]
     T --> U["关闭内嵌容器，进程退出"]
 
-    style D["部署方式决策点"]
-    style R["优雅停机流程"]
+    style D fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+    style R fill:#fff3e0,stroke:#f57c00,stroke-width:2px
 ```
 
 > 📖 **参考链接**：
