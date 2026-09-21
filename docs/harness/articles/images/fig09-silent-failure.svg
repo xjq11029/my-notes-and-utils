@@ -1,0 +1,44 @@
+<svg viewBox="0 0 680 346" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="静默失败的自我放大回路：模型给出貌似正确的结果后，若没有验证回路，错误会被写进上下文并在下一轮变成前提；右侧为验证回路介入后的纠偏路径">
+  <rect x="0" y="0" width="680" height="346" fill="#111721"/>
+  <defs>
+    <marker id="arSF" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto">
+      <path d="M0,0 L7,3.2 L0,6.4 z" fill="#4a5a6c"/>
+    </marker>
+    <marker id="arSFg" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto">
+      <path d="M0,0 L7,3.2 L0,6.4 z" fill="#2dd4a7"/>
+    </marker>
+  </defs>
+
+  <text x="340" y="22" fill="#93a1b1" font-size="13" font-weight="700" text-anchor="middle" font-family="sans-serif">静默失败为什么会自我放大</text>
+  <text x="340" y="42" fill="#6b7a8d" font-size="11.5" text-anchor="middle" font-family="sans-serif">显式失败会停下来；静默失败会继续往下滚 —— 而 agent 的产出，正是它下一轮的输入</text>
+
+  <g font-family="sans-serif">
+    <rect x="24" y="60" width="316" height="46" rx="8" fill="#2a1f24" stroke="#f0655f" stroke-width="1.3"/>
+    <text x="182" y="87" fill="#f0655f" font-size="12" text-anchor="middle">模型输出一个貌似正确的结果</text>
+    <line x1="182" y1="106" x2="182" y2="120" stroke="#4a5a6c" stroke-width="1.4" marker-end="url(#arSF)"/>
+
+    <rect x="24" y="122" width="316" height="46" rx="8" fill="#2a1f24" stroke="#f0655f" stroke-width="1.3"/>
+    <text x="182" y="149" fill="#f0655f" font-size="12" text-anchor="middle">没有验证 → 直接采信</text>
+    <line x1="182" y1="168" x2="182" y2="182" stroke="#4a5a6c" stroke-width="1.4" marker-end="url(#arSF)"/>
+
+    <rect x="24" y="184" width="316" height="46" rx="8" fill="#2a1f24" stroke="#f0655f" stroke-width="1.3"/>
+    <text x="182" y="211" fill="#f0655f" font-size="12" text-anchor="middle">写进上下文 / 状态 / 记忆</text>
+    <line x1="182" y1="230" x2="182" y2="244" stroke="#4a5a6c" stroke-width="1.4" marker-end="url(#arSF)"/>
+
+    <rect x="24" y="246" width="316" height="46" rx="8" fill="#2a1f24" stroke="#f0655f" stroke-width="1.6"/>
+    <text x="182" y="273" fill="#f0655f" font-size="12" text-anchor="middle">下一轮把它当事实 → 错误变成前提</text>
+
+    <line x1="340" y1="145" x2="376" y2="145" stroke="#2dd4a7" stroke-width="1.4" marker-end="url(#arSFg)"/>
+
+    <rect x="380" y="122" width="276" height="46" rx="8" fill="#122b26" stroke="#2dd4a7" stroke-width="1.4"/>
+    <text x="518" y="149" fill="#2dd4a7" font-size="12" text-anchor="middle">验证回路介入：测试 · lint · 截图</text>
+    <line x1="518" y1="168" x2="518" y2="182" stroke="#2dd4a7" stroke-width="1.4" marker-end="url(#arSFg)"/>
+
+    <rect x="380" y="184" width="276" height="46" rx="8" fill="#122b26" stroke="#2dd4a7" stroke-width="1.4"/>
+    <text x="518" y="211" fill="#2dd4a7" font-size="12" text-anchor="middle">失败 → 作为 error result 回喂</text>
+
+    <path d="M380,207 L362,207 L362,83 L344,83" fill="none" stroke="#2dd4a7" stroke-width="1.4" marker-end="url(#arSFg)"/>
+    <text x="518" y="273" fill="#7fa89c" font-size="11.5" text-anchor="middle">模型改道重试，错误不再往下走</text>
+  </g>
+  <text x="340" y="335" fill="#93a1b1" font-size="12.5" font-weight="600" text-anchor="middle" font-family="sans-serif">图 9</text>
+</svg>

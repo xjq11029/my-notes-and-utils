@@ -2,19 +2,19 @@
 
 ## 工程定位与技术栈
 
-`my-notes-and-utils` 是个人知识库与工具仓库：**体系化学习指南** + **技术专题深度笔记** + **可复用工具函数**，以 Markdown 为主要载体（559 个文件 / 501 篇 Markdown / 约 25.6 万行）。
+`my-notes-and-utils` 是个人知识库与工具仓库：**体系化学习指南** + **技术专题深度笔记** + **可复用工具函数**，以 Markdown 为主要载体（588 个文件 / 503 篇 Markdown / 约 25.7 万行）。
 
-技术栈：主体为 Markdown（无构建系统、无 CI）；`src/js/` 为 JavaScript / Node.js（按需 `require` 第三方依赖）；`src/python/` 仅标准库；`scripts/` 为本地脚本（Shell + Node ESM，依赖按需 `npm install`）。
+技术栈：主体为 Markdown（无构建系统、无 CI）；`src/js/` 为 JavaScript / Node.js（按需 `require` 第三方依赖）；`src/python/` 仅标准库；`scripts/` 为本地脚本（Shell + Node ESM + Python，依赖按需 `npm install`）。
 
 ## 目录结构
 
 ```
 my-notes-and-utils/
-├── docs/             # 技术专题深度笔记（harness / 大模型与神经网络原理笔记）
+├── docs/             # 技术专题深度笔记（harness 含 articles/ 对外发布稿 / 大模型与神经网络原理笔记）
 ├── guides/           # 体系化学习指南（backend / frontend / code-review / learning / tools）
 ├── src/              # 通用工具函数（js / python）
 ├── examples/         # src 工具函数的用法示例
-├── scripts/          # 本地脚本（环境初始化 + 配图 SVG → 2× PNG 渲染）
+├── scripts/          # 本地脚本（环境初始化 + HTML 抽 SVG + 配图 SVG → PNG 渲染，默认 2×，发布稿 4×）
 └── CONVENTIONS.md    # 工程约定（按需查阅，非常驻）
 ```
 

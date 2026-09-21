@@ -3594,6 +3594,7 @@ GPT-5.6 Sol + OpenCode
 <li>OpenAI — <b>Unlocking the Codex harness: how we built the App Server</b>（2026-02-04，作者 Celia Chen）。三层架构、Item/Turn/Thread 三原语、initialize 握手、三种客户端集成模式。<br><span class="pill">openai.com/index/unlocking-the-codex-harness/</span></li>
 <li>Anthropic — <b>Effective harnesses for long-running agents</b>（2025-11-26，作者 Justin Young）。换班工程师类比、Initializer + Coding 双 Agent、feature list JSON、四大失败模式对照表。<br><span class="pill">anthropic.com/engineering/effective-harnesses-for-long-running-agents</span></li>
 <li>Anthropic — <b>Building effective agents</b>（工作流 vs agent 的基础分类）。<br><span class="pill">anthropic.com/research/building-effective-agents</span></li>
+<li>Barbaste / Darrigol / Vu / Wiltberger（Wavestone AI Lab）— <b>Harness Engineering: Anatomy, Architecture, and Evolution of Coding Agents — A Source-Code Study of Eleven Systems</b>（83 页；内容快照 2026-07，arXiv 发布 2026-09）。对 11 个生产级编码 Harness 做源码级解剖，本文多处结论的依据：11 个系统<b>互不相同</b>、且<b>无一 import 通用 agent 框架</b>（第 0 章）；生产级复杂度是被安全性、用户体验与传输层需求驱动的，而非任务完成能力（3.1 节）。<br><span class="pill">arXiv 2609.00006</span></li>
 <li>Scale AI — <b>HarnessOpt-Bench: Evaluating LLMs at Harness Optimization</b>（2026-08）。GPT-5.6 Sol + Codex vs + OpenCode 的对照数据与 Resolution Band 方法论。<br><span class="pill">arXiv 2608.06301</span></li>
 <li>Beren Millidge — <b>Scaffolded LLMs as natural language computers</b>（2023-04-11）。冯·诺依曼类比的思想源头，也是本文第 1 章硬件映射表的出处。<br><span class="pill">beren.io</span></li>
 <li>Manus — <b>Context Engineering for AI Agents: Lessons from Building Manus</b>。提出了 keep prefix stable / make context append-only / mask tools don't remove them 三条缓存原则，以及 input/output token 比约 100:1 的数据。<br><span class="pill">manus.im/blog</span></li>
@@ -3604,7 +3605,7 @@ GPT-5.6 Sol + OpenCode
 </ol>
 
 <h4>源码分析</h4>
-<ol class="refs" start="12">
+<ol class="refs" start="13">
 <li><b>Codex CLI Deep Dive</b>（Liang Cui）。以 OpenAI Codex CLI 开源源码为依据的技术解析，含多平台 Sandbox、Context 管理、App Server 等章节。<br><span class="pill">book.cuiliang.ai/codex-deep-dive/</span></li>
 <li>侯瑞哲 — <b>OpenAI Codex 的执行安全模型：三层防线</b>（2026-06-08）。AskForApproval 五模式、ExecPolicy 前缀规则引擎、BANNED_PREFIX_SUGGESTIONS、WritableRoot 的源码级分析。<br><span class="pill">ruizhehou.github.io</span></li>
 <li>VerySmallWoods — <b>Codex 怎样用 apply_patch 编辑文件？</b>（2026-09-13）。apply_patch 的语法、解析、上下文匹配、预验证、部分失败边界的完整拆解。<br><span class="pill">verysmallwoods.com</span></li>
@@ -3613,7 +3614,7 @@ GPT-5.6 Sol + OpenCode
 </ol>
 
 <h4>二手报道与社区分析</h4>
-<ol class="refs" start="17">
+<ol class="refs" start="18">
 <li><b>Harness Engineering：OpenAI Codex 团队经验总结</b>（中文译文，含实测数据整理）。</li>
 <li><b>同样是 GPT-5.6，为什么原生 Codex Harness 更适合 GPT</b>（2026-09-08，掘金）。含 HarnessOpt-Bench 数据、claudex 实验、jcode bench 反例的整理。</li>
 <li><b>Claude Code、Codex、Cursor、OpenCode Harness 架构与执行逻辑深度对比</b>（2026-06-21）。<span class="warn" style="display:inline;padding:2px 8px;font-size:12.5px;margin-left:6px">注意：该文中的部分性能数字（如具体 tokens/秒、成功率提升百分比）缺少可验证来源，本文未采用</span></li>

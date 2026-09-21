@@ -1,0 +1,50 @@
+<svg viewBox="0 0 680 374" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="长周期任务的五个必然问题，以及每一个问题各自对应的 harness 对冲机制（一对一映射）">
+  <rect x="0" y="0" width="680" height="374" fill="#111721"/>
+  <defs>
+    <marker id="ar7" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto">
+      <path d="M0,0 L7,3.2 L0,6.4 z" fill="#4a5a6c"/>
+    </marker>
+  </defs>
+
+  <text x="340" y="22" fill="#93a1b1" font-size="13" font-weight="700" text-anchor="middle" font-family="sans-serif">任务变长 → 五个必然问题 → 各自的对冲机制</text>
+  <text x="340" y="42" fill="#6b7a8d" font-size="11.5" text-anchor="middle" font-family="sans-serif">五个问题都源自模型的三个结构属性（无状态 · 无 I/O · 无自验），模型本身解决不了</text>
+
+  <g font-family="sans-serif">
+    <rect x="24" y="58" width="250" height="46" rx="8" fill="#2a1f24" stroke="#f0655f" stroke-width="1.3"/>
+    <text x="149" y="77" fill="#f0655f" font-size="12.5" font-weight="650" text-anchor="middle">① 上下文膨胀与腐化</text>
+    <text x="149" y="92" fill="#9c7b7b" font-size="10.5" text-anchor="middle">装不下 · 装得下但用不好</text>
+    <line x1="282" y1="81" x2="326" y2="81" stroke="#4a5a6c" stroke-width="1.4" marker-end="url(#ar7)"/>
+    <rect x="334" y="58" width="322" height="46" rx="8" fill="#122b26" stroke="#2dd4a7" stroke-width="1.4"/>
+    <text x="495" y="77" fill="#2dd4a7" font-size="12.5" font-weight="650" text-anchor="middle">上下文管理 + Prompt 构造</text>
+    <text x="495" y="92" fill="#7fa89c" font-size="10.5" text-anchor="middle">压缩 · 遮蔽 · 即时检索 · 顺序与优先级</text>
+    <rect x="24" y="112" width="250" height="46" rx="8" fill="#2a1f24" stroke="#f0655f" stroke-width="1.3"/>
+    <text x="149" y="131" fill="#f0655f" font-size="12.5" font-weight="650" text-anchor="middle">② 错误累积</text>
+    <text x="149" y="146" fill="#9c7b7b" font-size="10.5" text-anchor="middle">每步 99% → 十步只剩 90%</text>
+    <line x1="282" y1="135" x2="326" y2="135" stroke="#4a5a6c" stroke-width="1.4" marker-end="url(#ar7)"/>
+    <rect x="334" y="112" width="322" height="46" rx="8" fill="#122b26" stroke="#2dd4a7" stroke-width="1.4"/>
+    <text x="495" y="131" fill="#2dd4a7" font-size="12.5" font-weight="650" text-anchor="middle">输出解析 + 错误处理</text>
+    <text x="495" y="146" fill="#7fa89c" font-size="10.5" text-anchor="middle">结构化动作 · 分类重试 · 回喂</text>
+    <rect x="24" y="166" width="250" height="46" rx="8" fill="#2a1f24" stroke="#f0655f" stroke-width="1.3"/>
+    <text x="149" y="185" fill="#f0655f" font-size="12.5" font-weight="650" text-anchor="middle">③ 跨会话失忆</text>
+    <text x="149" y="200" fill="#9c7b7b" font-size="10.5" text-anchor="middle">新会话不知道上次做了什么</text>
+    <line x1="282" y1="189" x2="326" y2="189" stroke="#4a5a6c" stroke-width="1.4" marker-end="url(#ar7)"/>
+    <rect x="334" y="166" width="322" height="46" rx="8" fill="#122b26" stroke="#2dd4a7" stroke-width="1.4"/>
+    <text x="495" y="185" fill="#2dd4a7" font-size="12.5" font-weight="650" text-anchor="middle">记忆 + 状态管理</text>
+    <text x="495" y="200" fill="#7fa89c" font-size="10.5" text-anchor="middle">跨会话知识 · 检查点 · 恢复回放</text>
+    <rect x="24" y="220" width="250" height="46" rx="8" fill="#2a1f24" stroke="#f0655f" stroke-width="1.3"/>
+    <text x="149" y="239" fill="#f0655f" font-size="12.5" font-weight="650" text-anchor="middle">④ 权限越界</text>
+    <text x="149" y="254" fill="#9c7b7b" font-size="10.5" text-anchor="middle">不可逆副作用 · 提示注入</text>
+    <line x1="282" y1="243" x2="326" y2="243" stroke="#4a5a6c" stroke-width="1.4" marker-end="url(#ar7)"/>
+    <rect x="334" y="220" width="322" height="46" rx="8" fill="#122b26" stroke="#2dd4a7" stroke-width="1.4"/>
+    <text x="495" y="239" fill="#2dd4a7" font-size="12.5" font-weight="650" text-anchor="middle">工具 + 护栏与安全</text>
+    <text x="495" y="254" fill="#7fa89c" font-size="10.5" text-anchor="middle">schema 约束 · 输入输出工具三层拦截</text>
+    <rect x="24" y="274" width="250" height="46" rx="8" fill="#2a1f24" stroke="#f0655f" stroke-width="1.3"/>
+    <text x="149" y="293" fill="#f0655f" font-size="12.5" font-weight="650" text-anchor="middle">⑤ 无法自验</text>
+    <text x="149" y="308" fill="#9c7b7b" font-size="10.5" text-anchor="middle">模型不知道自己错了</text>
+    <line x1="282" y1="297" x2="326" y2="297" stroke="#4a5a6c" stroke-width="1.4" marker-end="url(#ar7)"/>
+    <rect x="334" y="274" width="322" height="46" rx="8" fill="#122b26" stroke="#2dd4a7" stroke-width="1.4"/>
+    <text x="495" y="293" fill="#2dd4a7" font-size="12.5" font-weight="650" text-anchor="middle">验证回路</text>
+    <text x="495" y="308" fill="#7fa89c" font-size="10.5" text-anchor="middle">测试 · lint · 截图 · LLM-as-judge</text>
+  </g>
+  <text x="340" y="363" fill="#93a1b1" font-size="12.5" font-weight="600" text-anchor="middle" font-family="sans-serif">图 4</text>
+</svg>

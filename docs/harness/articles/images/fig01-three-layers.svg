@@ -1,0 +1,22 @@
+<svg viewBox="0 0 680 322" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="harness 一词的三个层次：本义是一套运行时系统，衍生出工程学科与视角两种用法，三者都不是设计模式">
+  <rect x="0" y="0" width="680" height="322" fill="#111721"/>
+  <rect x="40" y="30" width="600" height="62" rx="12" fill="#0d2b26" stroke="#2dd4a7" stroke-width="1.4"/>
+  <text x="64" y="54" fill="#2dd4a7" font-size="14.5" font-weight="700" font-family="sans-serif">① 本义 · 一套运行时系统（runtime）</text>
+  <text x="64" y="76" fill="#7fa89c" font-size="13" font-family="sans-serif">有代码 · 有进程 · 有配置 · 有失败；能跑起来才算数</text>
+
+  <rect x="40" y="112" width="290" height="68" rx="10" fill="#101d2e" stroke="#4dabf7" stroke-width="1"/>
+  <text x="60" y="136" fill="#4dabf7" font-size="14" font-weight="600" font-family="sans-serif">② Harness Engineering</text>
+  <text x="60" y="158" fill="#7d9cbb" font-size="13" font-family="sans-serif">设计与维护 ① 的工程学科</text>
+  <text x="60" y="176" fill="#6b87a5" font-size="12" font-family="sans-serif">例：犯错就固化一条约束</text>
+
+  <rect x="350" y="112" width="290" height="68" rx="10" fill="#1a1428" stroke="#b98ce8" stroke-width="1"/>
+  <text x="370" y="136" fill="#b98ce8" font-size="14" font-weight="600" font-family="sans-serif">③ Harness 思想 / 视角</text>
+  <text x="370" y="158" fill="#9a86c4" font-size="13" font-family="sans-serif">从「模型缺什么」倒推补什么</text>
+  <text x="370" y="176" fill="#83739f" font-size="12" font-family="sans-serif">例：Guides / Sensors、质量左移</text>
+
+  <rect x="40" y="200" width="600" height="68" rx="12" fill="none" stroke="#6b7a8d" stroke-width="0.8" stroke-dasharray="5 4"/>
+  <text x="64" y="224" fill="#93a1b1" font-size="14" font-weight="600" font-family="sans-serif">以上都不是「设计模式」</text>
+  <text x="64" y="246" fill="#7d8b9c" font-size="13" font-family="sans-serif">设计模式有固定结构（类图、接口契约）；harness 没有。</text>
+  <text x="64" y="264" fill="#7d8b9c" font-size="13" font-family="sans-serif">论文实测：11 个生产 harness 互不相同，无一 import 通用 agent 框架。</text>
+  <text x="340" y="311" fill="#93a1b1" font-size="12.5" font-weight="600" text-anchor="middle" font-family="sans-serif">图 1</text>
+</svg>

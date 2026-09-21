@@ -1,0 +1,23 @@
+<svg viewBox="0 0 680 324" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="子 Agent 的上下文防火墙：探索过程留在子 Agent 里，只把浓缩摘要带回父 Agent">
+  <rect x="0" y="0" width="680" height="324" fill="#111721"/>
+  <defs>
+    <marker id="arFW" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto">
+      <path d="M0,0 L7,3.2 L0,6.4 z" fill="#2dd4a7"/>
+    </marker>
+  </defs>
+  <text x="340" y="22" fill="#93a1b1" font-size="13" font-weight="700" text-anchor="middle" font-family="sans-serif">子 Agent 的上下文防火墙</text>
+  <text x="340" y="42" fill="#6b7a8d" font-size="11.5" text-anchor="middle" font-family="sans-serif">探索可以很脏，但只把结论带回主上下文</text>
+
+  <rect x="40" y="64" width="600" height="76" rx="10" fill="#122b26" stroke="#2dd4a7"/>
+  <text x="64" y="86" fill="#a8d8c8" font-size="12.5" font-weight="700" font-family="sans-serif">父 Agent 的上下文 —— 保持干净</text>
+  <text x="64" y="112" fill="#7fa89c" font-size="11.5" font-family="sans-serif">任务描述 + 子 Agent 返回的摘要（1000–2000 token），其余什么都没有</text>
+
+  <line x1="340" y1="180" x2="340" y2="144" stroke="#2dd4a7" stroke-width="1.6" marker-end="url(#arFW)"/>
+  <text x="352" y="162" fill="#2dd4a7" font-size="11" font-family="sans-serif">只回浓缩摘要</text>
+
+  <rect x="40" y="180" width="600" height="90" rx="10" fill="#1b2532" stroke="#3a4a5e"/>
+  <text x="64" y="202" fill="#dfe6ee" font-size="12.5" font-weight="700" font-family="sans-serif">子 Agent 的上下文 —— 可以很脏</text>
+  <text x="64" y="228" fill="#7d8b9c" font-size="11.5" font-family="sans-serif">读了 50 个文件、试了 10 种方案，几万 token 的中间过程</text>
+  <text x="64" y="250" fill="#6b7a8d" font-size="11.5" font-family="sans-serif">这些内容全部留在子 Agent 里，一步都不进入父 Agent 的窗口</text>
+  <text x="340" y="313" fill="#93a1b1" font-size="12.5" font-weight="600" text-anchor="middle" font-family="sans-serif">图 12</text>
+</svg>

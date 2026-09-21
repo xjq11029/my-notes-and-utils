@@ -1,0 +1,62 @@
+<svg viewBox="0 0 680 434" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="冯·诺依曼架构与 LLM Agent 的逐层对应关系">
+  <rect x="0" y="0" width="680" height="434" fill="#111721"/>
+  <defs>
+    <marker id="ar1" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto">
+      <path d="M0,0 L7,3.2 L0,6.4 z" fill="#5a6b7d"/>
+    </marker>
+  </defs>
+  <!-- 左列 -->
+  <text x="150" y="28" fill="#93a1b1" font-size="13" font-weight="700" text-anchor="middle" font-family="sans-serif">一台计算机</text>
+  <rect x="40" y="46" width="220" height="52" rx="9" fill="#1b2532" stroke="#3a4a5e"/>
+  <text x="150" y="70" fill="#dfe6ee" font-size="14" font-weight="600" text-anchor="middle" font-family="sans-serif">CPU</text>
+  <text x="150" y="88" fill="#7d8b9c" font-size="11.5" text-anchor="middle" font-family="sans-serif">执行指令 · 无状态</text>
+
+  <rect x="40" y="110" width="220" height="52" rx="9" fill="#1b2532" stroke="#3a4a5e"/>
+  <text x="150" y="134" fill="#dfe6ee" font-size="14" font-weight="600" text-anchor="middle" font-family="sans-serif">RAM</text>
+  <text x="150" y="152" fill="#7d8b9c" font-size="11.5" text-anchor="middle" font-family="sans-serif">快 · 小 · 断电即失</text>
+
+  <rect x="40" y="174" width="220" height="52" rx="9" fill="#1b2532" stroke="#3a4a5e"/>
+  <text x="150" y="198" fill="#dfe6ee" font-size="14" font-weight="600" text-anchor="middle" font-family="sans-serif">磁盘 / 数据库</text>
+  <text x="150" y="216" fill="#7d8b9c" font-size="11.5" text-anchor="middle" font-family="sans-serif">大 · 慢 · 持久</text>
+
+  <rect x="40" y="238" width="220" height="52" rx="9" fill="#1b2532" stroke="#3a4a5e"/>
+  <text x="150" y="262" fill="#dfe6ee" font-size="14" font-weight="600" text-anchor="middle" font-family="sans-serif">设备驱动 / 外设</text>
+  <text x="150" y="280" fill="#7d8b9c" font-size="11.5" text-anchor="middle" font-family="sans-serif">与真实世界交互</text>
+
+  <rect x="40" y="302" width="220" height="60" rx="9" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.6"/>
+  <text x="150" y="328" fill="#4dabf7" font-size="14.5" font-weight="700" text-anchor="middle" font-family="sans-serif">操作系统</text>
+  <text x="150" y="348" fill="#7d9cbb" font-size="11.5" text-anchor="middle" font-family="sans-serif">调度 · 隔离 · 权限 · 恢复</text>
+
+  <!-- 中间箭头 -->
+  <g stroke="#5a6b7d" stroke-width="1.4" marker-end="url(#ar1)">
+    <line x1="272" y1="72" x2="330" y2="72"/>
+    <line x1="272" y1="136" x2="330" y2="136"/>
+    <line x1="272" y1="200" x2="330" y2="200"/>
+    <line x1="272" y1="264" x2="330" y2="264"/>
+    <line x1="272" y1="332" x2="330" y2="332"/>
+  </g>
+  <text x="301" y="52" fill="#6b7a8d" font-size="11" text-anchor="middle" font-family="sans-serif">同构</text>
+
+  <!-- 右列 -->
+  <text x="510" y="28" fill="#93a1b1" font-size="13" font-weight="700" text-anchor="middle" font-family="sans-serif">一个 LLM Agent</text>
+  <rect x="342" y="46" width="220" height="52" rx="9" fill="#1b2532" stroke="#3a4a5e"/>
+  <text x="452" y="70" fill="#dfe6ee" font-size="14" font-weight="600" text-anchor="middle" font-family="sans-serif">大模型</text>
+  <text x="452" y="88" fill="#7d8b9c" font-size="11.5" text-anchor="middle" font-family="sans-serif">生成下一个 token · 无状态</text>
+
+  <rect x="342" y="110" width="220" height="52" rx="9" fill="#1b2532" stroke="#3a4a5e"/>
+  <text x="452" y="134" fill="#dfe6ee" font-size="14" font-weight="600" text-anchor="middle" font-family="sans-serif">上下文窗口</text>
+  <text x="452" y="152" fill="#7d8b9c" font-size="11.5" text-anchor="middle" font-family="sans-serif">快 · 有限 · 会话结束即失</text>
+
+  <rect x="342" y="174" width="220" height="52" rx="9" fill="#1b2532" stroke="#3a4a5e"/>
+  <text x="452" y="198" fill="#dfe6ee" font-size="14" font-weight="600" text-anchor="middle" font-family="sans-serif">文件系统 / 向量库</text>
+  <text x="452" y="216" fill="#7d8b9c" font-size="11.5" text-anchor="middle" font-family="sans-serif">大 · 慢 · 跨会话持久</text>
+
+  <rect x="342" y="238" width="220" height="52" rx="9" fill="#1b2532" stroke="#3a4a5e"/>
+  <text x="452" y="262" fill="#dfe6ee" font-size="14" font-weight="600" text-anchor="middle" font-family="sans-serif">工具 / MCP / 浏览器</text>
+  <text x="452" y="280" fill="#7d8b9c" font-size="11.5" text-anchor="middle" font-family="sans-serif">让模型能作用于真实世界</text>
+
+  <rect x="342" y="302" width="220" height="60" rx="9" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.6"/>
+  <text x="452" y="328" fill="#4dabf7" font-size="14.5" font-weight="700" text-anchor="middle" font-family="sans-serif">Harness</text>
+  <text x="452" y="348" fill="#7d9cbb" font-size="11.5" text-anchor="middle" font-family="sans-serif">编排 · 约束 · 反馈 · 恢复</text>
+  <text x="340" y="423" fill="#93a1b1" font-size="12.5" font-weight="600" text-anchor="middle" font-family="sans-serif">图 2</text>
+</svg>

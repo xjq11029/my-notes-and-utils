@@ -1,0 +1,20 @@
+<svg viewBox="0 0 680 364" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Prompt、Context、Harness 三层同心圆关系">
+  <rect x="0" y="0" width="680" height="364" fill="#111721"/>
+  <circle cx="340" cy="165" r="158" fill="rgba(185,140,232,.07)" stroke="#b98ce8" stroke-width="1.6"/>
+  <circle cx="340" cy="165" r="108" fill="rgba(77,171,247,.09)" stroke="#4dabf7" stroke-width="1.6"/>
+  <circle cx="340" cy="165" r="56" fill="rgba(45,212,167,.13)" stroke="#2dd4a7" stroke-width="1.6"/>
+
+  <text x="340" y="160" fill="#2dd4a7" font-size="15" font-weight="700" text-anchor="middle" font-family="sans-serif">Prompt</text>
+  <text x="340" y="180" fill="#6f9c8c" font-size="11" text-anchor="middle" font-family="sans-serif">工程</text>
+
+  <text x="340" y="88" fill="#4dabf7" font-size="15" font-weight="700" text-anchor="middle" font-family="sans-serif">Context Engineering</text>
+  <text x="340" y="107" fill="#5f87ab" font-size="11" text-anchor="middle" font-family="sans-serif">管模型看到什么、什么时候看到</text>
+
+  <text x="340" y="30" fill="#b98ce8" font-size="15" font-weight="700" text-anchor="middle" font-family="sans-serif">Harness Engineering</text>
+  <text x="340" y="49" fill="#8a76ab" font-size="11" text-anchor="middle" font-family="sans-serif">管模型之外的一切运行时系统</text>
+
+  <text x="340" y="252" fill="#8a76ab" font-size="12" text-anchor="middle" font-family="sans-serif">工具编排 · 状态持久化 · 错误恢复 · 验证回路 · 安全执行 · 生命周期</text>
+  <text x="340" y="274" fill="#8a76ab" font-size="12" text-anchor="middle" font-family="sans-serif">权限边界 · 子 Agent 交接 · 上下文压缩 · 可观测性</text>
+  <text x="340" y="308" fill="#5f7183" font-size="11.5" text-anchor="middle" font-family="sans-serif">每一层都包含内层，但解决的问题比内层大一个数量级</text>
+  <text x="340" y="353" fill="#93a1b1" font-size="12.5" font-weight="600" text-anchor="middle" font-family="sans-serif">图 3</text>
+</svg>

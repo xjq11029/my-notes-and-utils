@@ -1,0 +1,44 @@
+<svg viewBox="0 0 680 370" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="状态管理：把进度从进程内存搬到持久化存储，崩溃后从最近的检查点恢复">
+  <rect x="0" y="0" width="680" height="370" fill="#111721"/>
+  <defs>
+    <marker id="arST" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto">
+      <path d="M0,0 L7,3.2 L0,6.4 z" fill="#4dabf7"/>
+    </marker>
+    <marker id="arSTg" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto">
+      <path d="M0,0 L7,3.2 L0,6.4 z" fill="#2dd4a7"/>
+    </marker>
+  </defs>
+
+  <text x="340" y="22" fill="#93a1b1" font-size="13" font-weight="700" text-anchor="middle" font-family="sans-serif">状态管理解决什么</text>
+  <text x="340" y="42" fill="#6b7a8d" font-size="11.5" text-anchor="middle" font-family="sans-serif">进度只存在进程里，进程一死就全没了 —— 搬到进程之外，才能接着干</text>
+
+  <rect x="40" y="62" width="600" height="84" rx="12" fill="none" stroke="#3a4a5e" stroke-dasharray="6 5"/>
+  <text x="60" y="80" fill="#7d8b9c" font-size="11.5" font-family="sans-serif">进程内存（崩溃即清空）</text>
+
+  <rect x="67" y="94" width="126" height="40" rx="8" fill="#1b2532" stroke="#3a4a5e"/>
+  <text x="130" y="114" fill="#dfe6ee" font-size="12" text-anchor="middle" font-family="sans-serif">步骤 1</text>
+  <rect x="207" y="94" width="126" height="40" rx="8" fill="#1b2532" stroke="#3a4a5e"/>
+  <text x="270" y="114" fill="#dfe6ee" font-size="12" text-anchor="middle" font-family="sans-serif">步骤 2</text>
+  <rect x="347" y="94" width="126" height="40" rx="8" fill="#1b2532" stroke="#3a4a5e"/>
+  <text x="410" y="114" fill="#dfe6ee" font-size="12" text-anchor="middle" font-family="sans-serif">步骤 3</text>
+  <rect x="487" y="94" width="126" height="40" rx="8" fill="#2a1f24" stroke="#f0655f" stroke-dasharray="5 4"/>
+  <text x="550" y="114" fill="#f0655f" font-size="12" text-anchor="middle" font-family="sans-serif">进程崩溃</text>
+
+  <line x1="130" y1="134" x2="130" y2="170" stroke="#4dabf7" stroke-width="1.4" marker-end="url(#arST)"/>
+  <line x1="270" y1="134" x2="270" y2="170" stroke="#4dabf7" stroke-width="1.4" marker-end="url(#arST)"/>
+  <line x1="410" y1="134" x2="410" y2="170" stroke="#4dabf7" stroke-width="1.4" marker-end="url(#arST)"/>
+  <text x="196" y="154" fill="#4dabf7" font-size="11" font-family="sans-serif">每步落盘</text>
+
+  <rect x="40" y="176" width="600" height="66" rx="12" fill="#0f1e2b" stroke="#4dabf7"/>
+  <text x="60" y="194" fill="#85b7eb" font-size="11.5" font-family="sans-serif">持久化存储（进程之外，不随进程消失）</text>
+  <text x="130" y="222" fill="#4dabf7" font-size="12" text-anchor="middle" font-family="sans-serif">cp1</text>
+  <text x="270" y="222" fill="#4dabf7" font-size="12" text-anchor="middle" font-family="sans-serif">cp2</text>
+  <text x="410" y="222" fill="#4dabf7" font-size="12" text-anchor="middle" font-family="sans-serif">cp3</text>
+
+  <line x1="340" y1="242" x2="340" y2="268" stroke="#2dd4a7" stroke-width="1.6" marker-end="url(#arSTg)"/>
+  <text x="352" y="257" fill="#2dd4a7" font-size="11" font-family="sans-serif">重启后读回 cp3</text>
+
+  <rect x="140" y="272" width="400" height="44" rx="8" fill="#122b26" stroke="#2dd4a7"/>
+  <text x="340" y="294" fill="#a8d8c8" font-size="12" text-anchor="middle" font-family="sans-serif">重启新进程 → 从 cp3 恢复 → 继续第 4 步</text>
+  <text x="340" y="359" fill="#93a1b1" font-size="12.5" font-weight="600" text-anchor="middle" font-family="sans-serif">图 11</text>
+</svg>

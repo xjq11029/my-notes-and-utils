@@ -1,0 +1,55 @@
+<svg viewBox="0 0 680 334" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Agent Loop 的完整回路：组装 prompt、调用模型、解析输出、执行工具、结果回灌五步首尾相接">
+  <rect x="0" y="0" width="680" height="334" fill="#111721"/>
+  <defs>
+    <marker id="arL1" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto">
+      <path d="M0,0 L7,3.2 L0,6.4 z" fill="#4a5a6c"/>
+    </marker>
+    <marker id="arL1g" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto">
+      <path d="M0,0 L7,3.2 L0,6.4 z" fill="#2dd4a7"/>
+    </marker>
+  </defs>
+
+  <!-- 唯一出口：终止 -->
+  <rect x="150" y="6" width="280" height="42" rx="8" fill="#122b26" stroke="#2dd4a7" stroke-width="1.4"/>
+  <text x="290" y="24" fill="#2dd4a7" font-size="12" font-weight="700" text-anchor="middle" font-family="sans-serif">终止：跳出循环</text>
+  <text x="290" y="40" fill="#a8d8c8" font-size="10.5" text-anchor="middle" font-family="sans-serif">最终答案 / 超最大轮次 / 预算耗尽 / 护栏触发</text>
+  <line x1="290" y1="98" x2="290" y2="52" stroke="#2dd4a7" stroke-width="1.4" marker-end="url(#arL1g)"/>
+
+  <!-- 循环体 -->
+  <rect x="17" y="62" width="646" height="224" rx="12" fill="#141c26" stroke="#3a4a5e" stroke-dasharray="6 5"/>
+  <text x="34" y="82" fill="#6b7a8d" font-size="11" font-family="monospace">while True</text>
+
+  <!-- 五步 -->
+  <rect x="26" y="98" width="100" height="84" rx="9" fill="#1b2532" stroke="#3a4a5e"/>
+  <text x="76" y="130" fill="#dfe6ee" font-size="13" font-weight="650" text-anchor="middle" font-family="sans-serif">组装 prompt</text>
+  <text x="76" y="152" fill="#7d8b9c" font-size="10.5" text-anchor="middle" font-family="sans-serif">决定本轮上下文</text>
+
+  <rect x="158" y="98" width="100" height="84" rx="9" fill="#1b2532" stroke="#3a4a5e"/>
+  <text x="208" y="130" fill="#dfe6ee" font-size="13" font-weight="650" text-anchor="middle" font-family="sans-serif">调用模型</text>
+  <text x="208" y="152" fill="#7d8b9c" font-size="10.5" text-anchor="middle" font-family="sans-serif">无状态推理</text>
+
+  <rect x="290" y="98" width="100" height="84" rx="9" fill="#1b2532" stroke="#3a4a5e"/>
+  <text x="340" y="130" fill="#dfe6ee" font-size="13" font-weight="650" text-anchor="middle" font-family="sans-serif">解析输出</text>
+  <text x="340" y="152" fill="#7d8b9c" font-size="10.5" text-anchor="middle" font-family="sans-serif">结构化动作</text>
+
+  <rect x="422" y="98" width="100" height="84" rx="9" fill="#2a2320" stroke="#e8a34b" stroke-width="1.4"/>
+  <text x="472" y="130" fill="#f0dcc0" font-size="13" font-weight="650" text-anchor="middle" font-family="sans-serif">执行工具</text>
+  <text x="472" y="152" fill="#c9a97a" font-size="10.5" text-anchor="middle" font-family="sans-serif">校验后执行</text>
+
+  <rect x="554" y="98" width="100" height="84" rx="9" fill="#1b2532" stroke="#3a4a5e"/>
+  <text x="604" y="130" fill="#dfe6ee" font-size="13" font-weight="650" text-anchor="middle" font-family="sans-serif">结果回灌</text>
+  <text x="604" y="152" fill="#7d8b9c" font-size="10.5" text-anchor="middle" font-family="sans-serif">更新 state</text>
+
+  <!-- 步与步之间 -->
+  <g stroke="#4a5a6c" stroke-width="1.4" marker-end="url(#arL1)">
+    <line x1="128" y1="140" x2="156" y2="140"/>
+    <line x1="260" y1="140" x2="288" y2="140"/>
+    <line x1="392" y1="140" x2="420" y2="140"/>
+    <line x1="524" y1="140" x2="552" y2="140"/>
+  </g>
+
+  <!-- 回环：这就是「循环」本身 -->
+  <path d="M604,182 V246 H76 V184" fill="none" stroke="#2dd4a7" stroke-width="1.6" marker-end="url(#arL1g)"/>
+  <text x="340" y="238" fill="#2dd4a7" font-size="11" text-anchor="middle" font-family="sans-serif">把 observation 追加进上下文 → 下一轮重新组装 prompt</text>
+  <text x="340" y="323" fill="#93a1b1" font-size="12.5" font-weight="600" text-anchor="middle" font-family="sans-serif">图 7</text>
+</svg>

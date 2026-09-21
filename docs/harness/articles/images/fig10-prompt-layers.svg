@@ -1,0 +1,22 @@
+<svg viewBox="0 0 680 318" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="prompt 的分层组装：前三层相对稳定可命中缓存，后两层每轮变化">
+  <rect x="0" y="0" width="680" height="318" fill="#111721"/>
+  <text x="340" y="22" fill="#93a1b1" font-size="13" font-weight="700" text-anchor="middle" font-family="sans-serif">prompt 是怎么组装出来的</text>
+  <text x="340" y="42" fill="#6b7a8d" font-size="11.5" text-anchor="middle" font-family="sans-serif">前部尽量稳定、尾部允许增长 —— 顺序决定了缓存能不能命中</text>
+
+  <rect x="40" y="64" width="430" height="44" rx="8" fill="#122b26" stroke="#2dd4a7"/>
+  <text x="64" y="86" fill="#a8d8c8" font-size="12.5" font-family="sans-serif">system prompt + 工具定义</text>
+  <text x="490" y="86" fill="#2dd4a7" font-size="11.5" font-family="sans-serif">几乎不变 → 命中缓存</text>
+
+  <rect x="40" y="116" width="430" height="44" rx="8" fill="#122b26" stroke="#2dd4a7"/>
+  <text x="64" y="138" fill="#a8d8c8" font-size="12.5" font-family="sans-serif">developer 指令 + 项目规范</text>
+  <text x="490" y="138" fill="#2dd4a7" font-size="11.5" font-family="sans-serif">配置变时才动</text>
+
+  <rect x="40" y="168" width="430" height="44" rx="8" fill="#1b2532" stroke="#3a4a5e"/>
+  <text x="64" y="190" fill="#dfe6ee" font-size="12.5" font-family="sans-serif">对话历史</text>
+  <text x="490" y="190" fill="#7d8b9c" font-size="11.5" font-family="sans-serif">只追加，不改写</text>
+
+  <rect x="40" y="220" width="430" height="44" rx="8" fill="#1d2b3d" stroke="#4dabf7"/>
+  <text x="64" y="242" fill="#dfe6ee" font-size="12.5" font-family="sans-serif">当前用户消息</text>
+  <text x="490" y="242" fill="#4dabf7" font-size="11.5" font-family="sans-serif">每轮都变</text>
+  <text x="340" y="307" fill="#93a1b1" font-size="12.5" font-weight="600" text-anchor="middle" font-family="sans-serif">图 10</text>
+</svg>

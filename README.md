@@ -2,7 +2,7 @@
 
 个人知识库与工具仓库：把**体系化学习指南**、**技术专题深度笔记**、**可复用工具函数**统一归档，便于检索与复用。
 
-仓库以 Markdown 为主要载体（559 个文件，其中 501 篇 Markdown、约 25.6 万行），内容分两条主线：
+仓库以 Markdown 为主要载体（588 个文件，其中 503 篇 Markdown、约 25.7 万行），内容分两条主线：
 
 - **知识线**：`guides/` 的笔面试学习资料库（后端 + 前端）与 `docs/` 的技术专题深度笔记；
 - **工具线**：`src/` 的通用工具函数与 `examples/` 用法示例。
@@ -16,7 +16,7 @@
 ```
 my-notes-and-utils/
 ├── docs/                     技术专题深度笔记（自成体系的交付物）
-│   ├── harness/                Agent Harness 深度讲解 + 可运行最小实现
+│   ├── harness/                Agent Harness 深度讲解 + 可运行最小实现 + articles/ 对外发布稿
 │   └── 大模型与神经网络原理笔记/  两门视频课程笔记：大模型原理（10 章）+ coding-agent/ 子课程（8 章）
 ├── guides/                   体系化学习指南（笔面试资料库）
 │   ├── backend/                Java 后端：4 大模块 + 扩展
@@ -26,7 +26,7 @@ my-notes-and-utils/
 │   └── tools/                  工具链速查
 ├── src/                      通用工具函数（js / python）
 ├── examples/                 src 工具函数的用法示例
-├── scripts/                  本地脚本（环境初始化 + 配图 SVG → 2× PNG 渲染）
+├── scripts/                  本地脚本（环境初始化 + HTML 抽 SVG + 配图 SVG → PNG 渲染，默认 2×，发布稿 4×）
 ├── CONVENTIONS.md            工程约定（按需查阅，非常驻）
 ├── LICENSE                   MIT
 └── README.md                 本文件
@@ -39,10 +39,10 @@ my-notes-and-utils/
 | 子工程 | 定位 | 入口 |
 |--------|------|------|
 | `guides/` | **体系化学习指南**：后端 / 前端笔面试资料库、代码理解与审查指令体系、学习方法论、工具链速查 | [`README`](guides/README.md) |
-| `docs/` | **技术专题深度笔记**：Agent Harness 深度讲解、两门视频课程的结构化笔记 | [`README`](docs/README.md) |
+| `docs/` | **技术专题深度笔记**：Agent Harness 深度讲解（含对外发布稿）、两门视频课程的结构化笔记 | [`README`](docs/README.md) |
 | `src/` | **通用工具函数**：JavaScript / Node.js 与 Python，与业务解耦、可直接复制复用 | [`README`](src/README.md) |
 | `examples/` | `src/` 工具函数的用法示例 | [`README`](examples/README.md) |
-| `scripts/` | 本地脚本：环境初始化（`setup.sh`）与配图渲染（`svg-to-png.mjs`） | [`README`](scripts/README.md) |
+| `scripts/` | 本地脚本：环境初始化（`setup.sh`）、HTML 内联 SVG 抽取（`extract-svg-from-html.py`）与配图渲染（`svg-to-png.mjs`） | [`README`](scripts/README.md) |
 
 ---
 
@@ -78,11 +78,11 @@ my-notes-and-utils/
 
 | 项目 | 数值 |
 |------|------|
-| 文件总数 | 559（不含 `.git/`、内部目录 `.workbuddy/`、`.workbuddy-ai/` 与依赖目录 `node_modules/`） |
-| Markdown 文档 | 501 篇 / 约 25.6 万行 |
+| 文件总数 | 588（不含 `.git/`、内部目录 `.workbuddy/`、`.workbuddy-ai/` 与依赖目录 `node_modules/`） |
+| Markdown 文档 | 503 篇 / 约 25.7 万行 |
 | `guides/backend/` | 259 个文件 / 258 篇 Markdown |
 | `guides/frontend/` | 201 个文件 / 200 篇 Markdown |
-| `docs/` | 69 个文件 |
+| `docs/` | 97 个文件 |
 | `src/` | 8 个文件 |
 
 ---
