@@ -6,8 +6,8 @@
 
 | 子工程 | 定位 | 规模 | 入口 |
 |--------|------|------|------|
-| [`harness/`](harness/) | Agent Harness（智能体脚手架 / 运行时控制层）深度讲解：精读版 HTML 长文 + 纯文本版 MD 长文 + 可运行最小实现 + 对外发布稿 | 42 个文件 / 4 篇 | [README](harness/README.md) · [articles](harness/articles/README.md) |
-| [`大模型与神经网络原理笔记/`](大模型与神经网络原理笔记/) | 两门视频课程的结构化笔记：**大模型与神经网络原理**（10 章）+ **Coding Agent 原理与工具链**（8 章，子目录 [`coding-agent/`](大模型与神经网络原理笔记/coding-agent/README.md)） | 54 个文件 / 21 篇 | [README](大模型与神经网络原理笔记/README.md) · [coding-agent](大模型与神经网络原理笔记/coding-agent/README.md) |
+| [`harness/`](harness/) | Agent Harness（智能体脚手架 / 运行时控制层）深度讲解：精读版 HTML 长文 + 纯文本版 MD 长文 + 可运行最小实现 | 14 个文件 / 2 篇 | [README](harness/README.md) |
+| [`大模型与神经网络原理笔记/`](大模型与神经网络原理笔记/) | 两门视频课程的结构化笔记：**大模型与神经网络原理**（10 章）+ **Coding Agent 原理与工具链**（8 章，子目录 [`coding-agent/`](大模型与神经网络原理笔记/coding-agent/README.md)） | 57 个文件 / 21 篇 | [README](大模型与神经网络原理笔记/README.md) · [coding-agent](大模型与神经网络原理笔记/coding-agent/README.md) |
 
 ## 与 `guides/` 的分工
 
@@ -21,7 +21,7 @@
 
 - **课程笔记目录**（`大模型与神经网络原理笔记/**`）：章节文件命名 `chNN_英文小写下划线.md`（两位补零）；配图统一放该课程的 `assets/`，约定为**矢量源 SVG + 2× PNG 导出**（Markdown 引用 PNG），重新渲染用 [`scripts/svg-to-png.mjs`](../scripts/svg-to-png.mjs)；原始拍屏照片等素材存 `assets/_原始拍照/`，正文不引用。
 - **长文交付物**（`harness/**`）：`agent-harness-deep-dive.html` 必须保持**单文件自包含**（无 CDN / 无外部字体 / 无外部 JS），支持离线打开。
-- **对外发布稿**（`harness/articles/**`）：从长文切出、面向技术社区（掘金 / CSDN 等）的独立文章，编号与引用**重新组织、不指向长文后文**。配图从长文的内联 SVG 抽出，因长文是深色主题而发布平台是浅色底，须用 [`scripts/extract-svg-from-html.py`](../scripts/extract-svg-from-html.py) **注入深色底矩形**后再按 **4×** 渲染 PNG（2720px 宽——发布稿要经平台上二次缩放，故高于仓库默认的 2×）——直接渲染会得到浅字白底、不可读。同时用 `--label` 把**图号烧进图片底部**：Markdown 没有居中语法，靠 HTML 居中在多数本地预览器与知乎上会退化成裸标签，做进图片才处处居中。该目录有自己的 [`README`](harness/articles/README.md) 说明对应关系与再生成命令。
+- **对外发布稿**（仓库根 `articles/**`）：见 [`articles/README.md`](../articles/README.md)——从长文 / 笔记切出、面向技术社区（掘金 / CSDN 等）的独立文章，**按类别分目录、一篇文章一个独立目录**，编号与引用**重新组织、不指向源文件后文**。该目录有自己的 README 说明统一约定（图号烧进图片、4× 导出、引用框类型标签），每篇文章目录另有 README 记对应关系与再生成命令。
 - 下划线前缀 `_*.md` 为内部 / 元文件（如课件原文存档）。
 - 含 Mermaid 图的笔记建议用 **VSCode / Typora** 打开（图会自动渲染）。
 

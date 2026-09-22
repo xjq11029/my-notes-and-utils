@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="730" viewBox="0 0 1100 730" role="img" aria-label="稀疏 MoE 的两个口径：稠密模型每次前向都用满全部参数，MoE 由路由器为每个 token 只放行少数专家、其余专家不参与计算；总参数决定模型文件与显存，激活参数决定每次前向的算力与成本">
+  <rect width="1100" height="730" fill="#FFFFFF"/>
+  <g font-family="'Microsoft YaHei','PingFang SC','Noto Sans CJK SC',sans-serif">
+
+    <text x="550" y="48" font-size="24" font-weight="700" fill="#1F2937" text-anchor="middle">稀疏 MoE：参数量为什么要分两个口径</text>
+    <text x="550" y="78" font-size="14" fill="#6B7280" text-anchor="middle">总参数决定「装得下吗」，激活参数决定「算得起吗」</text>
+
+    <text x="50" y="124" font-size="16" font-weight="700" fill="#1F2937">① 稠密模型 Dense：每次都全员上阵</text>
+
+    <rect x="50" y="142" width="190" height="76" rx="9" fill="#EFF4FE" stroke="#2563EB" stroke-width="1.8"/>
+    <text x="145" y="172" font-size="15" font-weight="700" fill="#1D4ED8" text-anchor="middle">输入 Token List</text>
+    <text x="145" y="196" font-size="13" fill="#3B6FB0" text-anchor="middle">[2, 3, 4, 5, 1, 8]</text>
+
+    <path d="M240,180 H310" stroke="#475569" stroke-width="1.8" fill="none"/>
+    <polygon points="310,175 310,185 320,180" fill="#475569"/>
+    <text x="281" y="170" font-size="12.5" fill="#6B7280" text-anchor="middle">喂进去</text>
+
+    <rect x="320" y="142" width="310" height="76" rx="9" fill="#FEF6EC" stroke="#B45309" stroke-width="1.8"/>
+    <text x="475" y="172" font-size="16" font-weight="700" fill="#92400E" text-anchor="middle">FFN · 全部参数都参与</text>
+    <text x="475" y="196" font-size="13" fill="#B06A2C" text-anchor="middle">每个 token 都要算一遍</text>
+
+    <path d="M630,180 H700" stroke="#475569" stroke-width="1.8" fill="none"/>
+    <polygon points="700,175 700,185 710,180" fill="#475569"/>
+    <text x="670" y="170" font-size="12.5" fill="#6B7280" text-anchor="middle">算出来</text>
+
+    <rect x="710" y="142" width="340" height="76" rx="9" fill="#EDF7F5" stroke="#0F766E" stroke-width="1.8"/>
+    <text x="880" y="172" font-size="16" font-weight="700" fill="#0F766E" text-anchor="middle">概率分布</text>
+    <text x="880" y="196" font-size="13" fill="#3F8A80" text-anchor="middle">{15: 0.7, 288: 0.2, …}</text>
+
+    <text x="550" y="248" font-size="13" fill="#6B7280" text-anchor="middle">每次前向都用满全部参数 → 总参数 = 激活参数</text>
+
+    <text x="50" y="322" font-size="16" font-weight="700" fill="#1F2937">② 稀疏 MoE：路由器挑几个专家上阵</text>
+
+    <rect x="50" y="350" width="190" height="76" rx="9" fill="#EFF4FE" stroke="#2563EB" stroke-width="1.8"/>
+    <text x="145" y="380" font-size="15" font-weight="700" fill="#1D4ED8" text-anchor="middle">输入 Token List</text>
+    <text x="145" y="404" font-size="13" fill="#3B6FB0" text-anchor="middle">[2, 3, 4, 5, 1, 8]</text>
+
+    <path d="M240,388 H310" stroke="#475569" stroke-width="1.8" fill="none"/>
+    <polygon points="310,383 310,393 320,388" fill="#475569"/>
+
+    <rect x="320" y="350" width="220" height="76" rx="9" fill="#EFF4FE" stroke="#2563EB" stroke-width="1.8"/>
+    <text x="430" y="380" font-size="16" font-weight="700" fill="#1D4ED8" text-anchor="middle">路由器 Router</text>
+    <text x="430" y="404" font-size="12.5" fill="#3B6FB0" text-anchor="middle">给这个 token 打分</text>
+
+    <path d="M540,388 L698.1,295.4" stroke="#94A3B8" stroke-width="1.6" stroke-dasharray="7 5" fill="none"/>
+    <polygon points="701.3,300.5 695.0,290.3 710,288" fill="#94A3B8"/>
+    <path d="M540,388 L696.6,342.2" stroke="#0F766E" stroke-width="1.8" fill="none"/>
+    <polygon points="698.4,347.9 694.9,336.5 710,338" fill="#0F766E"/>
+    <path d="M540,388 H696" stroke="#94A3B8" stroke-width="1.6" stroke-dasharray="7 5" fill="none"/>
+    <polygon points="696,394 696,382 710,388" fill="#94A3B8"/>
+    <path d="M540,388 L696.6,433.8" stroke="#94A3B8" stroke-width="1.6" stroke-dasharray="7 5" fill="none"/>
+    <polygon points="694.9,439.6 698.4,428.1 710,438" fill="#94A3B8"/>
+    <path d="M540,388 L698.1,480.6" stroke="#0F766E" stroke-width="1.8" fill="none"/>
+    <polygon points="694.9,485.7 701.3,475.5 710,488" fill="#0F766E"/>
+
+    <rect x="710" y="267" width="340" height="42" rx="8" fill="#F9FAFB" stroke="#D1D5DB" stroke-width="1.5"/>
+    <text x="730" y="294" font-size="14" fill="#9CA3AF">专家 1</text>
+    <text x="1030" y="294" font-size="13" fill="#9CA3AF" text-anchor="end">跳过</text>
+
+    <rect x="710" y="317" width="340" height="42" rx="8" fill="#EDF7F5" stroke="#0F766E" stroke-width="1.8"/>
+    <text x="730" y="344" font-size="14" font-weight="700" fill="#0F766E">专家 2</text>
+    <text x="1030" y="344" font-size="13" fill="#0F766E" text-anchor="end">参与计算</text>
+
+    <rect x="710" y="367" width="340" height="42" rx="8" fill="#F9FAFB" stroke="#D1D5DB" stroke-width="1.5"/>
+    <text x="730" y="394" font-size="14" fill="#9CA3AF">专家 3</text>
+    <text x="1030" y="394" font-size="13" fill="#9CA3AF" text-anchor="end">跳过</text>
+
+    <rect x="710" y="417" width="340" height="42" rx="8" fill="#F9FAFB" stroke="#D1D5DB" stroke-width="1.5"/>
+    <text x="730" y="444" font-size="14" fill="#9CA3AF">专家 4</text>
+    <text x="1030" y="444" font-size="13" fill="#9CA3AF" text-anchor="end">跳过</text>
+
+    <rect x="710" y="467" width="340" height="42" rx="8" fill="#EDF7F5" stroke="#0F766E" stroke-width="1.8"/>
+    <text x="730" y="494" font-size="14" font-weight="700" fill="#0F766E">专家 5</text>
+    <text x="1030" y="494" font-size="13" fill="#0F766E" text-anchor="end">参与计算</text>
+
+    <text x="550" y="541" font-size="13" fill="#6B7280" text-anchor="middle">每个 token 各自选一次；没被选中的专家这次完全不动（示意，实际激活比例远低于此）</text>
+
+    <rect x="50" y="576" width="490" height="110" rx="10" fill="#EDF7F5" stroke="#0F766E" stroke-width="1.6"/>
+    <text x="75" y="610" font-size="16" font-weight="700" fill="#0F766E">总参数 Total</text>
+    <text x="75" y="640" font-size="13" fill="#3F8A80">= 所有专家的数字全加起来</text>
+    <text x="75" y="668" font-size="13" fill="#3F8A80">→ 模型文件多大、显存要装多少</text>
+
+    <rect x="560" y="576" width="490" height="110" rx="10" fill="#FEF6EC" stroke="#B45309" stroke-width="1.6"/>
+    <text x="585" y="610" font-size="16" font-weight="700" fill="#92400E">激活参数 Activated</text>
+    <text x="585" y="640" font-size="13" fill="#B06A2C">= 每次真正被选中的那几个</text>
+    <text x="585" y="668" font-size="13" fill="#B06A2C">→ 每次前向的算力、单 token 成本</text>
+
+  </g>
+</svg>

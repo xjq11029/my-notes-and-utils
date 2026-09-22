@@ -1,0 +1,43 @@
+<svg viewBox="0 0 680 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="三层封装示意：AI 应用封装模型服务，模型服务封装基础模型，越往上越不稳定，最底层基础模型自 2017 年未变">
+  <rect x="0" y="0" width="680" height="320" fill="#111721"/>
+  <defs>
+    <marker id="ar1" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto">
+      <path d="M0,0 L7,3.2 L0,6.4 z" fill="#4a5a6c"/>
+    </marker>
+  </defs>
+
+  <text x="340" y="22" fill="#93a1b1" font-size="13" font-weight="700" text-anchor="middle" font-family="sans-serif">三层封装：每一层只做「封装下一层」这件事</text>
+  <text x="340" y="42" fill="#6b7a8d" font-size="11.5" text-anchor="middle" font-family="sans-serif">越往上越不稳定——变的是封装方式，不变的是最底层的函数</text>
+
+  <rect x="24" y="58" width="392" height="64" rx="8" fill="#2a2320" stroke="#e8a34b" stroke-width="1.4"/>
+  <text x="220" y="88" fill="#e8a34b" font-size="12.5" font-weight="650" text-anchor="middle" font-family="sans-serif">AI 应用 · AI Application</text>
+  <text x="220" y="108" fill="#c9a86a" font-size="10.5" text-anchor="middle" font-family="sans-serif">封装模型服务：决定给模型发什么、拿到结果怎么处理</text>
+
+  <rect x="24" y="136" width="392" height="64" rx="8" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.4"/>
+  <text x="220" y="166" fill="#4dabf7" font-size="12.5" font-weight="650" text-anchor="middle" font-family="sans-serif">模型服务 · Model Service</text>
+  <text x="220" y="186" fill="#7fa3c9" font-size="10.5" text-anchor="middle" font-family="sans-serif">封装基础模型：前处理 → 自回归 → 后处理</text>
+
+  <rect x="24" y="214" width="392" height="64" rx="8" fill="#122b26" stroke="#2dd4a7" stroke-width="1.4"/>
+  <text x="220" y="244" fill="#2dd4a7" font-size="12.5" font-weight="650" text-anchor="middle" font-family="sans-serif">基础模型 · Raw Model</text>
+  <text x="220" y="264" fill="#7fa89c" font-size="10.5" text-anchor="middle" font-family="sans-serif">token 列表进，下一个 token 的概率分布出</text>
+
+  <line x1="220" y1="123" x2="220" y2="135" stroke="#4a5a6c" stroke-width="1.4" marker-end="url(#ar1)"/>
+  <text x="234" y="132" fill="#6b7a8d" font-size="10.5" font-family="sans-serif">封装</text>
+  <line x1="220" y1="201" x2="220" y2="213" stroke="#4a5a6c" stroke-width="1.4" marker-end="url(#ar1)"/>
+  <text x="234" y="210" fill="#6b7a8d" font-size="10.5" font-family="sans-serif">封装</text>
+
+  <line x1="448" y1="278" x2="448" y2="58" stroke="#4a5a6c" stroke-width="1.4" marker-end="url(#ar1)"/>
+  <text x="432" y="126" fill="#93a1b1" font-size="11.5" text-anchor="middle" font-family="sans-serif">越</text>
+  <text x="432" y="140" fill="#93a1b1" font-size="11.5" text-anchor="middle" font-family="sans-serif">往</text>
+  <text x="432" y="154" fill="#93a1b1" font-size="11.5" text-anchor="middle" font-family="sans-serif">上</text>
+  <text x="432" y="168" fill="#93a1b1" font-size="11.5" text-anchor="middle" font-family="sans-serif">越</text>
+  <text x="432" y="182" fill="#93a1b1" font-size="11.5" text-anchor="middle" font-family="sans-serif">不</text>
+  <text x="432" y="196" fill="#93a1b1" font-size="11.5" text-anchor="middle" font-family="sans-serif">稳</text>
+  <text x="432" y="210" fill="#93a1b1" font-size="11.5" text-anchor="middle" font-family="sans-serif">定</text>
+
+  <text x="466" y="90" fill="#f0655f" font-size="12.5" font-weight="650" font-family="sans-serif">变动最快</text>
+  <text x="466" y="168" fill="#e8a34b" font-size="12.5" font-weight="650" font-family="sans-serif">变动快</text>
+  <text x="466" y="246" fill="#2dd4a7" font-size="12.5" font-weight="650" font-family="sans-serif">自 2017 年未变</text>
+
+  <text x="340" y="309" fill="#93a1b1" font-size="12.5" font-weight="600" text-anchor="middle" font-family="sans-serif">图 1</text>
+</svg>

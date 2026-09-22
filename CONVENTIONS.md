@@ -26,7 +26,7 @@
 - 章节文件命名 `chNN_英文小写下划线.md`（两位补零）
 - 配图统一放该课程的 `assets/`，命名 `英文小写下划线.png|jpg|svg`
   - **矢量源 + 位图导出**：`.svg` 为矢量源（供二次编辑），`.png` 为 2× 导出——**Markdown 引用 PNG**，不直接引 SVG
-    - 例外：**对外发布稿**（`docs/harness/articles/images/`）用 **4×**（2720px 宽）。这些图要上传到掘金 / CSDN，会被读者放大查看、经平台二次缩放，位图需更高像素密度（长文里同图是内联 SVG，放大不糊）。理由见 [`docs/harness/articles/README.md`](docs/harness/articles/README.md)
+    - 例外：**对外发布稿**的配图（仓库根 `articles/<类别>/<文章>/images/`）用 **4×**（2720px 宽）。这些图要上传到掘金 / CSDN，会被读者放大查看、经平台二次缩放，位图需更高像素密度（源文件里同图是内联 SVG 或矢量源，放大不糊）。理由与再生成命令见各篇文章目录的 `README.md`
   - 渲染脚本：`node scripts/svg-to-png.mjs <assets 目录>`（依赖见 `scripts/package.json`）
   - 历史遗留的手机拍屏照片等原始素材，移入 `assets/_原始拍照/` 存档，正文不再引用
 - 每章 H1 为 `# 第 N 章 中文主标题：中文副标题`

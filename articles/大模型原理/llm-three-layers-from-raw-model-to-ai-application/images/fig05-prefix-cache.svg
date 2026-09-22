@@ -1,0 +1,39 @@
+<svg viewBox="0 0 680 440" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="前缀缓存的工作过程：第一次请求把前缀整段 prefill，同时把算出的 Key / Value 存进缓存并按 1.25 倍计费一次；第二次请求前缀一字未改，这部分计算被直接跳过，只对新增部分做 prefill，输入按 0.1 倍计费">
+  <rect x="0" y="0" width="680" height="440" fill="#111721"/>
+
+  <text x="340" y="22" fill="#93a1b1" font-size="13" font-weight="700" text-anchor="middle" font-family="sans-serif">前缀缓存：算过一次的前缀，下次直接取用</text>
+
+  <text x="40" y="48" fill="#93a1b1" font-size="10.5" font-family="sans-serif">① 第一次请求：整段算一遍，并把前缀存进缓存</text>
+
+  <rect x="40" y="60" width="396" height="42" rx="5" fill="#1b2532" stroke="#3a4a5e" stroke-width="1.3"/>
+  <text x="238" y="86" fill="#93a1b1" font-size="11" text-anchor="middle" font-family="sans-serif">系统提示词 + 工程规范 + 工具定义（3 万 token）</text>
+
+  <rect x="444" y="60" width="196" height="42" rx="5" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.3"/>
+  <text x="542" y="86" fill="#4dabf7" font-size="11" text-anchor="middle" font-family="sans-serif">本次问题</text>
+
+  <line x1="238" y1="106" x2="238" y2="122" stroke="#e8a34b" stroke-width="1.3"/>
+  <polygon points="238,128 232,119 244,119" fill="#e8a34b"/>
+  <text x="252" y="122" fill="#e8a34b" font-size="10.5" font-family="sans-serif">整段 prefill：3 万 + 若干 token 全算</text>
+
+  <rect x="40" y="136" width="600" height="42" rx="8" fill="#2a2320" stroke="#e8a34b" stroke-width="1.4"/>
+  <text x="56" y="162" fill="#e8a34b" font-size="11" font-family="sans-serif">把前缀算出的 Key / Value 存进缓存 —— 首次写入按 1.25× 计费一次</text>
+
+  <text x="40" y="202" fill="#2dd4a7" font-size="10.5" font-family="sans-serif">② 第二次请求：前缀一字未改 → 命中</text>
+
+  <rect x="40" y="214" width="396" height="42" rx="5" fill="#122b26" stroke="#2dd4a7" stroke-width="1.3"/>
+  <text x="238" y="240" fill="#2dd4a7" font-size="11" text-anchor="middle" font-family="sans-serif">系统提示词 + 工程规范 + 工具定义（同一段）</text>
+
+  <rect x="444" y="214" width="196" height="42" rx="5" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.3"/>
+  <text x="542" y="240" fill="#4dabf7" font-size="11" text-anchor="middle" font-family="sans-serif">新的问题</text>
+
+  <line x1="238" y1="260" x2="238" y2="276" stroke="#2dd4a7" stroke-width="1.3"/>
+  <polygon points="238,282 232,273 244,273" fill="#2dd4a7"/>
+  <text x="252" y="276" fill="#2dd4a7" font-size="10.5" font-family="sans-serif">前缀 KV 直接取用（跳过 3 万 token 的计算）</text>
+
+  <rect x="40" y="290" width="600" height="42" rx="8" fill="#122b26" stroke="#2dd4a7" stroke-width="1.4"/>
+  <text x="56" y="316" fill="#7fa89c" font-size="11" font-family="sans-serif">只对新增的那一小段做 prefill —— 这一栏输入按 0.1× 计费</text>
+
+  <text x="340" y="374" fill="#e8a34b" font-size="11.5" text-anchor="middle" font-family="sans-serif">同一段前缀：第一次要全算，之后每次几乎免费</text>
+
+  <text x="340" y="429" fill="#93a1b1" font-size="12.5" font-weight="600" text-anchor="middle" font-family="sans-serif">图 5</text>
+</svg>

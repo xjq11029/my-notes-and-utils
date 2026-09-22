@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="990" height="600" viewBox="0 0 990 600" role="img" aria-label="Raw Model 全景图：Token List 进、概率分布出，中间是未解释内部的黑盒；下方接权重矩阵 W，语料经训练 / 微调写入权重矩阵，GPU 提供并行算力">
+  <rect width="990" height="600" fill="#FFFFFF"/>
+  <g font-family="'Microsoft YaHei','PingFang SC','Noto Sans CJK SC',sans-serif">
+
+    <text x="495" y="38" font-size="21" font-weight="700" fill="#1F2937" text-anchor="middle">Raw Model 全景图</text>
+    <text x="495" y="66" font-size="12.5" fill="#6B7280" text-anchor="middle">基础模型：输入 Token List → 输出「下一个 Token」的概率分布</text>
+
+    <rect x="40" y="120" width="180" height="84" rx="9" fill="#EFF4FE" stroke="#2563EB" stroke-width="1.8"/>
+    <text x="130" y="152" font-size="14" font-weight="700" fill="#1D4ED8" text-anchor="middle">Token List</text>
+    <text x="130" y="178" font-size="12" fill="#3B6FB0" text-anchor="middle">[2,3,4,5,1,8]</text>
+
+    <path d="M220,162 H286" stroke="#475569" stroke-width="1.8" fill="none"/>
+    <polygon points="286,157 286,167 296,162" fill="#475569"/>
+    <text x="258" y="152" font-size="11.5" fill="#6B7280" text-anchor="middle">喂进去</text>
+
+    <rect x="300" y="120" width="250" height="84" rx="9" fill="#FEF6EC" stroke="#B45309" stroke-width="1.8"/>
+    <text x="425" y="152" font-size="15" font-weight="700" fill="#92400E" text-anchor="middle">Raw Model</text>
+    <text x="425" y="178" font-size="12" fill="#B06A2C" text-anchor="middle">（黑盒 · 未解释内部）</text>
+
+    <path d="M550,162 H616" stroke="#475569" stroke-width="1.8" fill="none"/>
+    <polygon points="616,157 616,167 626,162" fill="#475569"/>
+    <text x="588" y="152" font-size="11.5" fill="#6B7280" text-anchor="middle">算出来</text>
+
+    <rect x="630" y="120" width="320" height="84" rx="9" fill="#EDF7F5" stroke="#0F766E" stroke-width="1.8"/>
+    <text x="790" y="152" font-size="15" font-weight="700" fill="#0F766E" text-anchor="middle">概率分布</text>
+    <text x="790" y="178" font-size="12" fill="#3F8A80" text-anchor="middle">{15: 0.7, 288: 0.2, …}</text>
+
+    <path d="M418,208 V312" stroke="#475569" stroke-width="1.8" fill="none"/>
+    <polygon points="413,312 423,312 418,322" fill="#475569"/>
+    <path d="M432,320 V216" stroke="#475569" stroke-width="1.8" fill="none"/>
+    <polygon points="427,216 437,216 432,206" fill="#475569"/>
+    <text x="448" y="258" font-size="11.5" fill="#6B7280">计算</text>
+    <text x="448" y="276" font-size="11.5" fill="#6B7280">时读取</text>
+
+    <rect x="40" y="324" width="180" height="84" rx="9" fill="#6B7280" stroke="#6B7280" stroke-width="1.8"/>
+    <text x="130" y="356" font-size="14" font-weight="700" fill="#FFFFFF" text-anchor="middle">语料</text>
+    <text x="130" y="382" font-size="12" fill="#E5E7EB" text-anchor="middle">（原材料）</text>
+
+    <path d="M220,366 H286" stroke="#475569" stroke-width="1.8" fill="none"/>
+    <polygon points="286,361 286,371 296,366" fill="#475569"/>
+    <text x="258" y="356" font-size="11.5" fill="#6B7280" text-anchor="middle">训练 / 微调</text>
+
+    <rect x="300" y="324" width="250" height="84" rx="9" fill="#FEF6EC" stroke="#B45309" stroke-width="1.8"/>
+    <text x="425" y="356" font-size="14" font-weight="700" fill="#92400E" text-anchor="middle">权重矩阵 W</text>
+    <text x="425" y="382" font-size="11.5" fill="#B06A2C" text-anchor="middle">（参数量 = 矩阵中数字的个数）</text>
+
+    <path d="M560,366 H620" stroke="#475569" stroke-width="1.8" fill="none"/>
+    <polygon points="560,361 560,371 550,366" fill="#475569"/>
+    <polygon points="620,361 620,371 630,366" fill="#475569"/>
+    <text x="590" y="356" font-size="11.5" fill="#6B7280" text-anchor="middle">加速</text>
+
+    <rect x="630" y="324" width="320" height="84" rx="9" fill="#FEF2F2" stroke="#DC2626" stroke-width="1.8"/>
+    <text x="790" y="356" font-size="14" font-weight="700" fill="#B91C1C" text-anchor="middle">GPU</text>
+    <text x="790" y="382" font-size="12" fill="#C05252" text-anchor="middle">（并行算力）</text>
+
+    <rect x="40" y="456" width="910" height="104" rx="10" fill="#F9FAFB" stroke="#D1D5DB" stroke-width="1.5"/>
+    <text x="495" y="490" font-size="13.5" font-weight="700" fill="#1F2937" text-anchor="middle">三个关键认知</text>
+    <text x="495" y="528" font-size="11.5" fill="#6B7280" text-anchor="middle">① 模型文件 ≈ 权重矩阵 + 配置　② 训练 = 从无到有生成矩阵；微调 = 修改矩阵中部分数字　③ 纯函数：同输入 → 同输出（GPU 浮点仅带来微小抖动）</text>
+
+  </g>
+</svg>

@@ -14,8 +14,9 @@
 | `harness-from-principle-to-codex.md` | 长文 · 纯文本版 | 同一主题的 Markdown 长文，约 1630 行，11 节 + 附录；含精读版未覆盖的章节 |
 | `code/minimal_harness.py` | 配套代码 | 可运行的最小 Harness 演示，约 720 行，仅依赖标准库 |
 | `images/fig1–fig5.{png,svg}` | 配图 | 纯文本版引用的 5 张图（PNG 2× 供 Markdown 引用，SVG 矢量供二次编辑） |
-| `articles/` | 对外发布稿 | 从精读版 §0–§3 改写的独立文章（约 2 万字 / 13 图 / 624 行），供掘金、CSDN 等平台发布；含 [`README`](articles/README.md) 与配图 |
 | `README.md` | 说明 | 本文件（该目录的完整文档与索引） |
+
+> **对外发布稿已迁出本目录**：从精读版 §0–§3 改写的独立文章（约 2 万字 / 13 图 / 624 行）已于 2026-09-21 迁至仓库根 [`articles/agent-harness/agent-harness-from-analogy-to-12-components/`](../../articles/agent-harness/agent-harness-from-analogy-to-12-components/README.md)——仓库根 `articles/` 现为全仓库唯一发布出口，按类别分目录、一篇文章一个目录。
 
 > 两篇长文**主题重叠但定位不同**，是互补而非重复冗余——分工见下节。
 
@@ -143,10 +144,6 @@ harness/
 ├── README.md                           # 本文件，完整项目文档与目录索引
 ├── agent-harness-deep-dive.html        # 长文 · 精读版（单页自包含交互式）
 ├── harness-from-principle-to-codex.md  # 长文 · 纯文本版
-├── articles/                           # 对外发布稿（供掘金 / CSDN 等平台发布）
-│   ├── README.md                       # 发布稿的说明、与长文的对应关系、渠道状态
-│   ├── agent-harness-from-analogy-to-12-components.md
-│   └── images/fig01–fig13.{png,svg}    # 从精读版内联 SVG 抽出 → 注入深色底 → 导出 4× PNG
 ├── code/
 │   └── minimal_harness.py              # 最小 Harness 演示代码
 └── images/
@@ -221,6 +218,8 @@ python minimal_harness.py --keep     # 保留临时工作区，便于逐个检�
 - 新增 demo 时记得用 `make_workspace()` 创建沙箱，它会自动登记到退出清理列表
 
 ---
+
+> ⚠️ **本目录的 `articles/` 已于 2026-09-21 整体迁至仓库根 `articles/agent-harness/agent-harness-from-analogy-to-12-components/`**（仓库根 `articles/` 成为唯一发布出口，按类别分目录、一篇文章一个目录）。下方「内容自查记录」中出现的 `articles/…`、`docs/harness/articles/images` 等路径**均指迁移前的旧位置**——历史记录按原样保留、不回改。
 
 ## 内容自查记录
 
@@ -360,7 +359,7 @@ python minimal_harness.py --keep     # 保留临时工作区，便于逐个检�
 
 | 类型 | 问题 | 处理 |
 |---|---|---|
-| **新增交付物** | 两篇长文都只有自用版，没有面向陌生读者的独立发布版——长文里大量交叉引用指向后文，切一段出去就会满篇死引用 | 新建 `articles/`：发布稿 `agent-harness-from-analogy-to-12-components.md`（约 2.03 万字 / 626 行 / 13 图 / 10 表 / 3 段代码）+ [`README`](articles/README.md) + `images/`。取 HTML §0–§3，**重新编号为 6 章**：原 §0–§2 → 第 1–3 章「心智模型」，原 §3 → 第 4–6 章「结构解剖」 |
+| **新增交付物** | 两篇长文都只有自用版，没有面向陌生读者的独立发布版——长文里大量交叉引用指向后文，切一段出去就会满篇死引用 | 新建 `articles/`：发布稿 `agent-harness-from-analogy-to-12-components.md`（约 2.03 万字 / 626 行 / 13 图 / 10 表 / 3 段代码）+ `README` + `images/`。取 HTML §0–§3，**重新编号为 6 章**：原 §0–§2 → 第 1–3 章「心智模型」，原 §3 → 第 4–6 章「结构解剖」 |
 | **悬空引用（11 处）** | 原文是 11 章长文，切出前四章后所有指向后文的引用都成了死引用：「本文 10.8 节专门展开」「第 6–9 章做横向对比」「完整映射见 3.1 节」「第 10 章的 8 个子节，正是这条逻辑的展开」「（第 4 章 v4 会实测）」「第 5.5 节会展开」「这在第 5 章会展开」「（第 6 章展开）」「见第 8 章」「见第 10 章」等；另有 4 处失效 `href` 锚点（`#s5-5`×2、`#s8`、`#s10`） | 逐条改为**自包含表述或删除**；文内仍有效的 `#s2-2` / `#s3-1` / `#s3-2` / `#s3-3` 改写为章节文字（掘金 / CSDN 不认 `#sN-M` 这类锚点）。**章节编号一并重排**——正文里所有「第 2 章」「见 1.3」等指代同步改写，避免改完编号却留下旧指代 |
 | **配图不可读** | `scripts/svg-to-png.mjs` 硬编码 `background: '#FFFFFF'`，而这 13 张图的**文字全部是浅色**（`#dfe6ee` / `#7d8b9c` / `#93a1b1`）——直接渲染得到「浅字白底」，在掘金 / CSDN 的浅色页面上完全不可读 | 新增脚本 [`scripts/extract-svg-from-html.py`](../../scripts/extract-svg-from-html.py)（按 `<h2 id>` 锚点切区间 → 抽内联 `<svg>` → 注入 `--bg` 满幅底矩形），用 `--bg '#111721'`（文档 `--bg-soft`）把深色图面板**原样搬到浅色平台**。抽完逐张校验「独有锚点命中 + 底色存在 + 底矩形是首个子元素」，13/13 通过 |
 | **图内烧死的章节引用** | 图 6 的 SVG 里印着一句「方块里的数字与 3.1 的组件表一致」，重新编号后 `3.1` 指向失效。**这类文字改不了，只能改 SVG 源再重渲染** | 改为「方块里的数字与组件表的编号一致」并单独重渲染。同时脚本扫描全部 13 张 SVG 的 `<text>` 内容，确认**再无第二处**烧死的章节引用 |

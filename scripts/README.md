@@ -31,7 +31,7 @@ bash scripts/setup.sh
 # 抽取 §0–§3 区间的 13 张图 → 注入深色底 → 注入底部居中的「图 N」→ 修正图内失效引用
 python scripts/extract-svg-from-html.py \
     docs/harness/agent-harness-deep-dive.html \
-    docs/harness/articles/images \
+    articles/agent-harness/agent-harness-from-analogy-to-12-components/images \
     --from-anchor s0 --to-anchor s4 --bg '#111721' --expect 13 --label \
     --replace '方块里的数字与 3.1 的组件表一致=方块里的数字与组件表的编号一致' \
     --names three-layers,von-neumann,concentric-rings,five-problems,controlled-loop,\
@@ -68,7 +68,7 @@ python scripts/extract-svg-from-html.py <html> <输出目录> --dry-run
 
 配图约定为「**SVG 矢量源 + PNG 导出**」：`.svg` 供二次编辑，`.png` 供 Markdown 引用。改完 SVG 后跑一次即可重新生成全部 PNG。
 
-倍率默认 **2×**（课程笔记够用）；**对外发布稿**（`docs/harness/articles/images`）用 **4×**——那些图会被上传到掘金 / CSDN，读者点开原图放大或在 Retina 屏上看，位图需要更高像素密度。
+倍率默认 **2×**（课程笔记够用）；**对外发布稿**（`articles/<类别>/<文章>/images`）用 **4×**
 
 ```bash
 # 首次使用：先装依赖（装在 scripts/node_modules，已被 .gitignore 排除）
@@ -82,7 +82,7 @@ node scripts/svg-to-png.mjs "docs/大模型与神经网络原理笔记/coding-ag
 node scripts/svg-to-png.mjs assets/06_mcp_flow.svg --scale 2
 
 # 对外发布稿：4×（2720px 宽）
-node scripts/svg-to-png.mjs docs/harness/articles/images --scale 4 --force
+node scripts/svg-to-png.mjs articles/agent-harness/agent-harness-from-analogy-to-12-components/images --scale 4 --force
 ```
 
 行为要点：
