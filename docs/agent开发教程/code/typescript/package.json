@@ -1,0 +1,34 @@
+{
+  "name": "agent-tutorial-examples",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "02_create_agent": "tsx 02_create_agent.ts",
+    "03_middleware": "tsx 03_middleware.ts",
+    "04_tools": "tsx 04_tools.ts",
+    "05_context": "tsx 05_context.ts",
+    "06_state_graph": "tsx 06_state_graph.ts",
+    "07_persistence": "tsx 07_persistence.ts",
+    "08_hitl_stream": "tsx 08_hitl_stream.ts",
+    "09_deep_agent": "tsx 09_deep_agent.ts",
+    "10_filesystem": "tsx 10_filesystem.ts",
+    "11_delegation": "tsx 11_delegation.ts",
+    "12_skills_memory": "tsx 12_skills_memory.ts",
+    "13_observability": "tsx 13_observability.ts",
+    "14_multiagent": "tsx 14_multiagent.ts",
+    "all": "tsx run_all.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@langchain/core": "^1.2.12",
+    "@langchain/langgraph": "^1.4.17",
+    "deepagents": "^1.14.0",
+    "langchain": "^1.5.11",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.2",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}

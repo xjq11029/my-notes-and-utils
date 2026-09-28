@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 430" width="680" height="430" role="img">
+<title>Deep Agents 的预装中间件栈与默认工具</title>
+<desc>create_deep_agent 预装的中间件、它们插入的图节点，以及模型实际可见的 8 个工具。</desc>
+
+<rect x="0" y="0" width="680" height="430" fill="#111721"/>
+
+<text x="34" y="38" font-family="system-ui, sans-serif" font-size="17" font-weight="700" fill="#dfe6ee">Deep Agents 预装了什么</text>
+<text x="34" y="62" font-family="system-ui, sans-serif" font-size="12" fill="#7d8b9c">实测 deepagents 0.7.18（Python）/ 1.14.0（JS），节点名与工具名都来自运行结果</text>
+
+<!-- 图骨架 -->
+<rect x="34" y="82" width="380" height="176" rx="9" fill="#1b2532" stroke="#3a4a5e" stroke-width="1"/>
+<text x="50" y="104" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#dfe6ee">图节点（裸的只给 model 时）</text>
+
+<rect x="50" y="116" width="150" height="26" rx="5" fill="#241f38" stroke="#a78bfa" stroke-width="1"/>
+<text x="125" y="133" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#c9b8ff">FilesystemMiddleware.before_agent</text>
+<rect x="50" y="148" width="150" height="26" rx="5" fill="#241f38" stroke="#a78bfa" stroke-width="1"/>
+<text x="125" y="165" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#c9b8ff">PatchToolCallsMiddleware.before_agent</text>
+<rect x="50" y="180" width="150" height="26" rx="5" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1"/>
+<text x="125" y="197" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#8ecbff">model_request</text>
+<rect x="50" y="212" width="150" height="26" rx="5" fill="#2a2320" stroke="#e8a34b" stroke-width="1"/>
+<text x="125" y="229" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#f3c47a">tools</text>
+
+<text x="214" y="133" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">文件系统工具装配</text>
+<text x="214" y="165" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">修补不完整的工具调用</text>
+<text x="214" y="197" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">模型调用（含中间件钩子）</text>
+<text x="214" y="229" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">工具执行</text>
+
+<text x="50" y="252" font-family="system-ui, sans-serif" font-size="9" fill="#6b7a8d">挂上 memory / skills / interruptOn 后，会各自多出对应的钩子节点</text>
+
+<!-- 默认工具 -->
+<rect x="430" y="82" width="216" height="176" rx="9" fill="#142b28" stroke="#3fd0b0" stroke-width="1.3"/>
+<text x="446" y="104" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#7fe3cd">模型实际可见的工具（8）</text>
+<text x="446" y="126" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">ls　read_file　write_file</text>
+<text x="446" y="146" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">edit_file　delete</text>
+<text x="446" y="166" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">glob　grep</text>
+<text x="446" y="186" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">task（派子代理）</text>
+<text x="446" y="210" font-family="system-ui, sans-serif" font-size="9.5" fill="#f0655f">没有 write_todos（规划要自己开）</text>
+<text x="446" y="230" font-family="system-ui, sans-serif" font-size="9.5" fill="#f3c47a">工具节点里其实有第 9 个 execute，</text>
+<text x="446" y="246" font-family="system-ui, sans-serif" font-size="9.5" fill="#f3c47a">但默认后端不给执行能力 → 不绑给模型</text>
+
+<!-- 关键结论 -->
+<rect x="34" y="272" width="612" height="66" rx="9" fill="#2a1f23" stroke="#f0655f" stroke-width="1.3"/>
+<text x="50" y="292" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#ff9d99">「注册了工具」不等于「模型看得见」</text>
+<text x="50" y="311" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">工具节点里挂了 9 个，模型只被绑定 8 个。想知道 agent 到底能干什么，要看模型被绑定了什么。</text>
+<text x="50" y="329" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">实测方法：在 bindTools 那一侧记录收到的工具名（本目录 code/ 的假模型就是这么做的）</text>
+
+<!-- 底部 -->
+<rect x="34" y="352" width="612" height="62" rx="9" fill="#1b2532" stroke="#3a4a5e" stroke-width="1"/>
+<text x="50" y="372" font-family="system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#dfe6ee">HarnessProfile：声明式裁剪，而不是自己拼中间件</text>
+<text x="50" y="390" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">excluded_tools 隐藏工具　·　excluded_middleware 排除中间件　·　system_prompt_suffix 追加指令</text>
+<text x="50" y="406" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">好处：内置能力升级时，你的 profile 不用跟着改（JS 侧字段是 camelCase，excludedTools 是 Set）</text>
+</svg>

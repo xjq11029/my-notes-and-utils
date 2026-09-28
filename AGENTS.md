@@ -2,16 +2,16 @@
 
 ## 工程定位与技术栈
 
-`my-notes-and-utils` 是个人知识库与工具仓库：**体系化学习指南** + **技术专题深度笔记** + **可复用工具函数**，以 Markdown 为主要载体（612 个文件 / 506 篇 Markdown / 约 25.8 万行）。
+`my-notes-and-utils` 是个人知识库与工具仓库：**体系化学习指南** + **技术专题深度笔记** + **可复用工具函数**，以 Markdown 为主要载体（716 个文件 / 523 篇 Markdown / 约 26.3 万行）。
 
-技术栈：主体为 Markdown（无构建系统、无 CI）；`src/js/` 为 JavaScript / Node.js（按需 `require` 第三方依赖）；`src/python/` 仅标准库；`scripts/` 为本地脚本（Shell + Node ESM + Python，依赖按需 `npm install`）。
+技术栈：主体为 Markdown（无构建系统、无 CI）；`src/js/` 为 JavaScript / Node.js（按需 `require` 第三方依赖）；`src/python/` 仅标准库；`scripts/` 为本地脚本（Shell + Node ESM + Python，依赖按需 `npm install`）；`docs/agent开发教程/code/` 为**双语言可运行示例**（Python + TypeScript，用脚本化假模型离线运行，不需 API Key）。
 
 ## 目录结构
 
 ```
 my-notes-and-utils/
 ├── articles/         # 对外发布稿（唯一发布出口；按类别分目录，一篇文章一个目录）
-├── docs/             # 技术专题深度笔记（harness / 大模型与神经网络原理笔记）
+├── docs/             # 技术专题深度笔记（harness / agent开发教程 / 大模型与神经网络原理笔记）
 ├── guides/           # 体系化学习指南（backend / frontend / code-review / learning / tools）
 ├── src/              # 通用工具函数（js / python）
 ├── examples/         # src 工具函数的用法示例

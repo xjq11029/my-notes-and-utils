@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 410" width="680" height="410" role="img">
+<title>子代理的上下文防火墙</title>
+<desc>主代理只把任务描述交出去，子代理在自己的上下文里干活，只把一份最终报告交回来。</desc>
+<defs>
+<marker id="ar23" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+</defs>
+
+<rect x="0" y="0" width="680" height="410" fill="#111721"/>
+
+<text x="34" y="38" font-family="system-ui, sans-serif" font-size="17" font-weight="700" fill="#dfe6ee">子代理：一道上下文防火墙</text>
+<text x="34" y="62" font-family="system-ui, sans-serif" font-size="12" fill="#7d8b9c">它的价值不是「多跑几个模型」，而是「中间过程不污染主代理」</text>
+
+<!-- 主代理 -->
+<rect x="34" y="84" width="176" height="196" rx="9" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.4"/>
+<text x="122" y="106" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#8ecbff">主代理上下文</text>
+<text x="122" y="124" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">只增长两条：派单 + 结论</text>
+
+<rect x="50" y="136" width="144" height="30" rx="5" fill="#1b2532" stroke="#3a4a5e" stroke-width="1"/>
+<text x="122" y="155" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">用户任务</text>
+
+<rect x="50" y="172" width="144" height="30" rx="5" fill="#2a2320" stroke="#e8a34b" stroke-width="1"/>
+<text x="122" y="191" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#f3c47a">task(子任务描述)</text>
+
+<rect x="50" y="208" width="144" height="30" rx="5" fill="#142b28" stroke="#3fd0b0" stroke-width="1"/>
+<text x="122" y="227" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#7fe3cd">ToolMessage：最终报告</text>
+
+<text x="122" y="262" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#6b7a8d">中间过程一条都没进来</text>
+
+<!-- 防火墙 -->
+<rect x="232" y="128" width="34" height="110" rx="6" fill="#2a1f24" stroke="#f0655f" stroke-width="1.5"/>
+<text x="249" y="168" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" fill="#ff9d99">隔</text>
+<text x="249" y="182" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" fill="#ff9d99">离</text>
+<text x="249" y="196" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" fill="#ff9d99">墙</text>
+
+<!-- 子代理 -->
+<rect x="288" y="84" width="358" height="196" rx="9" fill="#241f38" stroke="#a78bfa" stroke-width="1.4"/>
+<text x="467" y="106" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#c9b8ff">子代理上下文（独立）</text>
+<text x="467" y="124" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">自己的系统提示词 + 自己的会话历史</text>
+
+<rect x="304" y="136" width="326" height="30" rx="5" fill="#1b2532" stroke="#3a4a5e" stroke-width="1"/>
+<text x="467" y="155" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">任务描述（mode='isolated' 时只有这一段）</text>
+
+<rect x="304" y="172" width="326" height="52" rx="5" fill="#1b2532" stroke="#3a4a5e" stroke-width="1"/>
+<text x="467" y="191" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">工具调用、检索、试错、报错……</text>
+<text x="467" y="209" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">全部留在这一侧，不回流</text>
+
+<rect x="304" y="232" width="326" height="30" rx="5" fill="#142b28" stroke="#3fd0b0" stroke-width="1"/>
+<text x="467" y="251" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#7fe3cd">只把一份结论交回去</text>
+
+<path d="M210 187L230 187" fill="none" stroke="#4dabf7" stroke-width="1.6" marker-end="url(#ar23)"/>
+<path d="M266 187L286 187" fill="none" stroke="#a78bfa" stroke-width="1.6" marker-end="url(#ar23)"/>
+
+<!-- mode 对比 -->
+<rect x="34" y="294" width="300" height="100" rx="8" fill="#1b2532" stroke="#3a4a5e" stroke-width="1"/>
+<text x="50" y="314" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#7fe3cd">mode = 'isolated'（默认）</text>
+<text x="50" y="333" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">子代理只拿到任务描述，上下文干净</text>
+<text x="50" y="351" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">省 token；但你要把背景写全</text>
+<text x="50" y="373" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">适合：任务自包含、一句话能说清</text>
+
+<rect x="346" y="294" width="300" height="100" rx="8" fill="#1b2532" stroke="#3a4a5e" stroke-width="1"/>
+<text x="362" y="314" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#f3c47a">mode = 'fork'</text>
+<text x="362" y="333" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">子代理继承主代理当前的历史，再叠加任务</text>
+<text x="362" y="351" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">不用重复背景；但隔离收益被削弱</text>
+<text x="362" y="373" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">适合：任务依赖已积累的上下文</text>
+
+<!-- 警告 -->
+<text x="340" y="404" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#f0655f">注意：需要频繁来回对齐的任务别拆子代理——路由开销 + 交接丢上下文，反而更慢</text>
+</svg>

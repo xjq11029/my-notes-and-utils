@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 400" width="680" height="400" role="img">
+<title>一次工具调用的往返与 ToolRuntime 的注入点</title>
+<desc>模型只输出「请调用某工具」的 JSON，框架执行工具并把结果包成 ToolMessage 回灌。工具内可通过 ToolRuntime 读到 state、context、store。</desc>
+<defs>
+<marker id="ar7" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+</defs>
+
+<rect x="0" y="0" width="680" height="400" fill="#111721"/>
+
+<text x="34" y="38" font-family="system-ui, sans-serif" font-size="17" font-weight="700" fill="#dfe6ee">一次工具调用的往返：谁在做什么</text>
+<text x="34" y="62" font-family="system-ui, sans-serif" font-size="12" fill="#7d8b9c">最容易误解的一点：模型从不执行工具，它只输出「想调用什么」</text>
+
+<!-- 左：模型侧 -->
+<rect x="34" y="84" width="176" height="228" rx="9" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.3"/>
+<text x="122" y="108" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12.5" font-weight="700" fill="#8ecbff">模型侧</text>
+<text x="122" y="128" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">只会「说」，不会「做」</text>
+
+<rect x="50" y="142" width="144" height="46" rx="6" fill="#1b2532" stroke="#3a4a5e" stroke-width="1"/>
+<text x="122" y="161" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">看到工具清单</text>
+<text x="122" y="177" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">name + description + schema</text>
+
+<rect x="50" y="196" width="144" height="46" rx="6" fill="#1b2532" stroke="#3a4a5e" stroke-width="1"/>
+<text x="122" y="215" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">输出 tool_calls</text>
+<text x="122" y="231" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">{name, args, id}</text>
+
+<rect x="50" y="250" width="144" height="46" rx="6" fill="#1b2532" stroke="#3a4a5e" stroke-width="1"/>
+<text x="122" y="269" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">读 ToolMessage</text>
+<text x="122" y="285" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">据此决定下一步</text>
+
+<!-- 中：框架 -->
+<rect x="240" y="84" width="176" height="228" rx="9" fill="#2a2320" stroke="#e8a34b" stroke-width="1.3"/>
+<text x="328" y="108" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12.5" font-weight="700" fill="#f3c47a">框架（tools 节点）</text>
+<text x="328" y="128" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">真正执行的一侧</text>
+
+<rect x="256" y="142" width="144" height="46" rx="6" fill="#1b2532" stroke="#3a4a5e" stroke-width="1"/>
+<text x="328" y="161" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">按 name 找到工具</text>
+<text x="328" y="177" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">参数校验（schema）</text>
+
+<rect x="256" y="196" width="144" height="46" rx="6" fill="#142b28" stroke="#3fd0b0" stroke-width="1"/>
+<text x="328" y="215" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10.5" fill="#7fe3cd">执行函数体</text>
+<text x="328" y="231" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">这一步才真正落地</text>
+
+<rect x="256" y="250" width="144" height="46" rx="6" fill="#1b2532" stroke="#3a4a5e" stroke-width="1"/>
+<text x="328" y="269" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">包成 ToolMessage</text>
+<text x="328" y="285" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">带上 tool_call_id</text>
+
+<!-- 右：ToolRuntime -->
+<rect x="446" y="84" width="200" height="228" rx="9" fill="#241f38" stroke="#a78bfa" stroke-width="1.3"/>
+<text x="546" y="108" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12.5" font-weight="700" fill="#c9b8ff">ToolRuntime（注入）</text>
+<text x="546" y="128" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">工具函数里的「后门」</text>
+
+<text x="462" y="152" font-family="system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">.state　　短期记忆（消息、计数器）</text>
+<text x="462" y="174" font-family="system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">.context　单次运行的不可变配置</text>
+<text x="462" y="196" font-family="system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">.store　　跨会话长期记忆</text>
+<text x="462" y="218" font-family="system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">.stream_writer　实时推事件</text>
+<text x="462" y="240" font-family="system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">.execution_info　thread / run / 重试</text>
+<text x="462" y="262" font-family="system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">.tool_call_id　本次调用的唯一标识</text>
+<text x="462" y="290" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">runtime 参数对模型隐藏——</text>
+<text x="462" y="303" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">模型只看到工具名与描述</text>
+
+<!-- 箭头 -->
+<path d="M210 219L238 219" fill="none" stroke="#4dabf7" stroke-width="1.6" marker-end="url(#ar7)"/>
+<path d="M416 219L444 219" fill="none" stroke="#a78bfa" stroke-width="1.6" marker-end="url(#ar7)"/>
+<path d="M328 322L328 336L122 336L122 314" fill="none" stroke="#3fd0b0" stroke-width="1.6" marker-end="url(#ar7)"/>
+<rect x="160" y="325" width="132" height="22" rx="6" fill="#142b28" stroke="#3fd0b0" stroke-width="1"/>
+<text x="226" y="340" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#7fe3cd">ToolMessage 回灌</text>
+
+<!-- 底部 -->
+<rect x="34" y="360" width="612" height="30" rx="7" fill="#1b2532" stroke="#3a4a5e" stroke-width="1"/>
+<text x="340" y="379" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">返回值可以是字符串 / 对象 / 多模态内容；返回 Command 则能顺手改图状态（但要自带匹配的 ToolMessage）</text>
+</svg>

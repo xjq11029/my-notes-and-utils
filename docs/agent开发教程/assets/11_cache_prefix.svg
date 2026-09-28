@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 400" width="680" height="400" role="img">
+<title>缓存前缀边界：改动点之后的内容全部无法命中</title>
+<desc>提示词缓存按前缀比对。一旦改动某处，该位置之后的全部内容都需要重新计算。</desc>
+<defs>
+<marker id="ar11" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+</defs>
+
+<rect x="0" y="0" width="680" height="400" fill="#111721"/>
+
+<text x="34" y="38" font-family="system-ui, sans-serif" font-size="17" font-weight="700" fill="#dfe6ee">缓存前缀边界：为什么「顺序」是一件大事</text>
+<text x="34" y="62" font-family="system-ui, sans-serif" font-size="12" fill="#7d8b9c">提示词缓存按「前缀」比对。改动点之后的所有内容，全部无法命中</text>
+
+<!-- 正常情况 -->
+<text x="34" y="94" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#7fe3cd">第 1 次请求：整段都是新内容</text>
+<rect x="34" y="104" width="150" height="40" rx="6" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.1"/>
+<text x="109" y="129" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#8ecbff">系统指令</text>
+<rect x="188" y="104" width="150" height="40" rx="6" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.1"/>
+<text x="263" y="129" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#8ecbff">工具 schema</text>
+<rect x="342" y="104" width="150" height="40" rx="6" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.1"/>
+<text x="417" y="129" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#8ecbff">历史消息</text>
+<rect x="496" y="104" width="150" height="40" rx="6" fill="#2a1f24" stroke="#f0655f" stroke-width="1.1"/>
+<text x="571" y="129" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#ff9d99">本次提问</text>
+<text x="660" y="129" font-family="system-ui, sans-serif" font-size="10" fill="#6b7a8d">全部计费</text>
+
+<!-- 第 2 次：历史追加 -->
+<text x="34" y="176" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#7fe3cd">第 2 次请求：只在末尾追加 → 前缀完全不变，命中</text>
+<rect x="34" y="186" width="150" height="40" rx="6" fill="#142b28" stroke="#3fd0b0" stroke-width="1.1"/>
+<text x="109" y="211" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#7fe3cd">命中</text>
+<rect x="188" y="186" width="150" height="40" rx="6" fill="#142b28" stroke="#3fd0b0" stroke-width="1.1"/>
+<text x="263" y="211" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#7fe3cd">命中</text>
+<rect x="342" y="186" width="150" height="40" rx="6" fill="#142b28" stroke="#3fd0b0" stroke-width="1.1"/>
+<text x="417" y="211" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#7fe3cd">命中</text>
+<rect x="496" y="186" width="150" height="40" rx="6" fill="#2a1f24" stroke="#f0655f" stroke-width="1.1"/>
+<text x="571" y="211" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#ff9d99">只有这里计费</text>
+
+<!-- 第 3 次：改了中间 -->
+<text x="34" y="258" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#ff9d99">第 3 次请求：改了「工具 schema」 → 它之后的全部失效</text>
+<rect x="34" y="268" width="150" height="40" rx="6" fill="#142b28" stroke="#3fd0b0" stroke-width="1.1"/>
+<text x="109" y="293" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#7fe3cd">命中</text>
+<rect x="188" y="268" width="150" height="40" rx="6" fill="#2a2320" stroke="#e8a34b" stroke-width="1.2"/>
+<text x="263" y="293" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#f3c47a">改动点</text>
+<rect x="342" y="268" width="150" height="40" rx="6" fill="#2a1f24" stroke="#f0655f" stroke-width="1.1"/>
+<text x="417" y="293" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#ff9d99">失效</text>
+<rect x="496" y="268" width="150" height="40" rx="6" fill="#2a1f24" stroke="#f0655f" stroke-width="1.1"/>
+<text x="571" y="293" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#ff9d99">失效</text>
+
+<!-- 结论 -->
+<rect x="34" y="326" width="612" height="60" rx="8" fill="#2a2320" stroke="#e8a34b" stroke-width="1.2"/>
+<text x="50" y="346" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#f3c47a">三条推论（直接影响架构选择）</text>
+<text x="50" y="364" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">① 稳定内容放前面（系统指令、工具 schema），易变内容放后面（本次提问）</text>
+<text x="50" y="380" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">② 时间顺序 = 前缀顺序：最旧的内容排在最前，也就是前缀本身 → 压缩最旧内容会伤缓存</text>
+</svg>

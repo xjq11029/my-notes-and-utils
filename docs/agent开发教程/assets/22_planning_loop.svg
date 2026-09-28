@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 400" width="680" height="400" role="img">
+<title>write_todos 的规划循环与全量覆盖语义</title>
+<desc>模型把整张待办表重新写一遍，而不是追加一条；因此忘掉一条就是真的没了。</desc>
+<defs>
+<marker id="ar22" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+</defs>
+
+<rect x="0" y="0" width="680" height="400" fill="#111721"/>
+
+<text x="34" y="38" font-family="system-ui, sans-serif" font-size="17" font-weight="700" fill="#dfe6ee">规划循环：模型自己维护一张待办表</text>
+<text x="34" y="62" font-family="system-ui, sans-serif" font-size="12" fill="#7d8b9c">write_todos 是「把整张表重新写一遍」，不是「追加一条」——这个语义决定了怎么用它</text>
+
+<!-- 循环 -->
+<rect x="34" y="84" width="612" height="152" rx="9" fill="#1b2532" stroke="#3a4a5e" stroke-width="1"/>
+
+<rect x="52" y="112" width="120" height="46" rx="7" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.2"/>
+<text x="112" y="132" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#8ecbff">接到任务</text>
+<text x="112" y="148" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" fill="#93a1b1">模型先想清楚步骤</text>
+
+<rect x="204" y="112" width="130" height="46" rx="7" fill="#2a2320" stroke="#e8a34b" stroke-width="1.2"/>
+<text x="269" y="132" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#f3c47a">write_todos</text>
+<text x="269" y="148" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" fill="#93a1b1">写入整张表（全量）</text>
+
+<rect x="366" y="112" width="130" height="46" rx="7" fill="#142b28" stroke="#3fd0b0" stroke-width="1.2"/>
+<text x="431" y="132" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#7fe3cd">状态里多出 todos</text>
+<text x="431" y="148" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" fill="#93a1b1">[{content, status}]</text>
+
+<rect x="528" y="112" width="100" height="46" rx="7" fill="#241f38" stroke="#a78bfa" stroke-width="1.2"/>
+<text x="578" y="132" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#c9b8ff">边做边更新</text>
+<text x="578" y="148" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" fill="#93a1b1">改 status</text>
+
+<path d="M172 135L202 135" fill="none" stroke="#6b7a8d" stroke-width="1.5" marker-end="url(#ar22)"/>
+<path d="M334 135L364 135" fill="none" stroke="#6b7a8d" stroke-width="1.5" marker-end="url(#ar22)"/>
+<path d="M496 135L526 135" fill="none" stroke="#6b7a8d" stroke-width="1.5" marker-end="url(#ar22)"/>
+
+<!-- 回环 -->
+<path d="M578 158L578 196L112 196L112 160" fill="none" stroke="#3fd0b0" stroke-width="1.8" marker-end="url(#ar22)"/>
+<rect x="292" y="184" width="140" height="22" rx="6" fill="#142b28" stroke="#3fd0b0" stroke-width="1"/>
+<text x="362" y="199" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#7fe3cd">每完成一步就重写一次</text>
+
+<!-- 状态示例 -->
+<rect x="34" y="252" width="380" height="126" rx="9" fill="#142b28" stroke="#3fd0b0" stroke-width="1.2"/>
+<text x="50" y="274" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#7fe3cd">状态里的样子（实测输出）</text>
+<text x="50" y="296" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">[x] 读需求文档　　　(completed)</text>
+<text x="50" y="314" font-family="system-ui, sans-serif" font-size="10" fill="#f3c47a">[~] 设计数据模型　　(in_progress)</text>
+<text x="50" y="332" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">[ ] 写接口　　　　　(pending)</text>
+<text x="50" y="356" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">三档 status：completed / in_progress / pending</text>
+
+<!-- 风险 -->
+<rect x="430" y="252" width="216" height="126" rx="9" fill="#2a1f24" stroke="#f0655f" stroke-width="1.3"/>
+<text x="446" y="274" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#ff9d99">全量覆盖的两面</text>
+<text x="446" y="296" font-family="system-ui, sans-serif" font-size="9.5" fill="#7fe3cd">好：状态永远是最新的一张完整表</text>
+<text x="446" y="314" font-family="system-ui, sans-serif" font-size="9.5" fill="#7fe3cd">好：不需要处理「删一条」的语义</text>
+<text x="446" y="336" font-family="system-ui, sans-serif" font-size="9.5" fill="#ff9d99">坏：模型忘掉一条，那条就真没了</text>
+<text x="446" y="354" font-family="system-ui, sans-serif" font-size="9.5" fill="#ff9d99">坏：长任务里表会被反复重写</text>
+<text x="446" y="372" font-family="system-ui, sans-serif" font-size="9" fill="#93a1b1">规划表不是 append-only，别当日志用</text>
+</svg>

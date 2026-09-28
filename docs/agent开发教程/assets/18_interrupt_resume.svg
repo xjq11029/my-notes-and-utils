@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 430" width="680" height="430" role="img">
+<title>interrupt 与 resume 的时序，以及「节点从头重跑」</title>
+<desc>interrupt 抛特殊异常挂起并保存检查点；resume 时整个节点从头重新执行，因此之前的副作用必须幂等。</desc>
+<defs>
+<marker id="ar18" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+</defs>
+
+<rect x="0" y="0" width="680" height="430" fill="#111721"/>
+
+<text x="34" y="38" font-family="system-ui, sans-serif" font-size="17" font-weight="700" fill="#dfe6ee">interrupt / resume 的时序，与一个必须记住的事实</text>
+<text x="34" y="62" font-family="system-ui, sans-serif" font-size="12" fill="#7d8b9c">恢复不是「从中断那一行继续」，而是「把整个节点从头再跑一遍」</text>
+
+<!-- 泳道 -->
+<rect x="34" y="82" width="150" height="28" rx="6" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1"/>
+<text x="109" y="101" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#8ecbff">调用方</text>
+<rect x="266" y="82" width="150" height="28" rx="6" fill="#2a2320" stroke="#e8a34b" stroke-width="1"/>
+<text x="341" y="101" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#f3c47a">图（approval 节点）</text>
+<rect x="498" y="82" width="148" height="28" rx="6" fill="#142b28" stroke="#3fd0b0" stroke-width="1"/>
+<text x="572" y="101" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#7fe3cd">检查点存储</text>
+
+<!-- 生命线 -->
+<path d="M109 110V380" stroke="#3a4a5e" stroke-width="1" stroke-dasharray="4 4"/>
+<path d="M341 110V380" stroke="#3a4a5e" stroke-width="1" stroke-dasharray="4 4"/>
+<path d="M572 110V380" stroke="#3a4a5e" stroke-width="1" stroke-dasharray="4 4"/>
+
+<!-- 步骤 -->
+<text x="109" y="136" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">invoke(输入)</text>
+<path d="M109 142L333 142" fill="none" stroke="#4dabf7" stroke-width="1.5" marker-end="url(#ar18)"/>
+
+<text x="341" y="168" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#f3c47a">① 执行节点前半段（副作用！）</text>
+<text x="341" y="184" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" fill="#93a1b1">② 遇到 interrupt() → 抛特殊异常挂起</text>
+
+<path d="M341 196L564 196" fill="none" stroke="#3fd0b0" stroke-width="1.5" marker-end="url(#ar18)"/>
+<text x="452" y="212" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" fill="#7fe3cd">③ 保存检查点</text>
+
+<path d="M341 232L117 232" fill="none" stroke="#e8a34b" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#ar18)"/>
+<text x="229" y="248" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" fill="#f3c47a">④ 返回 __interrupt__（带着 payload）</text>
+
+<!-- 分隔 -->
+<line x1="34" y1="262" x2="646" y2="262" stroke="#3a4a5e" stroke-width="1" stroke-dasharray="4 4"/>
+<text x="34" y="280" font-family="system-ui, sans-serif" font-size="10" fill="#e8a34b">人做出决定后，用同一个 thread_id 再 invoke</text>
+
+<text x="109" y="302" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">Command(resume=True)</text>
+<path d="M109 308L333 308" fill="none" stroke="#4dabf7" stroke-width="1.5" marker-end="url(#ar18)"/>
+
+<rect x="196" y="318" width="290" height="30" rx="6" fill="#2a1f24" stroke="#f0655f" stroke-width="1.2"/>
+<text x="341" y="337" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#ff9d99">⑤ 节点从头重跑 → ① 的副作用被执行了第二次！</text>
+
+<text x="341" y="366" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" fill="#93a1b1">⑥ interrupt() 这次直接返回 resume 值，不再挂起</text>
+
+<!-- 底部 -->
+<rect x="34" y="384" width="612" height="40" rx="8" fill="#2a2320" stroke="#e8a34b" stroke-width="1.2"/>
+<text x="50" y="402" font-family="system-ui, sans-serif" font-size="10" font-weight="700" fill="#f3c47a">由此推出四条铁律</text>
+<text x="50" y="418" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">不要把 interrupt 包进 try/except　·　不要重排节点内的 interrupt　·　不要传复杂值　·　之前的副作用必须幂等</text>
+</svg>

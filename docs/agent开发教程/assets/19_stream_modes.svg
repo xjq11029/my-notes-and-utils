@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 420" width="680" height="420" role="img">
+<title>stream_mode 的七种投影</title>
+<desc>values 给完整状态，updates 给增量，messages 给 token，custom 给自定义事件，checkpoints 与 tasks 需要 checkpointer，debug 是合并。</desc>
+
+<rect x="0" y="0" width="680" height="420" fill="#111721"/>
+
+<text x="34" y="38" font-family="system-ui, sans-serif" font-size="17" font-weight="700" fill="#dfe6ee">stream_mode：同一张图，七种「看法」</text>
+<text x="34" y="62" font-family="system-ui, sans-serif" font-size="12" fill="#7d8b9c">不是七个功能，而是同一次执行的七种投影——按前端需要挑一个或多个</text>
+
+<!-- 表头 -->
+<rect x="34" y="82" width="612" height="26" rx="5" fill="#1b2532" stroke="#3a4a5e" stroke-width="0.9"/>
+<text x="48" y="99" font-family="system-ui, sans-serif" font-size="10" font-weight="700" fill="#dfe6ee">取值</text>
+<text x="180" y="99" font-family="system-ui, sans-serif" font-size="10" font-weight="700" fill="#dfe6ee">给你什么</text>
+<text x="430" y="99" font-family="system-ui, sans-serif" font-size="10" font-weight="700" fill="#dfe6ee">典型用途 / 前置条件</text>
+
+<rect x="34" y="110" width="612" height="26" rx="4" fill="#111721" stroke="#3a4a5e" stroke-width="0.5"/>
+<text x="48" y="127" font-family="system-ui, sans-serif" font-size="10" fill="#8ecbff">values</text>
+<text x="180" y="127" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">每步之后的完整状态</text>
+<text x="430" y="127" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">最省心，体积也最大</text>
+
+<rect x="34" y="138" width="612" height="26" rx="4" fill="#1b2532" stroke="#3a4a5e" stroke-width="0.5"/>
+<text x="48" y="155" font-family="system-ui, sans-serif" font-size="10" fill="#8ecbff">updates</text>
+<text x="180" y="155" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">每步节点返回的增量（带节点名）</text>
+<text x="430" y="155" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">做进度条、步骤高亮</text>
+
+<rect x="34" y="166" width="612" height="26" rx="4" fill="#111721" stroke="#3a4a5e" stroke-width="0.5"/>
+<text x="48" y="183" font-family="system-ui, sans-serif" font-size="10" fill="#8ecbff">messages</text>
+<text x="180" y="183" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">(token, metadata) 二元组</text>
+<text x="430" y="183" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">打字机效果（最常用）</text>
+
+<rect x="34" y="194" width="612" height="26" rx="4" fill="#1b2532" stroke="#3a4a5e" stroke-width="0.5"/>
+<text x="48" y="211" font-family="system-ui, sans-serif" font-size="10" fill="#f3c47a">custom</text>
+<text x="180" y="211" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">节点里主动推的事件</text>
+<text x="430" y="211" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">「第 3/10 步」这类业务进度</text>
+
+<rect x="34" y="222" width="612" height="26" rx="4" fill="#111721" stroke="#3a4a5e" stroke-width="0.5"/>
+<text x="48" y="239" font-family="system-ui, sans-serif" font-size="10" fill="#c9b8ff">checkpoints</text>
+<text x="180" y="239" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">检查点事件</text>
+<text x="430" y="239" font-family="system-ui, sans-serif" font-size="9.5" fill="#f0655f">需要 checkpointer</text>
+
+<rect x="34" y="250" width="612" height="26" rx="4" fill="#1b2532" stroke="#3a4a5e" stroke-width="0.5"/>
+<text x="48" y="267" font-family="system-ui, sans-serif" font-size="10" fill="#c9b8ff">tasks</text>
+<text x="180" y="267" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">任务开始 / 结束（含结果与错误）</text>
+<text x="430" y="267" font-family="system-ui, sans-serif" font-size="9.5" fill="#f0655f">需要 checkpointer</text>
+
+<rect x="34" y="278" width="612" height="26" rx="4" fill="#111721" stroke="#3a4a5e" stroke-width="0.5"/>
+<text x="48" y="295" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">debug</text>
+<text x="180" y="295" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">checkpoints + tasks 及额外元数据</text>
+<text x="430" y="295" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">排障时用；信息最多也最杂</text>
+
+<!-- 组合 -->
+<rect x="34" y="316" width="300" height="92" rx="8" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.2"/>
+<text x="50" y="336" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#8ecbff">可以同时要多个</text>
+<text x="50" y="355" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">stream_mode=["updates","custom"]</text>
+<text x="50" y="373" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">新版每个分块是统一的 StreamPart</text>
+<text x="50" y="389" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">用 chunk["type"] 区分来源</text>
+
+<!-- 子图坑 -->
+<rect x="346" y="316" width="300" height="92" rx="8" fill="#2a1f24" stroke="#f0655f" stroke-width="1.3"/>
+<text x="362" y="336" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#ff9d99">最容易踩的坑</text>
+<text x="362" y="355" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">agent 当节点放进父图后，它是「子图」</text>
+<text x="362" y="373" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">子图内部消息默认不透传</text>
+<text x="362" y="391" font-family="system-ui, sans-serif" font-size="9.5" fill="#f3c47a">→ 必须显式加 subgraphs=True</text>
+</svg>

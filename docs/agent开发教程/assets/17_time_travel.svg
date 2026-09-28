@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 400" width="680" height="400" role="img">
+<title>时间旅行：改写历史检查点并新建分支重放</title>
+<desc>update_state 会基于选中的历史检查点新建一个分支，原线程历史不受影响。</desc>
+<defs>
+<marker id="ar16" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+</defs>
+
+<rect x="0" y="0" width="680" height="400" fill="#111721"/>
+
+<text x="34" y="38" font-family="system-ui, sans-serif" font-size="17" font-weight="700" fill="#dfe6ee">时间旅行：改历史、再重放</text>
+<text x="34" y="62" font-family="system-ui, sans-serif" font-size="12" fill="#7d8b9c">调试 agent 最有力的一招：把某一步的状态改掉，看后面会怎么走</text>
+
+<!-- 原线程 -->
+<rect x="34" y="84" width="612" height="96" rx="9" fill="#1b2532" stroke="#3a4a5e" stroke-width="1"/>
+<text x="50" y="106" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#dfe6ee">原线程 order-2026（保持不动）</text>
+
+<circle cx="110" cy="152" r="7" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.3"/>
+<text x="110" y="176" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#8ecbff">step 0</text>
+<circle cx="250" cy="152" r="7" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.3"/>
+<text x="250" y="176" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#8ecbff">step 1</text>
+<circle cx="390" cy="152" r="7" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.3"/>
+<text x="390" y="176" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#8ecbff">step 2</text>
+<circle cx="530" cy="152" r="7" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.3"/>
+<text x="530" y="176" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#8ecbff">step 3</text>
+<line x1="110" y1="152" x2="530" y2="152" stroke="#3a4a5e" stroke-width="1.5"/>
+
+<!-- 选中 step 1 -->
+<circle cx="250" cy="152" r="12" fill="none" stroke="#e8a34b" stroke-width="1.5"/>
+<text x="250" y="130" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#f3c47a">选中它</text>
+
+<!-- 分支 -->
+<rect x="34" y="200" width="612" height="116" rx="9" fill="#142b28" stroke="#3fd0b0" stroke-width="1.3"/>
+<text x="50" y="222" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#7fe3cd">新建分支（原线程不受影响）</text>
+
+<path d="M250 164L250 246" fill="none" stroke="#3fd0b0" stroke-width="1.8" marker-end="url(#ar16)"/>
+<text x="266" y="196" font-family="system-ui, sans-serif" font-size="9.5" fill="#7fe3cd">updateState(选中检查点, {n: 100, trail: [...]})</text>
+
+<circle cx="250" cy="258" r="7" fill="#2a2320" stroke="#e8a34b" stroke-width="1.5"/>
+<text x="250" y="282" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#f3c47a">改写后的 step 1</text>
+<text x="250" y="297" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" fill="#93a1b1">n=100</text>
+
+<circle cx="430" cy="258" r="7" fill="#142b28" stroke="#3fd0b0" stroke-width="1.5"/>
+<text x="430" y="282" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#7fe3cd">重放 step 2</text>
+<text x="430" y="297" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" fill="#93a1b1">n=101</text>
+
+<path d="M257 258L422 258" fill="none" stroke="#3fd0b0" stroke-width="1.5" marker-end="url(#ar16)"/>
+
+<text x="530" y="262" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">从改写点往后</text>
+<text x="530" y="278" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">重新执行</text>
+
+<!-- 用途 -->
+<rect x="34" y="332" width="612" height="56" rx="8" fill="#2a2320" stroke="#e8a34b" stroke-width="1.2"/>
+<text x="50" y="352" font-family="system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#f3c47a">典型用途</text>
+<text x="50" y="370" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">① 复现 bug：把 agent 走错的那一步改回正确状态，看它接下来会不会又走错</text>
+<text x="50" y="384" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">② 人工纠偏：发现模型记错了事实，直接改状态再让它继续，而不是从头重跑</text>
+</svg>

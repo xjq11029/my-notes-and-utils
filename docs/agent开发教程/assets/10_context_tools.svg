@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 430" width="680" height="430" role="img">
+<title>上下文工程的四种手段及其差异</title>
+<desc>摘要压缩、工具输出卸载、消息裁剪、外部存储。前两者实测差异明显：摘要写回状态，卸载不回写状态。</desc>
+
+<rect x="0" y="0" width="680" height="430" fill="#111721"/>
+
+<text x="34" y="38" font-family="system-ui, sans-serif" font-size="17" font-weight="700" fill="#dfe6ee">上下文工程的四种手段</text>
+<text x="34" y="62" font-family="system-ui, sans-serif" font-size="12" fill="#7d8b9c">共同目标只有一个：让模型在有限窗口里，看到最有用的那部分</text>
+
+<!-- 手段 1 -->
+<rect x="34" y="82" width="300" height="104" rx="9" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.3"/>
+<text x="50" y="104" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#8ecbff">① 摘要压缩</text>
+<text x="50" y="122" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">SummarizationMiddleware</text>
+<text x="50" y="143" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">把旧对话换成一段摘要，写回图状态</text>
+<text x="50" y="160" font-family="system-ui, sans-serif" font-size="10" fill="#7fe3cd">实测：状态 4→24 条被压到稳定 8 条</text>
+<text x="50" y="176" font-family="system-ui, sans-serif" font-size="9.5" fill="#f0655f">代价：原文从状态消失（配 checkpointer 可回滚）</text>
+
+<!-- 手段 2 -->
+<rect x="346" y="82" width="300" height="104" rx="9" fill="#2a2320" stroke="#e8a34b" stroke-width="1.3"/>
+<text x="362" y="104" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#f3c47a">② 工具输出卸载</text>
+<text x="362" y="122" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">ContextEditingMiddleware + ClearToolUsesEdit</text>
+<text x="362" y="143" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">只把旧工具结果换成占位符，不回写状态</text>
+<text x="362" y="160" font-family="system-ui, sans-serif" font-size="10" fill="#7fe3cd">实测：状态照涨 4→24，但模型收到的 token 稳在 253→588</text>
+<text x="362" y="176" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">好处：历史一条不少，仍可审计 / 时间旅行</text>
+
+<!-- 手段 3 -->
+<rect x="34" y="198" width="300" height="104" rx="9" fill="#241f38" stroke="#a78bfa" stroke-width="1.3"/>
+<text x="50" y="220" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#c9b8ff">③ 消息裁剪</text>
+<text x="50" y="238" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">trimMessages / 自定义中间件</text>
+<text x="50" y="259" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">按条数或 token 砍掉最旧的消息</text>
+<text x="50" y="276" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">最粗暴，但也最可预测</text>
+<text x="50" y="292" font-family="system-ui, sans-serif" font-size="9.5" fill="#f0655f">风险：可能砍掉还没兑现的承诺</text>
+
+<!-- 手段 4 -->
+<rect x="346" y="198" width="300" height="104" rx="9" fill="#142b28" stroke="#3fd0b0" stroke-width="1.3"/>
+<text x="362" y="220" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#7fe3cd">④ 外部存储</text>
+<text x="362" y="238" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">虚拟文件系统 / Store / Skills</text>
+<text x="362" y="259" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">长内容写到上下文之外，上下文里只留一句</text>
+<text x="362" y="276" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">「已保存到 /xxx」，需要时再读回来</text>
+<text x="362" y="292" font-family="system-ui, sans-serif" font-size="9.5" fill="#7fe3cd">损失最小，但要求模型会「想起来去读」</text>
+
+<!-- 关键对比 -->
+<rect x="34" y="314" width="612" height="106" rx="9" fill="#1b2532" stroke="#3a4a5e" stroke-width="1"/>
+<text x="50" y="336" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#dfe6ee">① 与 ② 的机制差异（这是实测出来的，不是文档写的）</text>
+<text x="50" y="356" font-family="system-ui, sans-serif" font-size="10" fill="#8ecbff">① 走 before_model 钩子，返回一条摘要消息 → 图状态真的变小了</text>
+<text x="50" y="373" font-family="system-ui, sans-serif" font-size="10" fill="#f3c47a">② 走 wrap_model_call 钩子，复制消息、改完只传给模型 → 图状态一点没动</text>
+<text x="50" y="393" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">判断口径：需要「状态也变小」用 ①；需要「保留完整历史、只让模型少看」用 ②</text>
+<text x="50" y="410" font-family="system-ui, sans-serif" font-size="9.5" fill="#f0655f">两者都会造成静默失败：不报错，只是关键信息悄悄没了，后面的回答开始变差</text>
+</svg>

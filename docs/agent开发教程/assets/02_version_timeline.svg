@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 380" width="680" height="380" role="img">
+<title>LangChain 与 LangGraph 生态的版本时间线</title>
+<desc>从 2022 年 LangChain 开源，到 2025-10-22 LangChain v1 与 LangGraph v1 同步 GA，再到 deepagents 进入 1.x。</desc>
+
+<rect x="0" y="0" width="680" height="380" fill="#111721"/>
+
+<text x="34" y="40" font-family="system-ui, sans-serif" font-size="17" font-weight="700" fill="#dfe6ee">版本时间线：三个框架各自的起点与汇合点</text>
+<text x="34" y="64" font-family="system-ui, sans-serif" font-size="12" fill="#7d8b9c">关键锚点：2025-10-22，LangChain v1 与 LangGraph v1 同步 GA</text>
+
+<!-- 主轴 -->
+<line x1="60" y1="196" x2="640" y2="196" stroke="#3a4a5e" stroke-width="2"/>
+
+<!-- 节点 1 -->
+<circle cx="110" cy="196" r="6" fill="#4dabf7"/>
+<line x1="110" y1="196" x2="110" y2="150" stroke="#3a4a5e" stroke-width="1"/>
+<rect x="46" y="104" width="128" height="46" rx="7" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.2"/>
+<text x="110" y="122" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#8ecbff">2022</text>
+<text x="110" y="140" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10.5" fill="#93a1b1">LangChain 开源</text>
+
+<!-- 节点 2 -->
+<circle cx="265" cy="196" r="6" fill="#3fd0b0"/>
+<line x1="265" y1="196" x2="265" y2="240" stroke="#3a4a5e" stroke-width="1"/>
+<rect x="201" y="240" width="128" height="46" rx="7" fill="#142b28" stroke="#3fd0b0" stroke-width="1.2"/>
+<text x="265" y="258" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#7fe3cd">2024</text>
+<text x="265" y="276" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10.5" fill="#93a1b1">LangGraph 出现</text>
+
+<!-- 节点 3：GA -->
+<circle cx="430" cy="196" r="9" fill="#e8a34b"/>
+<circle cx="430" cy="196" r="15" fill="none" stroke="#e8a34b" stroke-width="1.2"/>
+<line x1="430" y1="196" x2="430" y2="132" stroke="#3a4a5e" stroke-width="1"/>
+<rect x="344" y="86" width="172" height="46" rx="7" fill="#2a2320" stroke="#e8a34b" stroke-width="1.4"/>
+<text x="430" y="104" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#f3c47a">2025-10-22　同步 GA</text>
+<text x="430" y="122" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10.5" fill="#93a1b1">LangChain v1 + LangGraph v1</text>
+
+<!-- 节点 4 -->
+<circle cx="585" cy="196" r="6" fill="#a78bfa"/>
+<line x1="585" y1="196" x2="585" y2="240" stroke="#3a4a5e" stroke-width="1"/>
+<rect x="512" y="240" width="146" height="46" rx="7" fill="#241f38" stroke="#a78bfa" stroke-width="1.2"/>
+<text x="585" y="258" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#c9b8ff">2026 · deepagents 1.x</text>
+<text x="585" y="276" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10.5" fill="#93a1b1">Python 与 JS 双包并行</text>
+
+<!-- 说明框 -->
+<rect x="34" y="300" width="612" height="66" rx="8" fill="#1b2532" stroke="#3a4a5e" stroke-width="1"/>
+<text x="50" y="320" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#dfe6ee">本教程的实测版本（2026-09-24）</text>
+<text x="50" y="339" font-family="system-ui, sans-serif" font-size="10.5" fill="#93a1b1">Python：langchain 1.4.2 · langgraph 1.2.12 · deepagents 0.7.18</text>
+<text x="50" y="355" font-family="system-ui, sans-serif" font-size="10.5" fill="#93a1b1">JS：langchain 1.5.11 · @langchain/langgraph 1.4.17 · deepagents 1.14.0</text>
+<text x="50" y="374" font-family="system-ui, sans-serif" font-size="10" fill="#e8a34b">注意：三个框架迭代都很快。文中 API 以实测版本为准；如与最新版本有出入，以官方文档为准。</text>
+</svg>

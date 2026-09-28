@@ -27,6 +27,7 @@
 - 配图统一放该课程的 `assets/`，命名 `英文小写下划线.png|jpg|svg`
   - **矢量源 + 位图导出**：`.svg` 为矢量源（供二次编辑），`.png` 为 2× 导出——**Markdown 引用 PNG**，不直接引 SVG
     - 例外：**对外发布稿**的配图（仓库根 `articles/<类别>/<文章>/images/`）用 **4×**（2720px 宽）。这些图要上传到掘金 / CSDN，会被读者放大查看、经平台二次缩放，位图需更高像素密度（源文件里同图是内联 SVG 或矢量源，放大不糊）。理由与再生成命令见各篇文章目录的 `README.md`
+    - 例外：**长文教程类交付物**（`docs/harness/`、`docs/agent开发教程/`）的配图是**深色面板 SVG**——自带满幅底矩形（`#111721` 一类），因此不受渲染脚本硬编码白底的影响；仍走 **2×** 导出。⚠️ 这类 SVG 的 `width`/`height` **必须与 `viewBox` 相同**，否则 `--scale 2` 会得到 4×（脚本按声明尺寸而非 viewBox 计算）
   - 渲染脚本：`node scripts/svg-to-png.mjs <assets 目录>`（依赖见 `scripts/package.json`）
   - 历史遗留的手机拍屏照片等原始素材，移入 `assets/_原始拍照/` 存档，正文不再引用
 - 每章 H1 为 `# 第 N 章 中文主标题：中文副标题`
@@ -40,6 +41,20 @@
 ### 单文件自包含（`docs/harness/*.html`）
 
 `docs/harness/agent-harness-deep-dive.html` 必须保持**单文件自包含**（无 CDN / 无外部字体 / 无外部 JS），支持离线打开。
+
+### 教程交付物（`docs/agent开发教程/**`）
+
+**双档交付**：14 章 Markdown 教程（`chNN_英文小写下划线.md`）+ 单文件 HTML 精读版。
+
+- **章节骨架固定**：`## 一、这一章要解决的问题` → `## 二、机制与原理` → `## 三、代码：Python 与 TypeScript` → `## 四、常见坑与边界条件` → `## 五、关键结论` → `## 本章要点回顾`
+- **配图与 HTML 同源**：`assets/` 里的深色面板 SVG 既导出 2× PNG 给 Markdown，也被内联进 HTML。⚠️ 内联时 SVG 的 `id`（`ar1` 这类 marker）会全局冲突，**必须加图号前缀去重**并同步改写 `url(#…)`
+- **HTML 由脚本生成**：`_build_html.py` 从章节 + `assets/` 生成 `agent-frameworks-deep-dive.html`，**幂等**。改任何章节或配图后**必须重跑**，否则 HTML 与章节不一致：
+  ```bash
+  python docs/agent开发教程/_build_html.py
+  ```
+- **示例代码双语言一一对应**：`code/python/NN_*.py` 与 `code/typescript/NN_*.ts` 演示同一件事，编号一致。改动任一语言都要同步另一个，并**重跑**（`pnpm run all` / 逐个跑 Python）
+- **实测优先于文档**：凡 API 名、参数名、默认值，以 `code/` 里实测跑通的代码为准；官方文档与本机实测的差异逐条登记在 `_写作大纲与来源登记.md`
+- **不冒充已验证**：需要 API Key / 账号才能验证的内容，正文必须显式标注「未实测」
 
 ### 数据来源分级（`docs/harness/`）
 

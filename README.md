@@ -2,7 +2,7 @@
 
 个人知识库与工具仓库：把**体系化学习指南**、**技术专题深度笔记**、**可复用工具函数**统一归档，便于检索与复用。
 
-仓库以 Markdown 为主要载体（612 个文件，其中 506 篇 Markdown、约 25.8 万行），内容分两条主线：
+仓库以 Markdown 为主要载体（716 个文件，其中 523 篇 Markdown、约 26.3 万行），内容分两条主线：
 
 - **知识线**：`guides/` 的笔面试学习资料库（后端 + 前端）与 `docs/` 的技术专题深度笔记；
 - **工具线**：`src/` 的通用工具函数与 `examples/` 用法示例。
@@ -20,6 +20,7 @@ my-notes-and-utils/
 │   └── agent-harness/          Agent Harness 深度拆解（13 图）
 ├── docs/                     技术专题深度笔记（自成体系的交付物）
 │   ├── harness/                Agent Harness 深度讲解 + 可运行最小实现
+│   ├── agent开发教程/          LangChain / LangGraph / Deep Agents 教程（14 章 + HTML 精读版 + 双语言示例）
 │   └── 大模型与神经网络原理笔记/  两门视频课程笔记：大模型原理（10 章）+ coding-agent/ 子课程（8 章）
 ├── guides/                   体系化学习指南（笔面试资料库）
 │   ├── backend/                Java 后端：4 大模块 + 扩展
@@ -43,7 +44,7 @@ my-notes-and-utils/
 |--------|------|------|
 | `articles/` | **对外发布稿**：全仓库唯一的发布出口，按类别分目录、一篇文章一个独立目录 | [`README`](articles/README.md) |
 | `guides/` | **体系化学习指南**：后端 / 前端笔面试资料库、代码理解与审查指令体系、学习方法论、工具链速查 | [`README`](guides/README.md) |
-| `docs/` | **技术专题深度笔记**：Agent Harness 深度讲解（含可运行最小实现）、两门视频课程的结构化笔记 | [`README`](docs/README.md) |
+| `docs/` | **技术专题深度笔记**：Agent Harness 深度讲解（含可运行最小实现）、Agent 应用开发教程（LangChain / LangGraph / Deep Agents）、两门视频课程的结构化笔记 | [`README`](docs/README.md) |
 | `src/` | **通用工具函数**：JavaScript / Node.js 与 Python，与业务解耦、可直接复制复用 | [`README`](src/README.md) |
 | `examples/` | `src/` 工具函数的用法示例 | [`README`](examples/README.md) |
 | `scripts/` | 本地脚本：环境初始化（`setup.sh`）、HTML 内联 SVG 抽取（`extract-svg-from-html.py`）与配图渲染（`svg-to-png.mjs`） | [`README`](scripts/README.md) |
@@ -82,12 +83,12 @@ my-notes-and-utils/
 
 | 项目 | 数值 |
 |------|------|
-| 文件总数 | 612（不含 `.git/`、内部目录 `.workbuddy/`、`.workbuddy-ai/` 与依赖目录 `node_modules/`） |
-| Markdown 文档 | 506 篇 / 约 25.8 万行 |
+| 文件总数 | 716（不含 `.git/`、内部目录 `.workbuddy/`、`.workbuddy-ai/` 与依赖目录 `node_modules/`） |
+| Markdown 文档 | 523 篇 / 约 26.3 万行 |
 | `guides/backend/` | 259 个文件 / 258 篇 Markdown |
 | `guides/frontend/` | 201 个文件 / 200 篇 Markdown |
 | `articles/` | 49 个文件 / 5 篇 Markdown（2 个类别 / 2 篇文章） |
-| `docs/` | 72 个文件 |
+| `docs/` | 176 个文件 |
 | `src/` | 8 个文件 |
 
 ---

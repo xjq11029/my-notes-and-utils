@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 380" width="680" height="380" role="img">
+<title>MCP 接入：多个服务器聚合成一份工具清单</title>
+<desc>MCPAdapter 连接多个 MCP 服务器，把各自的工具适配成框架工具，合成一份清单交给 create_agent。</desc>
+<defs>
+<marker id="ar8" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+</defs>
+
+<rect x="0" y="0" width="680" height="380" fill="#111721"/>
+
+<text x="34" y="38" font-family="system-ui, sans-serif" font-size="17" font-weight="700" fill="#dfe6ee">MCP 接入：多服务器 → 一份工具清单</text>
+<text x="34" y="62" font-family="system-ui, sans-serif" font-size="12" fill="#7d8b9c">MCP 解决的是「工具由别人提供」这件事；对 agent 来说，它和普通工具没有区别</text>
+
+<!-- MCP 服务器 -->
+<rect x="34" y="86" width="196" height="46" rx="7" fill="#142b28" stroke="#3fd0b0" stroke-width="1.2"/>
+<text x="132" y="105" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#7fe3cd">MCP 服务器 A（文档检索）</text>
+<text x="132" y="122" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">远程 https://…/mcp</text>
+
+<rect x="34" y="142" width="196" height="46" rx="7" fill="#142b28" stroke="#3fd0b0" stroke-width="1.2"/>
+<text x="132" y="161" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#7fe3cd">MCP 服务器 B（本地脚本）</text>
+<text x="132" y="178" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">stdio：Path("server.py")</text>
+
+<rect x="34" y="198" width="196" height="46" rx="7" fill="#142b28" stroke="#3fd0b0" stroke-width="1.2"/>
+<text x="132" y="217" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#7fe3cd">MCP 服务器 C（进程内）</text>
+<text x="132" y="234" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">直接传 FastMCP 实例，无子进程</text>
+
+<!-- 传输类型标注 -->
+<text x="34" y="266" font-family="system-ui, sans-serif" font-size="10" fill="#7d8b9c">传输方式由目标类型推断：字符串必须是 http(s) URL、Path 走 stdio、FastMCP 实例走内存</text>
+
+<!-- Adapter -->
+<rect x="270" y="122" width="140" height="86" rx="9" fill="#241f38" stroke="#a78bfa" stroke-width="1.5"/>
+<text x="340" y="150" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#c9b8ff">MCPAdapter</text>
+<text x="340" y="170" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">发现工具 list_tools()</text>
+<text x="340" y="186" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">适配成框架工具</text>
+<text x="340" y="202" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">管理连接与认证</text>
+
+<path d="M230 109L268 148" fill="none" stroke="#6b7a8d" stroke-width="1.4" marker-end="url(#ar8)"/>
+<path d="M230 165L268 165" fill="none" stroke="#6b7a8d" stroke-width="1.4" marker-end="url(#ar8)"/>
+<path d="M230 221L268 182" fill="none" stroke="#6b7a8d" stroke-width="1.4" marker-end="url(#ar8)"/>
+
+<!-- agent -->
+<rect x="452" y="122" width="194" height="86" rx="9" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.5"/>
+<text x="549" y="150" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#8ecbff">create_agent</text>
+<text x="549" y="170" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">tools=[…, *mcp_tools]</text>
+<text x="549" y="186" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">模型看到的仍是 name + 描述</text>
+<text x="549" y="202" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">调用时才知道是 MCP</text>
+
+<path d="M410 165L450 165" fill="none" stroke="#6b7a8d" stroke-width="1.4" marker-end="url(#ar8)"/>
+
+<!-- 注意框 -->
+<rect x="34" y="292" width="612" height="76" rx="8" fill="#2a2320" stroke="#e8a34b" stroke-width="1.2"/>
+<text x="50" y="312" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#f3c47a">两个容易踩的点</text>
+<text x="50" y="331" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">1. 需要额外安装：langchain[mcp]（beta 阶段，import 会打印一次 beta 警告）</text>
+<text x="50" y="348" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">2. MCP 工具是「全量下发」的：服务器工具一多，光工具 schema 就吃掉大量上下文</text>
+<text x="50" y="362" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">（本机已确认可 import，但未连真实 MCP 服务器跑过端到端）</text>
+</svg>
