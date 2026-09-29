@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 400" width="680" height="400" role="img">
+<title>ChatPromptTemplate 的渲染管线与三种调用方式</title>
+<desc>变量字典注入模板后渲染；invoke 得到 ChatPromptValue、format_messages 得到消息列表，两者都能直接喂模型；format 得到的是带标签的纯字符串，不该喂模型。</desc>
+<defs>
+<marker id="ar1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+</defs>
+
+<rect x="0" y="0" width="680" height="400" fill="#111721"/>
+
+<text x="34" y="40" font-family="system-ui, sans-serif" font-size="17" font-weight="700" fill="#dfe6ee">模板渲染管线：变量 → 模板 → 三种产物</text>
+<text x="34" y="64" font-family="system-ui, sans-serif" font-size="12" fill="#7d8b9c">同一个模板，三个方法给出三种东西——只有一个不该直接喂模型</text>
+
+<!-- 变量 -->
+<rect x="34" y="150" width="110" height="90" rx="8" fill="#142b28" stroke="#3fd0b0" stroke-width="1.3"/>
+<text x="46" y="176" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#7fe3cd">变量 dict</text>
+<line x1="46" y1="186" x2="132" y2="186" stroke="#3a4a5e" stroke-width="1"/>
+<text x="46" y="206" font-family="system-ui, sans-serif" font-size="10.5" fill="#93a1b1">role</text>
+<text x="46" y="224" font-family="system-ui, sans-serif" font-size="10.5" fill="#93a1b1">question</text>
+
+<path d="M144 195L166 195" fill="none" stroke="#6b7a8d" stroke-width="1.6" marker-end="url(#ar1)"/>
+
+<!-- 模板 -->
+<rect x="170" y="120" width="150" height="150" rx="8" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.3"/>
+<text x="182" y="146" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#8ecbff">ChatPromptTemplate</text>
+<line x1="182" y1="156" x2="308" y2="156" stroke="#3a4a5e" stroke-width="1"/>
+<text x="182" y="176" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">元素可为 6 种类型：</text>
+<text x="182" y="194" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">str / tuple / dict</text>
+<text x="182" y="210" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">BaseMessage</text>
+<text x="182" y="226" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">MessagePromptTemplate</text>
+<text x="182" y="242" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">嵌套模板</text>
+<text x="182" y="260" font-family="system-ui, sans-serif" font-size="9.5" fill="#6b7a8d">（函数不成立，实测报错）</text>
+
+<!-- 三条分支 -->
+<path d="M320 195L340 195" fill="none" stroke="#6b7a8d" stroke-width="1.6" marker-end="url(#ar1)"/>
+
+<rect x="344" y="106" width="170" height="38" rx="6" fill="#241f38" stroke="#a78bfa" stroke-width="1.2"/>
+<text x="356" y="121" font-family="system-ui, sans-serif" font-size="10.5" fill="#c9b8ff">invoke()</text>
+<text x="356" y="137" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">→ ChatPromptValue</text>
+
+<rect x="344" y="176" width="170" height="38" rx="6" fill="#2a1f24" stroke="#f0655f" stroke-width="1.2" stroke-dasharray="4 3"/>
+<text x="356" y="191" font-family="system-ui, sans-serif" font-size="10.5" fill="#f0655f">format()</text>
+<text x="356" y="207" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">→ str（带 "System:" 标签）</text>
+
+<rect x="344" y="246" width="170" height="38" rx="6" fill="#241f38" stroke="#a78bfa" stroke-width="1.2"/>
+<text x="356" y="261" font-family="system-ui, sans-serif" font-size="10.5" fill="#c9b8ff">format_messages()</text>
+<text x="356" y="277" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">→ list[BaseMessage]</text>
+
+<!-- 模型 -->
+<rect x="548" y="150" width="98" height="90" rx="8" fill="#1b2532" stroke="#3a4a5e" stroke-width="1.3"/>
+<text x="562" y="186" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#dfe6ee">模型</text>
+<text x="562" y="208" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">只认消息</text>
+
+<path d="M514 125L530 125L530 172L544 172" fill="none" stroke="#6b7a8d" stroke-width="1.6" marker-end="url(#ar1)"/>
+<path d="M514 265L530 265L530 218L544 218" fill="none" stroke="#6b7a8d" stroke-width="1.6" marker-end="url(#ar1)"/>
+<path d="M514 195L540 195" fill="none" stroke="#f0655f" stroke-width="1.6" stroke-dasharray="4 3"/>
+<path d="M536 187L548 203M548 187L536 203" fill="none" stroke="#f0655f" stroke-width="1.8" stroke-linecap="round"/>
+
+<line x1="34" y1="306" x2="646" y2="306" stroke="#3a4a5e" stroke-width="1"/>
+<text x="34" y="330" font-family="system-ui, sans-serif" font-size="11" fill="#93a1b1">变量缺失会在渲染时直接报错，不会静默留空——这是模板相对字符串拼接的主要收益。</text>
+<text x="34" y="352" font-family="system-ui, sans-serif" font-size="11" fill="#6b7a8d">MessagesPlaceholder 往模板里插一段消息列表；partial() 预填部分变量，渲染时只传剩下的。</text>
+<text x="34" y="374" font-family="system-ui, sans-serif" font-size="11" fill="#f0655f">format() 的产物是给人看的调试文本，直接喂模型会把它当成一整条用户消息。</text>
+</svg>

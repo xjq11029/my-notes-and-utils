@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 620" width="1100" height="620" role="img">
+<rect width="1100" height="620" fill="#FFFFFF"/>
+<g font-family="'Microsoft YaHei','PingFang SC','Noto Sans CJK SC',sans-serif">
+
+<text x="550" y="48" text-anchor="middle" font-size="24" font-weight="700" fill="#1F2937">生成式模型与决策式模型：同一个判断，两条路径</text>
+<text x="550" y="78" text-anchor="middle" font-size="14" fill="#6B7280">LLM 把答案写成文章，Jev 把答案写成值</text>
+
+<!-- ===== 上半区：LLM 生成式路径 ===== -->
+<text x="59" y="122" font-size="14" font-weight="700" fill="#B45309">LLM 生成式路径</text>
+
+<rect x="59" y="142" width="226" height="84" rx="9" fill="#FEF6EC" stroke="#B45309" stroke-width="1.8"/>
+<text x="172" y="189" text-anchor="middle" font-size="16" font-weight="700" fill="#92400E">Prompt 提问</text>
+
+<rect x="311" y="142" width="226" height="84" rx="9" fill="#FEF6EC" stroke="#B45309" stroke-width="1.8"/>
+<text x="424" y="189" text-anchor="middle" font-size="16" font-weight="700" fill="#92400E">逐 token 自回归生成</text>
+
+<rect x="563" y="142" width="226" height="84" rx="9" fill="#FEF6EC" stroke="#B45309" stroke-width="1.8"/>
+<text x="676" y="189" text-anchor="middle" font-size="16" font-weight="700" fill="#92400E">一段解释文字</text>
+
+<rect x="815" y="142" width="226" height="84" rx="9" fill="#FEF6EC" stroke="#B45309" stroke-width="1.8"/>
+<text x="928" y="189" text-anchor="middle" font-size="16" font-weight="700" fill="#92400E">代码再解析出标签</text>
+
+<path d="M287 184L296 184" stroke="#475569" stroke-width="1.8" fill="none"/>
+<polygon points="308,184 295,189.5 295,178.5" fill="#475569"/>
+<path d="M539 184L548 184" stroke="#475569" stroke-width="1.8" fill="none"/>
+<polygon points="560,184 547,189.5 547,178.5" fill="#475569"/>
+<path d="M791 184L800 184" stroke="#475569" stroke-width="1.8" fill="none"/>
+<polygon points="812,184 799,189.5 799,178.5" fill="#475569"/>
+
+<text x="550" y="250" text-anchor="middle" font-size="13" fill="#92400E">慢：数百 ms 到数秒 · 贵：输出 token 按量计费 · 格式可能崩：靠 Prompt 软约束</text>
+
+<line x1="59" y1="292" x2="1041" y2="292" stroke="#9CA3AF" stroke-width="1.2" stroke-dasharray="6 6"/>
+
+<!-- ===== 下半区：Jev 决策式路径 ===== -->
+<text x="59" y="330" font-size="14" font-weight="700" fill="#0F766E">Jev 决策式路径</text>
+
+<rect x="59" y="346" width="226" height="84" rx="9" fill="#EDF7F5" stroke="#0F766E" stroke-width="1.8"/>
+<text x="172" y="393" text-anchor="middle" font-size="16" font-weight="700" fill="#0F766E">state + questions</text>
+
+<rect x="311" y="346" width="226" height="84" rx="9" fill="#EDF7F5" stroke="#0F766E" stroke-width="1.8"/>
+<text x="424" y="393" text-anchor="middle" font-size="16" font-weight="700" fill="#0F766E">一次前向计算</text>
+
+<rect x="563" y="346" width="226" height="84" rx="9" fill="#EDF7F5" stroke="#0F766E" stroke-width="1.8"/>
+<text x="676" y="371" text-anchor="middle" font-size="16" font-weight="700" fill="#0F766E">类型化答案</text>
+<text x="676" y="391" text-anchor="middle" font-size="12.5" fill="#0F766E">choice / score / noul</text>
+<text x="676" y="409" text-anchor="middle" font-size="12.5" fill="#0F766E">+ confidence</text>
+
+<rect x="815" y="346" width="226" height="84" rx="9" fill="#EDF7F5" stroke="#0F766E" stroke-width="1.8"/>
+<text x="928" y="393" text-anchor="middle" font-size="16" font-weight="700" fill="#0F766E">代码直接 if / else</text>
+
+<path d="M287 388L296 388" stroke="#475569" stroke-width="1.8" fill="none"/>
+<polygon points="308,388 295,393.5 295,382.5" fill="#475569"/>
+<path d="M539 388L548 388" stroke="#475569" stroke-width="1.8" fill="none"/>
+<polygon points="560,388 547,393.5 547,382.5" fill="#475569"/>
+<path d="M791 388L800 388" stroke="#475569" stroke-width="1.8" fill="none"/>
+<polygon points="812,388 799,393.5 799,382.5" fill="#475569"/>
+
+<text x="550" y="456" text-anchor="middle" font-size="13" fill="#0F766E">快：官方演示单次 0.114 秒 · 省：输出 token 免费 · 格式锁定：输出空间由请求定义</text>
+
+<!-- ===== 结论 ===== -->
+<rect x="140" y="498" width="820" height="52" rx="9" fill="#EDF7F5" stroke="#0F766E" stroke-width="1.8"/>
+<text x="550" y="531" text-anchor="middle" font-size="15" fill="#0F766E">差别不在「谁更聪明」，而在「答案以什么形式交回给程序」</text>
+
+</g>
+</svg>

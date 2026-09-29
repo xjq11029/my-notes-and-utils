@@ -7,8 +7,8 @@
     python docs/agent开发教程/_build_html.py
 
 输入：
-    docs/agent开发教程/ch01..ch14*.md   —— 14 章正文
-    docs/agent开发教程/assets/NN_*.svg  —— 26 张机制图（内联，做 marker id 去重）
+    docs/agent开发教程/ch01..ch18*.md   —— 18 章正文
+    docs/agent开发教程/assets/NN_*.svg  —— 32 张机制图（内联，做 marker id 去重）
 输出：
     docs/agent开发教程/agent-frameworks-deep-dive.html
 
@@ -29,19 +29,23 @@ OUT_HTML = os.path.join(HERE, "agent-frameworks-deep-dive.html")
 # 章节顺序（与 README.md 的章节目录一致）
 CHAPTERS = [
     "ch01_landscape.md",
-    "ch02_create_agent.md",
-    "ch03_middleware.md",
-    "ch04_tools_and_rag.md",
-    "ch05_context_engineering.md",
-    "ch06_langgraph_state.md",
-    "ch07_langgraph_persistence.md",
-    "ch08_langgraph_control.md",
-    "ch09_deepagents_overview.md",
-    "ch10_deepagents_filesystem.md",
-    "ch11_deepagents_delegation.md",
-    "ch12_deepagents_context.md",
-    "ch13_observability.md",
-    "ch14_multiagent_and_migration.md",
+    "ch02_models.md",
+    "ch03_messages_prompts.md",
+    "ch04_structured_output.md",
+    "ch05_create_agent.md",
+    "ch06_middleware.md",
+    "ch07_tools_and_context.md",
+    "ch08_rag.md",
+    "ch09_context_engineering.md",
+    "ch10_langgraph_state.md",
+    "ch11_langgraph_persistence.md",
+    "ch12_langgraph_control.md",
+    "ch13_deepagents_overview.md",
+    "ch14_deepagents_filesystem.md",
+    "ch15_deepagents_delegation.md",
+    "ch16_deepagents_context.md",
+    "ch17_observability.md",
+    "ch18_multiagent_and_migration.md",
 ]
 
 LANG_LABEL = {
@@ -733,10 +737,10 @@ def build():
 <header class="hero">
   <div class="eyebrow">LangChain · LangGraph · Deep Agents · 深度精读</div>
   <h1>Agent 开发教程：从构建块、运行时<br>到成品 harness</h1>
-  <p class="sub">网上讲 LangChain / LangGraph / Deep Agents 的教程很多，但大多把三个框架混着讲，读完还是不知道「遇到一个需求该翻谁的文档」。这篇按「构建块 → 运行时 → 成品 harness」三层递进，逐章讲清边界、机制、双语言写法与实测坑点，配 26 张自绘机制图与 Python / TypeScript 双语言可切换代码。</p>
+  <p class="sub">网上讲 LangChain / LangGraph / Deep Agents 的教程很多，但大多把三个框架混着讲，读完还是不知道「遇到一个需求该翻谁的文档」。这篇按「基础层 → 构建块 → 运行时 → 成品 harness」四层递进，逐章讲清边界、机制、双语言写法与实测坑点，配 32 张自绘机制图与 Python / TypeScript 双语言可切换代码。</p>
   <div class="meta">
-    <span>14 章 · 精读版</span>
-    <span>26 张自绘机制图</span>
+    <span>18 章 · 精读版</span>
+    <span>32 张自绘机制图</span>
     <span>Python / TypeScript 双语言代码</span>
     <span>全部内容内联 · 可离线打开</span>
   </div>

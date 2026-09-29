@@ -1,5 +1,5 @@
 # docs/agent开发教程/code/python 的依赖
-# 实测版本（2026-09-24）：langchain 1.4.2 / langgraph 1.2.12 / deepagents 0.7.18
+# 实测版本（2026-09-29）：langchain 1.4.2 / langgraph 1.2.12 / deepagents 0.7.18
 #
 # 说明：示例用脚本化假模型（_fake_model.py），**不需要 API Key**。
 #       langchain-openai / langchain-anthropic 只是为了让读者把假模型换成真实模型时
@@ -10,12 +10,17 @@ langchain==1.4.2
 langgraph==1.2.12
 deepagents==0.7.18
 
+# 第 8 章（RAG 全链路）离线可跑所需：切分器、文档加载器、PDF 解析
+langchain-text-splitters==1.1.2
+langchain-community==0.4.2
+pypdf==6.19.0
+
 # 想换成真实模型时按需安装（示例中已给出三档写法）：
 langchain-openai>=1.6
 langchain-anthropic>=1.7
 
-# 持久化检查点（ch07 提到，默认不装）：
+# 持久化检查点（第 11 章提到，默认不装）：
 # langgraph-checkpoint-sqlite
 
-# MCP 接入（ch04 提到，需 extra；装完才能 import langchain.mcp）：
+# MCP 接入（第 7 章提到，需 extra；装完才能 import langchain.mcp）：
 # langchain[mcp]

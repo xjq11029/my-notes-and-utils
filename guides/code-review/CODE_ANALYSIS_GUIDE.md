@@ -419,7 +419,7 @@ flowchart TD
 | 被调函数 | `userRepository.ts: findUser()`（行 34–58） |
 | 功能摘要 | 带缓存的用户查询：先读 Redis，未命中查 MySQL 并回填 |
 | 关键步骤 | 1. 读缓存 2. 未命中查库 3. 回填缓存 4. 返回实体 |
-| 详细分析 | [userRepository.ts.md 第 5.2 节](../repositories/userRepository.ts.md) |
+| 详细分析 | `userRepository.ts.md` 第 5.2 节（示例占位，实际填写时替换为指向被调方摘要卡的相对路径） |
 
 （块 B2、B3… 按相同四要素结构重复）
 

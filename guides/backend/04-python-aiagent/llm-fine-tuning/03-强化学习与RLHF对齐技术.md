@@ -283,7 +283,7 @@ V(s) = E[即时奖励 + γ × V(下一状态)]
 
 ### 2.4 时序差分学习（TD Learning）
 
-时序差分（Temporal-Difference, TD）是 RL 中最核心的学习方法之一，它利用**自举（bootstrapping）**思想：用估计值来更新估计值。
+时序差分（Temporal-Difference, TD）是 RL 中最核心的学习方法之一，它利用**自举**（bootstrapping）思想：用估计值来更新估计值。
 
 **TD(0) 更新规则**：
 

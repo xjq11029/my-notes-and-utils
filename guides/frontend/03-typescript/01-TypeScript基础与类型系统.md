@@ -1026,7 +1026,7 @@ class Config {
 
 ### 1. 概念定义
 
-TypeScript 采用**结构化类型系统（structural typing）**，也叫「鸭子类型」：类型之间是否兼容，只看**成员结构**是否匹配，而不看是否显式声明了继承关系。这与 Java、C# 的**名义类型系统（nominal typing）**不同——后者要求显式 `implements` / `extends`。
+TypeScript 采用**结构化类型系统（structural typing）**，也叫「鸭子类型」：类型之间是否兼容，只看**成员结构**是否匹配，而不看是否显式声明了继承关系。这与 Java、C# 的**名义类型系统**（nominal typing）不同——后者要求显式 `implements` / `extends`。
 
 描述类型关系的四个术语：
 

@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 680" width="1100" height="680" role="img">
+<rect width="1100" height="680" fill="#FFFFFF"/>
+<g font-family="'Microsoft YaHei','PingFang SC','Noto Sans CJK SC',sans-serif">
+
+<text x="550" y="48" text-anchor="middle" font-size="24" font-weight="700" fill="#1F2937">RLCD 的目标是校准，不是流利</text>
+<text x="550" y="78" text-anchor="middle" font-size="14" fill="#6B7280">说 80% 把握，就应当在大约 80% 的情况下是对的</text>
+
+<!-- ===== 坐标系 ===== -->
+<path d="M200 520L584 520" stroke="#475569" stroke-width="1.8" fill="none"/>
+<polygon points="594,520 581,525.5 581,514.5" fill="#475569"/>
+<path d="M200 520L200 136" stroke="#475569" stroke-width="1.8" fill="none"/>
+<polygon points="200,126 194.5,139 205.5,139" fill="#475569"/>
+
+<text x="200" y="542" text-anchor="middle" font-size="12" fill="#6B7280">0</text>
+<text x="560" y="542" text-anchor="middle" font-size="12" fill="#6B7280">1</text>
+<text x="182" y="525" text-anchor="middle" font-size="12" fill="#6B7280">0</text>
+<text x="182" y="165" text-anchor="middle" font-size="12" fill="#6B7280">1</text>
+
+<text x="380" y="572" text-anchor="middle" font-size="13" fill="#475569">模型给出的置信度 0 → 1</text>
+<text x="150" y="340" text-anchor="middle" font-size="13" fill="#475569" transform="rotate(-90 150 340)">实际正确率 0 → 1</text>
+
+<!-- 完美校准（对角虚线） -->
+<line x1="200" y1="520" x2="560" y2="160" stroke="#9CA3AF" stroke-width="1.8" stroke-dasharray="7 6"/>
+<text x="490" y="200" text-anchor="middle" font-size="13" fill="#6B7280">完美校准</text>
+
+<!-- 过度自信（实曲线） -->
+<path d="M200 520 C 236 496, 254 484, 272 473 C 308 451, 326 438, 344 426 C 380 401, 398 388, 416 376 C 452 345, 470 330, 488 315 C 524 276, 542 258, 560 239" stroke="#DC2626" stroke-width="2.4" fill="none"/>
+<line x1="524" y1="268" x2="524" y2="520" stroke="#DC2626" stroke-width="1" stroke-dasharray="4 4" fill="none"/>
+<line x1="524" y1="268" x2="200" y2="268" stroke="#DC2626" stroke-width="1" stroke-dasharray="4 4" fill="none"/>
+<circle cx="524" cy="268" r="4" fill="#DC2626"/>
+<text x="390" y="470" text-anchor="middle" font-size="13" fill="#DC2626">过度自信：说 90% 实际只对 70%</text>
+
+<!-- ===== 右侧说明 ===== -->
+<rect x="620" y="160" width="444" height="290" rx="9" fill="#F3F4F6" stroke="#9CA3AF" stroke-width="1.8"/>
+
+<rect x="636" y="190" width="412" height="66" rx="9" fill="#FFFFFF" stroke="#9CA3AF" stroke-width="1"/>
+<rect x="652" y="214" width="14" height="14" rx="3" fill="#B45309"/>
+<text x="680" y="230" font-size="12.5" fill="#475569">RLHF 优化的是「人更偏好流畅、自信、看起来有帮助的回答」</text>
+
+<rect x="636" y="272" width="412" height="66" rx="9" fill="#FFFFFF" stroke="#9CA3AF" stroke-width="1"/>
+<rect x="652" y="296" width="14" height="14" rx="3" fill="#0F766E"/>
+<text x="680" y="312" font-size="12.5" fill="#475569">RLCD 优化的是「给出的概率与真实结果对齐」</text>
+
+<rect x="636" y="354" width="412" height="66" rx="9" fill="#FFFFFF" stroke="#9CA3AF" stroke-width="1"/>
+<rect x="652" y="378" width="14" height="14" rx="3" fill="#2563EB"/>
+<text x="680" y="394" font-size="12.5" fill="#475569">每个答案附「概率分布 + confidence + 类型化结果」</text>
+
+<!-- ===== 底部 ===== -->
+<text x="550" y="625" text-anchor="middle" font-size="14" fill="#0F766E">校准不是保证正确，而是保证那个数字可以被你当作阈值使用</text>
+
+</g>
+</svg>

@@ -193,7 +193,7 @@ HashiCorp 联合创始人、Terraform 和 Ghostty 的作者 Mitchell Hashimoto �
 2026 年 7 月（内容快照期；该编号对应 2026 年 9 月的 arXiv 发布，系 2026 年 4 月版的大幅扩充第二版），arXiv 论文《Harness Engineering: Anatomy, Architecture, and Evolution of Coding Agents — A Source-Code Study of Eleven Systems》（arXiv:2609.00006，83 页）对 11 个生产级编码 Harness 做了源码级解剖：
 
 > Claude Code、Codex CLI、Gemini CLI、Mistral Vibe、OpenHands、Aider、Mini-SWE-Agent、Hermes、Pi、OpenCode、OpenClaw
-> 外加 Omnigent 作为\*\*第一个元 Harness（meta-harness）\*\*对比样本。
+> 外加 Omnigent 作为**第一个元 Harness**（meta-harness）对比样本。
 
 论文给出了两个最反直觉的发现（约 400 万行 Python/TypeScript/Rust 代码中）：
 
@@ -233,7 +233,7 @@ HashiCorp 联合创始人、Terraform 和 Ghostty 的作者 Mitchell Hashimoto �
 | Context Engineering     | 2025 中   | 知道什么         | 设计一个动态系统来组装上下文           |
 | **Harness Engineering** | **2026** | **在什么环境里做事** | **设计环境、反馈回路与控制系统**       |
 
-**注意这张表的层次：** 它讲的是**工程实践的扩张**——也就是第 1 节范畴表里的 **② 层（学科）**，回答"哪些实践属于 harness 工程"。它**不**回答"harness 里有哪些模块"（那是 \*\*① 层（实体）\*\*的问题，见 4.5 节的七个子系统）。两个层次混着看，就会误以为"harness = 上下文工程 + 一些约束"。
+**注意这张表的层次：** 它讲的是**工程实践的扩张**——也就是第 1 节范畴表里的 **② 层（学科）**，回答"哪些实践属于 harness 工程"。它**不**回答"harness 里有哪些模块"（那是 **① 层（实体）** 的问题，见 4.5 节的七个子系统）。两个层次混着看，就会误以为"harness = 上下文工程 + 一些约束"。
 
 Karpathy 在 2025 年 6 月推动了 "context engineering" 这个词的流行（"这是一门精微的艺术与科学，用恰到好处的信息填充上下文窗口"）。但到 2025 年下半年，一线实践者发现：**光有好的上下文，Agent 依然会失控。**
 
@@ -438,7 +438,7 @@ Codex CLI 通过向 **Responses API** 发送 HTTP 请求来驱动 agent loop。�
 | `--oss` + gpt-oss（ollama 0.13.4+ / LM Studio 0.3.39+） | `http://localhost:11434/v1/responses`             |
 | Azure 等云厂商托管                                          | 各自的 Responses API 端点                              |
 
-服务端以 \*\*Server-Sent Events（SSE）\*\*流式返回，事件 `data` 为 JSON，`"type"` 以 `"response"` 开头，例如：
+服务端以 **Server-Sent Events**（SSE）流式返回，事件 `data` 为 JSON，`"type"` 以 `"response"` 开头，例如：
 
 ```
 data: {"type":"response.reasoning_summary_text.delta","delta":"ah ", ...}
@@ -886,7 +886,7 @@ Böckeler 的切分更加精细：
 
 - **质量左移（Keep quality left）**：检查应尽可能靠近生产路径左侧。越早发现问题，修复成本越低。反馈传感器需要分布在全生命周期。
 - **Steering loop（转向循环）**：人类通过迭代 Harness 来引导 Agent——某个问题多次出现，就改进对应的控制机制。
-- **Ashby 定律（Law of Requisite Variety）**：**调节器必须至少具有与其所治理系统一样多的多样性。** LLM Agent 能产生几乎任何东西，因此承诺特定的代码拓扑（topology）是一种\*\*"减少多样性"的举措（variety-reduction move）\*\*，它使构建完整的 Harness 成为可能。这解释了为什么强架构约束能显著提升 Agent 可靠性。
+- **Ashby 定律（Law of Requisite Variety）**：**调节器必须至少具有与其所治理系统一样多的多样性。** LLM Agent 能产生几乎任何东西，因此承诺特定的代码拓扑（topology）是一种"**减少多样性**"的举措（variety-reduction move），它使构建完整的 Harness 成为可能。这解释了为什么强架构约束能显著提升 Agent 可靠性。
 - **人类的角色**：Harness 试图外化人类开发者的隐含经验，但**好的 Harness 不应旨在完全消除人类输入，而是把人类引导到最重要的输入点。**
 - **Harnessability（可挽具性）**：代码库易于被 Harness 的程度因语言、架构而异。强类型语言、清晰的模块边界、成熟框架天然提供 Sensor。**Greenfield（绿地项目）可以从第一天就嵌入 Harness；Legacy（遗留系统）最难构建。**
 - **Ambient affordances（环境可及性）**：使环境更易于被 Harness 利用的结构属性——"环境自身的、使在其中运作的 Agent 能够理解、导航和处理的那些结构性属性"。

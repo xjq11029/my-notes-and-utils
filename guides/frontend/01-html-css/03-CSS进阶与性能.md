@@ -1076,7 +1076,7 @@ $breakpoints: (
 
 ### 8.2 Tailwind CSS
 
-Tailwind CSS 是**原子化 CSS（Atomic CSS）**框架，核心理念是 "utility-first"（工具类优先），通过直接在 HTML 中组合大量单一职责的工具类来构建界面，而非编写自定义 CSS。
+Tailwind CSS 是**原子化 CSS**（Atomic CSS）框架，核心理念是 "utility-first"（工具类优先），通过直接在 HTML 中组合大量单一职责的工具类来构建界面，而非编写自定义 CSS。
 
 ```html
 <!-- 传统方式：自定义类名 + 独立 CSS -->

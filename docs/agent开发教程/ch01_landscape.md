@@ -14,6 +14,18 @@ LangChain、LangGraph、Deep Agents 这三个名字在彼此的文档里反复�
 
 ## 二、机制与原理
 
+本教程共 18 章，按「地基 → 三件套 → 工程话题」分五部分——
+
+| 部分 | 章 | 主题 |
+|---|---|---|
+| **基础层** | 2–4 | 模型怎么造、话怎么说、结果怎么收 |
+| **构建块** | 5–9 | LangChain v1：`create_agent`、中间件、工具、RAG 全链路、上下文工程 |
+| **运行时** | 10–12 | LangGraph v1：图与状态、持久化、人在回路与流式 |
+| **成品 harness** | 13–16 | Deep Agents：预装工具、文件系统、规划委派、技能与记忆 |
+| **公共工程话题** | 17–18 | 可观测与评测、多智能体与迁移部署 |
+
+本章只回答一个问题：**这三个框架各自站在哪一层**。后面每一章都会回到这张分层图。
+
 ### 2.1 先把一个词对齐：Harness
 
 本仓库另有一篇原理篇 [`docs/harness/`](../harness/README.md)，回答的是「**为什么**需要 harness」：`Agent = Model + Harness`，长周期任务必然带来五个问题（上下文腐化、错误累积、跨会话失忆、权限越界、无法自验），harness 的 12 个组件就是为对冲这五个问题而存在。
@@ -30,7 +42,7 @@ LangChain、LangGraph、Deep Agents 这三个名字在彼此的文档里反复�
 
 这句话是全书的主轴：**循环本身很小，harness 才是工程量所在**。三个框架的差别，本质上就是「帮你把 harness 的哪一段做掉了」。
 
-### 2.2 三层分工：构建块 / 运行时 / 成品 harness
+### 2.2 分层：基础层 + 三层分工
 
 下表回答的问题是：**遇到一个需求时，我该去翻哪个框架的文档？**
 
@@ -47,7 +59,7 @@ LangChain、LangGraph、Deep Agents 这三个名字在彼此的文档里反复�
 
 一句话记住边界（**是心智模型上的分工，不是「谁没这个能力」**）：**想找提示词、工具、中间件，去 LangChain 那一层；想找状态、检查点、中断、恢复，去 LangGraph 那一层。**
 
-之所以强调「不是能力边界」：实现上两边互相依赖——`create_agent` 编译出来的**就是**一张 LangGraph 图，签名里就有 `checkpointer`（第 2 章参数表列了）；LangGraph 也自带 `ToolNode` 这类预置件。所以这句话回答的是「**该去哪一层找答案**」，不是「谁不认识什么」。
+之所以强调「不是能力边界」：实现上两边互相依赖——`create_agent` 编译出来的**就是**一张 LangGraph 图，签名里就有 `checkpointer`（第 5 章参数表列了）；LangGraph 也自带 `ToolNode` 这类预置件。所以这句话回答的是「**该去哪一层找答案**」，不是「谁不认识什么」。
 
 ### 2.3 版本时间线
 
@@ -159,7 +171,7 @@ console.log(result.messages[result.messages.length - 1].content);
 ## 五、关键结论
 
 1. **Harness = 围绕 Agent Loop 的一切**——提示词、工具、中间件。循环很小，harness 很大；三个框架的差别就是「帮你做掉了 harness 的哪一段」。
-2. **三层分工**：LangChain v1 = 构建块（循环 + 中间件插槽），LangGraph v1 = 运行时（图 + 状态 + 持久化），Deep Agents = 成品 harness（预装规划、文件系统、子代理、记忆）。
+2. **分层**：基础层（模型 / 消息 / 提示词 / 结构化输出）是共同地基；其上三层是 LangChain v1 = 构建块（循环 + 中间件插槽），LangGraph v1 = 运行时（图 + 状态 + 持久化），Deep Agents = 成品 harness（预装规划、文件系统、子代理、记忆）。
 3. **依赖方向单向**：Deep Agents → `create_agent` → LangGraph 图。学是自下而上，用是自上而下。
 4. **版本锚点**：LangChain v1 与 LangGraph v1 于 **2025-10-22** 同步 GA；Deep Agents 独立演进，且**两语言版本号不同步**（Python 0.7.18 / JS 1.14.0）。
 5. **双 SDK 命名规律**：Python snake_case、JS camelCase；入口函数 `create_agent` / `createAgent`。
@@ -168,7 +180,7 @@ console.log(result.messages[result.messages.length - 1].content);
 ## 本章要点回顾
 
 - **Harness 是围绕循环的一切**；官方 v1 口径与 [`docs/harness/`](../harness/README.md) 原理篇一致——那篇讲「为什么需要 harness」，本篇讲「怎么用现成框架搭」。
-- **三层**：构建块（LangChain v1）/ 运行时（LangGraph v1）/ 成品 harness（Deep Agents）；见**图 1**。
+- **分层**：基础层（模型 / 消息 / 提示词 / 结构化输出）+ 三层（构建块 LangChain v1 / 运行时 LangGraph v1 / 成品 harness Deep Agents）；见**图 1**。
 - **分层判据**：提示词 / 工具 / 中间件去 LangChain 找，状态 / 检查点 / 中断去 LangGraph 找——这是最快的定位方式（**心智模型上的分工**，不是「谁没这个能力」）。
 - **版本锚点 2025-10-22**：LangChain v1 与 LangGraph v1 同步 GA；见**图 2**。
 - **两语言版本号不同步**，功能差异以各自包为准。

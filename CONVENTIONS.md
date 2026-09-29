@@ -38,13 +38,22 @@
 - 章间引用用**纯文本「第 N 章」**，不用 Markdown 链接；仅 README 的章节目录表用链接
 - 逐字稿等转写中间产物**不纳入仓库**（整理时临时生成、完成后删除）；课件原文等需长期留存的元文件用 `_` 前缀
 
+### 主题笔记目录（`docs/Jev/**`）
+
+围绕单一主题、**非课程整理**的自成体系笔记；文件与配图沿用上一节的约定（`chNN_英文小写下划线.md` + `assets/` 下 SVG 矢量源与 2× PNG 成对，Markdown 引用 PNG）。
+
+- 章节骨架固定：`## 一、这一章要解决的问题` → `## 二、机制与原理` → `## 三、工程实践` → `## 四、常见坑与边界条件` → `## 五、关键结论` → `## 本章要点回顾`
+  - 无实操时第三节写「使用要点」并在节首说明；标题必须与内容相符
+- 上一节的其余约定（禁用 LaTeX / Mermaid `graph TD` 竖排 / 章间引用用纯文本「第 N 章」/ `_` 前缀元文件）**同样适用**
+- **数据来源分级**：正文关键数据以【官方】/【一手】/【三方】/【社区】标签标注；来源底账为同目录 `_来源与数据分级.md`（元文件），改正文数字必须同步
+
 ### 单文件自包含（`docs/harness/*.html`）
 
 `docs/harness/agent-harness-deep-dive.html` 必须保持**单文件自包含**（无 CDN / 无外部字体 / 无外部 JS），支持离线打开。
 
 ### 教程交付物（`docs/agent开发教程/**`）
 
-**双档交付**：14 章 Markdown 教程（`chNN_英文小写下划线.md`）+ 单文件 HTML 精读版。
+**双档交付**：18 章 Markdown 教程（`chNN_英文小写下划线.md`）+ 单文件 HTML 精读版。
 
 - **章节骨架固定**：`## 一、这一章要解决的问题` → `## 二、机制与原理` → `## 三、代码：Python 与 TypeScript` → `## 四、常见坑与边界条件` → `## 五、关键结论` → `## 本章要点回顾`
 - **配图与 HTML 同源**：`assets/` 里的深色面板 SVG 既导出 2× PNG 给 Markdown，也被内联进 HTML。⚠️ 内联时 SVG 的 `id`（`ar1` 这类 marker）会全局冲突，**必须加图号前缀去重**并同步改写 `url(#…)`
@@ -114,8 +123,8 @@ find . -type f -name '*.md' ! -path './.git/*' ! -path './.workbuddy/*' ! -path 
 # Markdown 总行数（必须用 -exec cat {} +；用 xargs wc -l 会分批截断）
 find . -type f -name '*.md' ! -path './.git/*' ! -path './.workbuddy/*' ! -path './.workbuddy-ai/*' ! -path '*/node_modules/*' -exec cat {} + | wc -l
 
-# 单目录文件数
-find docs -type f | wc -l
+# 单目录文件数（必须排除依赖目录，否则会被 node_modules 污染）
+find docs -type f ! -path '*/node_modules/*' | wc -l
 ```
 
 > 注意：`find` 的 `-path` 参数**必须加引号**，否则 `!` 会被 shell 展开导致报错。

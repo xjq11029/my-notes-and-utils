@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 560" width="1100" height="560" role="img">
+<rect width="1100" height="560" fill="#FFFFFF"/>
+<g font-family="'Microsoft YaHei','PingFang SC','Noto Sans CJK SC',sans-serif">
+
+<text x="550" y="48" text-anchor="middle" font-size="24" font-weight="700" fill="#1F2937">把 confidence 当旋钮，而不是当证书</text>
+<text x="550" y="78" text-anchor="middle" font-size="14" fill="#6B7280">阈值要在你自己的历史标注数据上标定</text>
+
+<!-- ===== 分支连线 ===== -->
+<path d="M580 265 C 660 265, 700 130, 766 130" stroke="#475569" stroke-width="1.8" fill="none"/>
+<polygon points="778,130 765,135.5 765,124.5" fill="#475569"/>
+<path d="M580 265L766 265" stroke="#475569" stroke-width="1.8" fill="none"/>
+<polygon points="778,265 765,270.5 765,259.5" fill="#475569"/>
+<path d="M580 265 C 660 265, 700 400, 766 400" stroke="#475569" stroke-width="1.8" fill="none"/>
+<polygon points="778,400 765,405.5 765,394.5" fill="#475569"/>
+
+<!-- ===== 输入 ===== -->
+<rect x="50" y="220" width="160" height="90" rx="9" fill="#F3F4F6" stroke="#9CA3AF" stroke-width="1.8"/>
+<text x="130" y="277" text-anchor="middle" font-size="18" font-weight="700" fill="#374151">输入</text>
+
+<path d="M212 265L288 265" stroke="#475569" stroke-width="1.8" fill="none"/>
+<polygon points="300,265 287,270.5 287,259.5" fill="#475569"/>
+
+<!-- ===== Jev ===== -->
+<rect x="300" y="180" width="280" height="170" rx="9" fill="#EDF7F5" stroke="#0F766E" stroke-width="1.8"/>
+<text x="440" y="232" text-anchor="middle" font-size="18" font-weight="700" fill="#0F766E">Jev</text>
+<text x="440" y="268" text-anchor="middle" font-size="12.5" fill="#475569">输出 choice / score / noul</text>
+<text x="440" y="294" text-anchor="middle" font-size="12.5" fill="#475569">+ confidence</text>
+
+<!-- ===== 出口 1：自动执行 ===== -->
+<rect x="780" y="82" width="270" height="96" rx="9" fill="#EDF7F5" stroke="#0F766E" stroke-width="1.8"/>
+<text x="915" y="118" text-anchor="middle" font-size="12.5" fill="#6B7280">confidence ≥ 高阈值</text>
+<text x="915" y="152" text-anchor="middle" font-size="16" font-weight="700" fill="#0F766E">自动执行</text>
+
+<!-- ===== 出口 2：复核 ===== -->
+<rect x="780" y="217" width="270" height="96" rx="9" fill="#FEF6EC" stroke="#B45309" stroke-width="1.8"/>
+<text x="915" y="253" text-anchor="middle" font-size="12.5" fill="#6B7280">中间区间</text>
+<text x="915" y="285" text-anchor="middle" font-size="16" font-weight="700" fill="#92400E">复核</text>
+<text x="915" y="306" text-anchor="middle" font-size="12" fill="#475569">换个问法再问 / 组合多个原子问题</text>
+
+<!-- ===== 出口 3：升级 ===== -->
+<rect x="780" y="352" width="270" height="96" rx="9" fill="#FEF2F2" stroke="#DC2626" stroke-width="1.8"/>
+<text x="915" y="388" text-anchor="middle" font-size="12.5" fill="#6B7280">confidence ≤ 低阈值</text>
+<text x="915" y="420" text-anchor="middle" font-size="16" font-weight="700" fill="#991B1B">升级</text>
+<text x="915" y="441" text-anchor="middle" font-size="12" fill="#475569">转人工或交给 LLM</text>
+
+<!-- ===== 底部 ===== -->
+<text x="550" y="520" text-anchor="middle" font-size="14" fill="#475569">用覆盖率换准确率，是主动选择，不是碰运气</text>
+
+</g>
+</svg>

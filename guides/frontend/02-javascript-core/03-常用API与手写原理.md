@@ -1033,7 +1033,7 @@ console.log(getEvenDoubledDeclarative(numbers)); // [4, 8, 12, 16, 20]
 
 #### 1.1 核心概念
 
-**`Proxy`** 是 ES6 提供的**元编程**能力：它包装一个目标对象（`target`），通过处理器（`handler`）中定义的**陷阱（trap）**拦截对目标对象的底层操作（读属性、写属性、`in`、`delete`、`new` 等）。
+**`Proxy`** 是 ES6 提供的**元编程**能力：它包装一个目标对象（`target`），通过处理器（`handler`）中定义的**陷阱**（trap）拦截对目标对象的底层操作（读属性、写属性、`in`、`delete`、`new` 等）。
 
 ```javascript
 const proxy = new Proxy(target, handler);

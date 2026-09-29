@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 400" width="680" height="400" role="img">
+<title>四种消息类型与各自的字段</title>
+<desc>SystemMessage 设定角色，HumanMessage 是用户输入，AIMessage 承载模型输出与工具调用请求，ToolMessage 回灌工具结果。只有 AIMessage 有 tool_calls、只有 ToolMessage 有 tool_call_id，两者靠 id 配对。</desc>
+<defs>
+<marker id="ar1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+</defs>
+
+<rect x="0" y="0" width="680" height="400" fill="#111721"/>
+
+<text x="34" y="40" font-family="system-ui, sans-serif" font-size="17" font-weight="700" fill="#dfe6ee">四种消息类型：角色靠类型区分</text>
+<text x="34" y="64" font-family="system-ui, sans-serif" font-size="12" fill="#7d8b9c">不是一个大而全的通用对象——每种类型锁住自己那组字段</text>
+
+<!-- SystemMessage -->
+<rect x="34" y="92" width="132" height="196" rx="10" fill="#142b28" stroke="#3fd0b0" stroke-width="1.4"/>
+<text x="46" y="118" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#7fe3cd">SystemMessage</text>
+<line x1="46" y1="128" x2="154" y2="128" stroke="#3a4a5e" stroke-width="1"/>
+<text x="46" y="150" font-family="system-ui, sans-serif" font-size="10.5" fill="#93a1b1">角色设定</text>
+<text x="46" y="176" font-family="system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">content</text>
+
+<!-- HumanMessage -->
+<rect x="194" y="92" width="132" height="196" rx="10" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.4"/>
+<text x="206" y="118" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#8ecbff">HumanMessage</text>
+<line x1="206" y1="128" x2="314" y2="128" stroke="#3a4a5e" stroke-width="1"/>
+<text x="206" y="150" font-family="system-ui, sans-serif" font-size="10.5" fill="#93a1b1">用户输入</text>
+<text x="206" y="176" font-family="system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">content</text>
+<text x="206" y="196" font-family="system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">name</text>
+<text x="206" y="216" font-family="system-ui, sans-serif" font-size="9.5" fill="#6b7a8d">（是否透传看供应商）</text>
+
+<!-- AIMessage -->
+<rect x="354" y="92" width="132" height="196" rx="10" fill="#2a2320" stroke="#e8a34b" stroke-width="1.4"/>
+<text x="366" y="118" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#e8a34b">AIMessage</text>
+<line x1="366" y1="128" x2="474" y2="128" stroke="#3a4a5e" stroke-width="1"/>
+<text x="366" y="150" font-family="system-ui, sans-serif" font-size="10.5" fill="#93a1b1">模型输出</text>
+<text x="366" y="176" font-family="system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">content</text>
+<text x="366" y="196" font-family="system-ui, sans-serif" font-size="10.5" fill="#f0b45f">tool_calls</text>
+<text x="366" y="216" font-family="system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">response_metadata</text>
+<text x="366" y="236" font-family="system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">usage_metadata</text>
+
+<!-- ToolMessage -->
+<rect x="514" y="92" width="132" height="196" rx="10" fill="#241f38" stroke="#a78bfa" stroke-width="1.4"/>
+<text x="526" y="118" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#c9b8ff">ToolMessage</text>
+<line x1="526" y1="128" x2="634" y2="128" stroke="#3a4a5e" stroke-width="1"/>
+<text x="526" y="150" font-family="system-ui, sans-serif" font-size="10.5" fill="#93a1b1">工具结果</text>
+<text x="526" y="176" font-family="system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">content</text>
+<text x="526" y="196" font-family="system-ui, sans-serif" font-size="10.5" fill="#c9b8ff">tool_call_id</text>
+<text x="526" y="216" font-family="system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">name</text>
+
+<!-- 配对箭头 -->
+<path d="M486 190L510 190" fill="none" stroke="#f0655f" stroke-width="1.8" marker-end="url(#ar1)"/>
+<text x="352" y="316" font-family="system-ui, sans-serif" font-size="10.5" fill="#f0655f">tool_calls[].id 必须与 tool_call_id 对上——对不上，框架就认不出这是哪次调用的结果</text>
+
+<!-- 底部说明 -->
+<line x1="34" y1="336" x2="646" y2="336" stroke="#3a4a5e" stroke-width="1"/>
+<text x="34" y="358" font-family="system-ui, sans-serif" font-size="11" fill="#93a1b1">一条消息列表 = 一次请求的全部输入；顺序即语义，系统设定放最前、工具结果紧跟对应的 AI 请求。</text>
+<text x="34" y="378" font-family="system-ui, sans-serif" font-size="11" fill="#6b7a8d">字典形式（{"role": "user"}）与消息对象在模型侧等价——示例用 .seen 实测验证，不靠猜。</text>
+</svg>

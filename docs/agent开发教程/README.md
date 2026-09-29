@@ -10,9 +10,9 @@
 
 | 文件 | 类型 | 说明 |
 |---|---|---|
-| `ch01`–`ch14*.md` | 教程正文 | 14 章，每章统一骨架：这一章要解决的问题 → 机制与原理 → 双语言代码 → 常见坑 → 关键结论 → 本章要点回顾 |
-| `agent-frameworks-deep-dive.html` | 精读版长文 | 单文件自包含（无 CDN / 无外部字体 / 无外部 JS），深色主题，左侧目录滚动高亮，26 张内联 SVG，Python/TypeScript 代码切换。**由脚本生成，不手工改** |
-| `_build_html.py` | 元文件 · 构建脚本 | 从 14 章正文 + `assets/` 生成上面那份 HTML。**幂等**；改章节或配图后必须重跑 |
+| `ch01`–`ch18*.md` | 教程正文 | 18 章，每章统一骨架：这一章要解决的问题 → 机制与原理 → 双语言代码 → 常见坑 → 关键结论 → 本章要点回顾 |
+| `agent-frameworks-deep-dive.html` | 精读版长文 | 单文件自包含（无 CDN / 无外部字体 / 无外部 JS），深色主题，左侧目录滚动高亮，32 张内联 SVG，Python/TypeScript 代码切换。**由脚本生成，不手工改** |
+| `_build_html.py` | 元文件 · 构建脚本 | 从 18 章正文 + `assets/` 生成上面那份 HTML。**幂等**；改章节或配图后必须重跑 |
 | `code/python/` | 示例代码 | Python 示例，**全部实跑通过**；离线 Fake 模型，无需 API Key |
 | `code/typescript/` | 示例代码 | TypeScript 示例，与 Python 一一对应，**全部实跑通过** |
 | `assets/` | 配图 | 自绘 SVG 矢量源 + **2× PNG 导出**（Markdown 引用 PNG；SVG 与 HTML 精读版同一份源） |
@@ -20,10 +20,11 @@
 
 ---
 
-## 三件套的分工（全书主线）
+## 全书结构（基础层 + 三件套）
 
-| 层 | 框架 | 定位 | 一句话 |
+| 层 | 内容 | 定位 | 一句话 |
 |---|---|---|---|
+| **基础层** | 模型 / 消息 / 提示词 / 结构化输出 / RAG | 不碰循环，先把「原料」备齐 | 模型怎么造、话怎么说、结果怎么收、知识从哪来 |
 | **构建块** | LangChain v1 | 一个**高度可配置的 harness** | `create_agent` 给你循环 + 中间件插槽，自己组装 |
 | **运行时** | LangGraph v1 | **图 + 状态 + 持久化**的底层基础设施 | 管状态、管检查点、管中断、管恢复 |
 | **成品 harness** | Deep Agents | 在 `create_agent` 之上**预装**一整套能力 | 规划、虚拟文件系统、子代理、记忆开箱即用 |
@@ -37,21 +38,25 @@
 | 章 | 文件 | 主题 |
 |---|---|---|
 | 1 | [ch01_landscape.md](ch01_landscape.md) | 三件套定位与心智模型：构建块 / 运行时 / 成品 harness |
-| 2 | [ch02_create_agent.md](ch02_create_agent.md) | `create_agent` 与 Agent Loop：状态、两类作用域、结构化输出 |
-| 3 | [ch03_middleware.md](ch03_middleware.md) | 中间件：harness 的可插拔扩展点与钩子体系 |
-| 4 | [ch04_tools_and_rag.md](ch04_tools_and_rag.md) | 工具、运行时上下文注入、MCP 接入与检索增强 |
-| 5 | [ch05_context_engineering.md](ch05_context_engineering.md) | 上下文工程：摘要、裁剪、卸载与缓存前缀 |
-| 6 | [ch06_langgraph_state.md](ch06_langgraph_state.md) | LangGraph 图与状态：State / Reducer / Node / Edge / Send |
-| 7 | [ch07_langgraph_persistence.md](ch07_langgraph_persistence.md) | 持久化与持久执行：检查点、线程、时间旅行、长期记忆 |
-| 8 | [ch08_langgraph_control.md](ch08_langgraph_control.md) | 人在回路与流式：interrupt / resume / stream_mode |
-| 9 | [ch09_deepagents_overview.md](ch09_deepagents_overview.md) | Deep Agents 全景：预装 harness 与 HarnessProfile |
-| 10 | [ch10_deepagents_filesystem.md](ch10_deepagents_filesystem.md) | 虚拟文件系统与执行环境：文件工具、权限、后端 |
-| 11 | [ch11_deepagents_delegation.md](ch11_deepagents_delegation.md) | 规划与委派：`write_todos` 与子代理 |
-| 12 | [ch12_deepagents_context.md](ch12_deepagents_context.md) | 技能与记忆：Skills 渐进式披露与跨会话 Memory |
-| 13 | [ch13_observability.md](ch13_observability.md) | 可观测与评测：追踪、数据集与成本 |
-| 14 | [ch14_multiagent_and_migration.md](ch14_multiagent_and_migration.md) | 多智能体协作、从旧版迁移与生产部署 |
+| 2 | [ch02_models.md](ch02_models.md) | 模型的创建与调用：三个初始化角度与四种调用形态 |
+| 3 | [ch03_messages_prompts.md](ch03_messages_prompts.md) | Message 与提示词模板：四种消息类型与模板渲染 |
+| 4 | [ch04_structured_output.md](ch04_structured_output.md) | 结构化输出：四种 schema 模式与两种策略 |
+| 5 | [ch05_create_agent.md](ch05_create_agent.md) | `create_agent` 与 Agent Loop：状态、两类作用域、结构化输出 |
+| 6 | [ch06_middleware.md](ch06_middleware.md) | 中间件：harness 的可插拔扩展点与钩子体系 |
+| 7 | [ch07_tools_and_context.md](ch07_tools_and_context.md) | 工具与运行时上下文：`@tool`、注入与 MCP 接入 |
+| 8 | [ch08_rag.md](ch08_rag.md) | RAG 全链路：加载、切分、嵌入、入库与检索 |
+| 9 | [ch09_context_engineering.md](ch09_context_engineering.md) | 上下文工程：摘要、裁剪、卸载与缓存前缀 |
+| 10 | [ch10_langgraph_state.md](ch10_langgraph_state.md) | LangGraph 图与状态：State / Reducer / Node / Edge / Send |
+| 11 | [ch11_langgraph_persistence.md](ch11_langgraph_persistence.md) | 持久化与持久执行：检查点、线程、时间旅行、长期记忆 |
+| 12 | [ch12_langgraph_control.md](ch12_langgraph_control.md) | 人在回路与流式：interrupt / resume / stream_mode |
+| 13 | [ch13_deepagents_overview.md](ch13_deepagents_overview.md) | Deep Agents 全景：预装 harness 与 HarnessProfile |
+| 14 | [ch14_deepagents_filesystem.md](ch14_deepagents_filesystem.md) | 虚拟文件系统与执行环境：文件工具、权限、后端 |
+| 15 | [ch15_deepagents_delegation.md](ch15_deepagents_delegation.md) | 规划与委派：`write_todos` 与子代理 |
+| 16 | [ch16_deepagents_context.md](ch16_deepagents_context.md) | 技能与记忆：Skills 渐进式披露与跨会话 Memory |
+| 17 | [ch17_observability.md](ch17_observability.md) | 可观测与评测：追踪、数据集与成本 |
+| 18 | [ch18_multiagent_and_migration.md](ch18_multiagent_and_migration.md) | 多智能体协作、从旧版迁移与生产部署 |
 
-**推荐学习顺序**：按章顺序通读（1→14 为叙事线）；只关心某一框架可跳读——第 2–5 章是 LangChain，第 6–8 章是 LangGraph，第 9–12 章是 Deep Agents，第 13–14 章是三者的公共工程话题。
+**推荐学习顺序**：按章顺序通读（1→18 为叙事线）；只关心某一层可跳读——第 2–4 章是基础层（模型、消息、结构化输出），第 5–9 章是 LangChain（含第 8 章 RAG 全链路），第 10–12 章是 LangGraph，第 13–16 章是 Deep Agents，第 17–18 章是公共工程话题。
 
 ---
 
@@ -60,69 +65,83 @@
 | 术语 | 中文注释 | 首见 |
 |---|---|---|
 | Harness | 围绕 Agent Loop 的一切：提示词、工具、中间件 | ch1 |
-| `create_agent` | LangChain v1 创建 agent 的入口函数 | ch2 |
-| Agent Loop | 调模型 → 执行工具 → 结果回灌 → 再调模型，直到不再请求工具 | ch2 |
-| AgentState | agent 的状态容器，内置 `messages` 字段且**只追加** | ch2 |
-| `thread_id` | **对话**作用域：决定消息历史与检查点归属 | ch2 |
-| `context` | **单次运行**作用域：user_id、feature flag 等，不进检查点 | ch2 |
-| Middleware | 挂在 Agent Loop 各阶段的扩展点 | ch3 |
-| `wrap_model_call` / `wrap_tool_call` | 「包裹式」钩子：可改写请求、拦截响应、重试 | ch3 |
-| `ToolRuntime` | 工具内访问 state / context / store 的注入参数 | ch4 |
-| MCP | Model Context Protocol，标准化的工具供给协议 | ch4 |
-| RAG | Retrieval-Augmented Generation，检索增强生成 | ch4 |
-| `StateGraph` | LangGraph 的图构建器 | ch6 |
-| Reducer | 决定「节点返回的更新如何合并进当前状态」的函数 | ch6 |
-| `add_messages` | 内置 reducer：追加消息并按 ID 去重更新 | ch6 |
-| `Send` | 从条件边动态派发并行的 map-reduce 原语 | ch6 |
-| Checkpointer | 把图状态按检查点落盘的组件 | ch7 |
-| Checkpoint | 一次状态快照；同线程可回放与时间旅行 | ch7 |
-| Store | 跨线程长期记忆的键值存储 | ch7 |
-| Durable execution | 持久执行：崩溃或中断后从最近检查点续跑 | ch7 |
-| `interrupt()` | 在图内暂停并等待人工输入的机制 | ch8 |
-| `stream_mode` | 流式输出的投影方式（values / updates / messages / custom …） | ch8 |
-| `create_deep_agent` | Deep Agents 的入口函数，预装一整套中间件 | ch9 |
-| HarnessProfile | 声明式地裁剪 Deep Agents 内置能力 | ch9 |
-| Virtual filesystem | 挂载在后端上的文件工具集（`ls`/`read_file`/`write_file`…） | ch10 |
-| Backend | 文件与执行的落点（State / Store / Filesystem / Sandbox） | ch10 |
-| `write_todos` | 任务规划工具，维护结构化待办列表 | ch11 |
-| Subagent | 独立上下文的子代理，用 `task` 工具派发 | ch11 |
-| Skills | 按需加载的领域知识包（`SKILL.md`），渐进式披露 | ch12 |
-| Memory | 跨会话持久的指令与偏好（`AGENTS.md`） | ch12 |
+| `init_chat_model` | 按 `"provider:model"` 字符串创建模型的统一入口 | ch2 |
+| `profile` | 模型的能力自述：上下文窗口、是否支持工具调用 / 结构化输出 | ch2 |
+| `content_blocks` | 消息内容的结构化表示，多模态按块描述 | ch3 |
+| `ChatPromptTemplate` | 提示词模板：变量注入后渲染成消息列表 | ch3 |
+| `MessagesPlaceholder` | 模板里的消息列表占位符 | ch3 |
+| `with_structured_output` | 把模型输出直接解析成 Pydantic 实例等结构化结果 | ch4 |
+| `create_agent` | LangChain v1 创建 agent 的入口函数 | ch5 |
+| Agent Loop | 调模型 → 执行工具 → 结果回灌 → 再调模型，直到不再请求工具 | ch5 |
+| AgentState | agent 的状态容器，内置 `messages` 字段且**只追加** | ch5 |
+| `thread_id` | **对话**作用域：决定消息历史与检查点归属 | ch5 |
+| `context` | **单次运行**作用域：user_id、feature flag 等，不进检查点 | ch5 |
+| Middleware | 挂在 Agent Loop 各阶段的扩展点 | ch6 |
+| `wrap_model_call` / `wrap_tool_call` | 「包裹式」钩子：可改写请求、拦截响应、重试 | ch6 |
+| `ToolRuntime` | 工具内访问 state / context / store 的注入参数 | ch7 |
+| MCP | Model Context Protocol，标准化的工具供给协议 | ch7 |
+| Document | RAG 的基本单位：`page_content` 加 `metadata` | ch8 |
+| Text Splitter | 把长文档切成短块，`chunk_size` / `chunk_overlap` 可调 | ch8 |
+| Embeddings | 把文本映射成定长向量；入库与检索各一个方法 | ch8 |
+| Vector Store | 存向量与原文、支持相似度检索的库 | ch8 |
+| Retriever | 「输入查询、输出相关 Document」的标准接缝 | ch8 |
+| `StateGraph` | LangGraph 的图构建器 | ch10 |
+| Reducer | 决定「节点返回的更新如何合并进当前状态」的函数 | ch10 |
+| `add_messages` | 内置 reducer：追加消息并按 ID 去重更新 | ch10 |
+| `Send` | 从条件边动态派发并行的 map-reduce 原语 | ch10 |
+| Checkpointer | 把图状态按检查点落盘的组件 | ch11 |
+| Checkpoint | 一次状态快照；同线程可回放与时间旅行 | ch11 |
+| Store | 跨线程长期记忆的键值存储 | ch11 |
+| Durable execution | 持久执行：崩溃或中断后从最近检查点续跑 | ch11 |
+| `interrupt()` | 在图内暂停并等待人工输入的机制 | ch12 |
+| `stream_mode` | 流式输出的投影方式（values / updates / messages / custom …） | ch12 |
+| `create_deep_agent` | Deep Agents 的入口函数，预装一整套中间件 | ch13 |
+| HarnessProfile | 声明式地裁剪 Deep Agents 内置能力 | ch13 |
+| Virtual filesystem | 挂载在后端上的文件工具集（`ls`/`read_file`/`write_file`…） | ch14 |
+| Backend | 文件与执行的落点（State / Store / Filesystem / Sandbox） | ch14 |
+| `write_todos` | 任务规划工具，维护结构化待办列表 | ch15 |
+| Subagent | 独立上下文的子代理，用 `task` 工具派发 | ch15 |
+| Skills | 按需加载的领域知识包（`SKILL.md`），渐进式披露 | ch16 |
+| Memory | 跨会话持久的指令与偏好（`AGENTS.md`） | ch16 |
 
 ---
 
 ## 示例代码
 
-两套示例**一一对应**，覆盖同样的 14 个主题。**全部离线可跑**——用一个脚本化的假模型替代真实 LLM，不需要 API Key、不产生网络请求，结果确定可复现。
+两套示例**一一对应**，覆盖同样的 17 个主题。**全部离线可跑**——用一个脚本化的假模型替代真实 LLM，不需要 API Key、不产生网络请求，结果确定可复现。
 
 ```bash
 # Python
 cd code/python
 python -m venv .venv && . .venv/Scripts/activate   # Windows
 pip install -r requirements.txt
-python 02_create_agent.py
+python 02_models.py
 
 # TypeScript
 cd code/typescript
 pnpm install
-pnpm run 02_create_agent
+pnpm run 02_models
 ```
 
 | 章节 | Python | TypeScript | 演示什么 |
 |---|---|---|---|
-| 2 | `02_create_agent.py` | `02_create_agent.ts` | Agent Loop、状态只追加、结构化输出 |
-| 3 | `03_middleware.py` | `03_middleware.ts` | 六个钩子的真实触发顺序 |
-| 4 | `04_tools.py` | `04_tools.ts` | 工具定义、`ToolRuntime` 注入、工具内改状态 |
-| 5 | `05_context.py` | `05_context.ts` | 摘要压缩触发、工具输出卸载 |
-| 6 | `06_state_graph.py` | `06_state_graph.ts` | Reducer 语义、条件边、`Send` 并行 |
-| 7 | `07_persistence.py` | `07_persistence.ts` | 检查点、时间旅行、Store 跨线程 |
-| 8 | `08_hitl_stream.py` | `08_hitl_stream.ts` | `interrupt`/`resume`、`stream_mode` |
-| 9 | `09_deep_agent.py` | `09_deep_agent.ts` | 预装工具集、HarnessProfile |
-| 10 | `10_filesystem.py` | `10_filesystem.ts` | 文件工具与权限判定 |
-| 11 | `11_delegation.py` | `11_delegation.ts` | 规划与子代理派发 |
-| 12 | `12_skills_memory.py` | `12_skills_memory.ts` | 技能加载与记忆注入 |
-| 13 | `13_observability.py` | `13_observability.ts` | trace 结构（离线桩） |
-| 14 | `14_multiagent.py` | `14_multiagent.ts` | 多智能体拓扑与迁移映射 |
+| 2 | `02_models.py` | `02_models.ts` | 三种入参归一化、`AIMessage` 结构、stream / batch |
+| 3 | `03_messages_prompts.py` | `03_messages_prompts.ts` | 四种消息、历史裁剪、模板的三种调用方式 |
+| 4 | `04_structured_output.py` | `04_structured_output.ts` | 四种 schema 模式、校验失败、工具策略自动重试 |
+| 5 | `05_create_agent.py` | `05_create_agent.ts` | Agent Loop、状态只追加、结构化输出 |
+| 6 | `06_middleware.py` | `06_middleware.ts` | 六个钩子的真实触发顺序 |
+| 7 | `07_tools.py` | `07_tools.ts` | 工具定义、`ToolRuntime` 注入、工具内改状态 |
+| 8 | `08_rag.py` | `08_rag.ts` | 加载、切分、假嵌入、内存向量库、检索器接成工具 |
+| 9 | `09_context.py` | `09_context.ts` | 摘要压缩触发、工具输出卸载 |
+| 10 | `10_state_graph.py` | `10_state_graph.ts` | Reducer 语义、条件边、`Send` 并行 |
+| 11 | `11_persistence.py` | `11_persistence.ts` | 检查点、时间旅行、Store 跨线程 |
+| 12 | `12_hitl_stream.py` | `12_hitl_stream.ts` | `interrupt`/`resume`、`stream_mode` |
+| 13 | `13_deep_agent.py` | `13_deep_agent.ts` | 预装工具集、HarnessProfile |
+| 14 | `14_filesystem.py` | `14_filesystem.ts` | 文件工具与权限判定 |
+| 15 | `15_delegation.py` | `15_delegation.ts` | 规划与子代理派发 |
+| 16 | `16_skills_memory.py` | `16_skills_memory.ts` | 技能加载与记忆注入 |
+| 17 | `17_observability.py` | `17_observability.ts` | trace 结构（离线桩） |
+| 18 | `18_multiagent.py` | `18_multiagent.ts` | 多智能体拓扑与迁移映射 |
 
 > 详细说明见 [`code/README.md`](code/README.md)。
 
@@ -140,30 +159,36 @@ node scripts/svg-to-png.mjs "docs/agent开发教程/assets"
 |---|---|---|
 | 图 1 | 三件套分层：构建块 / 运行时 / 成品 harness | ch01 |
 | 图 2 | 版本时间线 | ch01 |
-| 图 3 | Agent Loop 与中间件挂载点 | ch02、ch03 |
-| 图 4 | 状态与两类作用域（thread_id / context） | ch02 |
-| 图 5 | 六个钩子在一次工具调用中的真实触发顺序 | ch03 |
-| 图 6 | 六大能力域 × 预置中间件 | ch03 |
-| 图 7 | 工具调用往返与 `ToolRuntime` 注入 | ch04 |
-| 图 8 | MCP 接入与多服务器聚合 | ch04 |
-| 图 9 | RAG 检索链路 | ch04 |
-| 图 10 | 上下文四种手段 | ch05 |
-| 图 11 | 缓存前缀边界 | ch05 |
-| 图 12 | 图的基本构件 | ch06 |
-| 图 13 | Reducer 合并语义 | ch06 |
-| 图 14 | 条件边与 `Send` 并行 | ch06 |
-| 图 15 | Store 跨线程分层 | ch07 |
-| 图 16 | 检查点落盘与恢复 | ch07 |
-| 图 17 | 时间旅行 | ch07 |
-| 图 18 | interrupt / resume 时序 | ch08 |
-| 图 19 | stream_mode 的七种投影 | ch08 |
-| 图 20 | Deep Agents 预装中间件栈 | ch09 |
-| 图 21 | 文件工具集与权限判定 | ch10 |
-| 图 22 | 规划循环 | ch11 |
-| 图 23 | 子代理的上下文防火墙 | ch11 |
-| 图 24 | 技能渐进式披露与记忆时间尺度 | ch12 |
-| 图 25 | trace 结构与可观测三层 | ch13 |
-| 图 26 | 多智能体拓扑 | ch14 |
+| 图 3 | 模型初始化的三个角度 | ch02 |
+| 图 4 | invoke 三种入参 → AIMessage 结构 | ch02 |
+| 图 5 | 四种消息类型与字段 | ch03 |
+| 图 6 | ChatPromptTemplate 渲染管线与三种产物 | ch03 |
+| 图 7 | `with_structured_output` 的两种策略 | ch04 |
+| 图 8 | Agent Loop 与中间件挂载点 | ch05、ch06 |
+| 图 9 | 状态与两类作用域（thread_id / context） | ch05 |
+| 图 10 | 六个钩子在一次工具调用中的真实触发顺序 | ch06 |
+| 图 11 | 六大能力域 × 预置中间件 | ch06 |
+| 图 12 | 工具调用往返与 `ToolRuntime` 注入 | ch07 |
+| 图 13 | MCP 接入与多服务器聚合 | ch07 |
+| 图 14 | RAG 检索链路 | ch08 |
+| 图 15 | 文档切分与向量化 | ch08 |
+| 图 16 | 上下文四种手段 | ch09 |
+| 图 17 | 缓存前缀边界 | ch09 |
+| 图 18 | 图的基本构件 | ch10 |
+| 图 19 | Reducer 合并语义 | ch10 |
+| 图 20 | 条件边与 `Send` 并行 | ch10 |
+| 图 21 | Store 跨线程分层 | ch11 |
+| 图 22 | 检查点落盘与恢复 | ch11 |
+| 图 23 | 时间旅行 | ch11 |
+| 图 24 | interrupt / resume 时序 | ch12 |
+| 图 25 | stream_mode 的七种投影 | ch12 |
+| 图 26 | Deep Agents 预装中间件栈 | ch13 |
+| 图 27 | 文件工具集与权限判定 | ch14 |
+| 图 28 | 规划循环 | ch15 |
+| 图 29 | 子代理的上下文防火墙 | ch15 |
+| 图 30 | 技能渐进式披露与记忆时间尺度 | ch16 |
+| 图 31 | trace 结构与可观测三层 | ch17 |
+| 图 32 | 多智能体拓扑 | ch18 |
 
 ---
 
@@ -259,11 +284,31 @@ node scripts/svg-to-png.mjs "docs/agent开发教程/assets"
 | **口径不一致 · 投影数量** | 图 19 与配图索引、来源登记都写 `stream_mode`「**六**种投影」，而 ch08 正文（与官方文档）是**七**种（`values` / `updates` / `messages` / `custom` / `checkpoints` / `tasks` / `debug`），且图内表格本来就列了 7 行 | 统一为「七种」：改 SVG 标题与两处说明、README 配图表、来源登记 |
 | **工程 · 失败不可诊断** | `code/typescript/run_all.ts` 用 `spawnSync("pnpm", …, { stdio: "ignore", shell: true })`，失败只打印 FAIL 不打印原因；`pnpm` 自身被环境拦下时 13 个全挂 | 改为成功静默、**失败时透传 stdout / stderr 与 spawn error** |
 
-**交付时的自检结果**：
+**首版交付时的自检结果**（2026-09-24）：
 
 - 章节 14 个，H1 唯一且格式正确；正文无裸 HTML、无占位内容、无 LaTeX
-- 配图 **26 张**全部被引用；SVG / PNG **成对**，PNG 全部为 **2×**（1360px 宽）；SVG 的 `width/height == viewBox`、XML 良构、图形元素均有显式 `fill`
-- 正文出现的 **272 个** API 标识符，与已安装包交叉核验后**仅 7 个未命中**，且全部是本目录示例自定义的名字（`ScriptedChatModel` / `TraceRecorder` / `search_orders` 等）或 Python 内建（`ZeroDivisionError`）——**无臆造 API**
-- 双语言示例 **13 + 13 全部实跑通过**；代码块 python / typescript 数量逐章成对
-- HTML：无外部资源、主要标签全配对、99 个目录锚点全部有效、26 张内联 SVG 的 marker 引用**全部在本图内定义**（箭头不会丢）、`id` 无重复、`<pre>` 内无未转义尖括号、正文无残留 Markdown
+- 配图 **26 张**全部被引用；SVG / PNG **成对**，PNG 全部为 **2×**（1360px 宽）
+- 双语言示例 **13 + 13 全部实跑通过**
+- HTML：无外部资源、主要标签全配对、目录锚点全部有效、内联 SVG 的 marker 引用**全部在本图内定义**
 
+### 第三轮：扩章（2026-09-29）
+
+以尚硅谷《LangChain 从入门到实战 2026版》讲义为底本，补齐原教程缺失的**基础层**，从 14 章扩为 18 章。
+
+| 项 | 变更 |
+|---|---|
+| **新增 4 章** | ch02 模型的创建与调用、ch03 Message 与提示词模板、ch04 结构化输出、ch08 RAG 全链路（前 3 章插在 ch01 之后，RAG 插在工具章之后） |
+| **原有章节顺延** | 原 ch02–ch14 → 新 ch05–ch18（两段位移 +3 / +4）；正文 94 处「第 N 章」互引按查表改写，区间引用人工重排 |
+| **ch07 摘除 RAG** | 原 ch04 的 2.8 节整体移出，标题改为「工具与运行时上下文：从 `@tool` 到 MCP」 |
+| **配图 26 → 32 张** | 新增 6 张（图 3 / 4 / 5 / 6 / 7 / 15）；原图 9（RAG 链路）迁入 ch08 成为图 14；其余顺延 |
+| **示例 13 → 17 对** | 新增 `02_models` / `03_messages_prompts` / `04_structured_output` / `08_rag` |
+| **新增依赖** | Python：`langchain-text-splitters` / `langchain-community` / `pypdf`；TS：`@langchain/textsplitters` / `@langchain/classic` / `@langchain/community` / `d3-dsv` |
+
+**扩章后自检结果**：
+
+- 章节 18 个，H1 唯一且格式正确；「第 N 章」引用数字全部落在 1–18
+- 配图 **32 张**全部被引用、路径全部存在；SVG / PNG 成对，PNG 为 **2×**
+- 双语言示例 **17 + 17 全部实跑通过**
+- HTML：`_build_html.py` 连跑两次 md5 一致（幂等）；32 张内联 SVG、18 个章级锚点
+
+**本轮实测与讲义不一致处**（新章）：`temperature` 默认值（讲义 0.7 / 实测 `None`）、`model_provider` 支持列表（24 / 28）、`ChatPromptTemplate` 的「可调用」参数类型不成立（实测报错）、TS 的 `JSONLoader` 收 JSON Pointer 而非 jq、JS 基类 `withStructuredOutput` 只支持 function calling、`langchain-community` 已进入 sunset。

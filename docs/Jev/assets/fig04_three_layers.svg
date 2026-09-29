@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 620" width="1100" height="620" role="img">
+<rect width="1100" height="620" fill="#FFFFFF"/>
+<g font-family="'Microsoft YaHei','PingFang SC','Noto Sans CJK SC',sans-serif">
+
+<text x="550" y="48" text-anchor="middle" font-size="24" font-weight="700" fill="#1F2937">把企业软件拆成三层</text>
+<text x="550" y="78" text-anchor="middle" font-size="14" fill="#6B7280">确定性的交给代码，语义判断交给 Jev，生成文字再找 LLM</text>
+
+<!-- ===== 左侧贯穿箭头 ===== -->
+<path d="M205 128L205 486" stroke="#475569" stroke-width="1.8" fill="none"/>
+<polygon points="199.5,487 205,500 210.5,487" fill="#475569"/>
+<text x="180" y="195" text-anchor="end" font-size="12" fill="#475569">LLM 提出</text>
+<text x="180" y="319" text-anchor="end" font-size="12" fill="#475569">Jev 判断</text>
+<text x="180" y="443" text-anchor="end" font-size="12" fill="#475569">代码执行</text>
+
+<!-- ===== 上层：LLM ===== -->
+<rect x="250" y="140" width="760" height="100" rx="9" fill="#FEF6EC" stroke="#B45309" stroke-width="1.8"/>
+<text x="274" y="182" font-size="16" font-weight="700" fill="#92400E">大语言模型 LLM</text>
+<text x="274" y="210" font-size="12.5" fill="#475569">规划、写作、代码生成</text>
+<rect x="866" y="170" width="120" height="40" rx="9" fill="#FFFFFF" stroke="#B45309" stroke-width="1.8"/>
+<text x="926" y="195" text-anchor="middle" font-size="13" font-weight="700" fill="#92400E">提出行动</text>
+
+<!-- ===== 中层：Jev ===== -->
+<rect x="250" y="264" width="760" height="100" rx="9" fill="#EDF7F5" stroke="#0F766E" stroke-width="1.8"/>
+<text x="274" y="306" font-size="16" font-weight="700" fill="#0F766E">Jev</text>
+<text x="274" y="334" font-size="12.5" fill="#475569">路由、打分、过滤、风险检查、结果校验</text>
+<rect x="866" y="294" width="120" height="40" rx="9" fill="#FFFFFF" stroke="#0F766E" stroke-width="1.8"/>
+<text x="926" y="319" text-anchor="middle" font-size="13" font-weight="700" fill="#0F766E">判断与检查</text>
+
+<!-- ===== 底层：确定性代码 ===== -->
+<rect x="250" y="388" width="760" height="100" rx="9" fill="#F3F4F6" stroke="#9CA3AF" stroke-width="1.8"/>
+<text x="274" y="430" font-size="16" font-weight="700" fill="#374151">确定性代码</text>
+<text x="274" y="458" font-size="12.5" fill="#475569">流程、权限、执行、审计</text>
+<rect x="866" y="418" width="120" height="40" rx="9" fill="#FFFFFF" stroke="#9CA3AF" stroke-width="1.8"/>
+<text x="926" y="443" text-anchor="middle" font-size="13" font-weight="700" fill="#374151">真正动手</text>
+
+<!-- ===== 底部 ===== -->
+<text x="550" y="560" text-anchor="middle" font-size="14" fill="#475569">Jev 不是 Agent 的主力模型，而是插在需要 if else 的那些位置</text>
+
+</g>
+</svg>

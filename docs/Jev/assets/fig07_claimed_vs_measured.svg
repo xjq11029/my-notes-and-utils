@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 620" width="1100" height="620" role="img">
+<rect width="1100" height="620" fill="#FFFFFF"/>
+<g font-family="'Microsoft YaHei','PingFang SC','Noto Sans CJK SC',sans-serif">
+
+<text x="550" y="48" text-anchor="middle" font-size="24" font-weight="700" fill="#1F2937">同一件事，两套口径</text>
+<text x="550" y="78" text-anchor="middle" font-size="14" fill="#6B7280">官方称快 193.6 倍、便宜 444.6 倍；第三方实测要小得多</text>
+
+<!-- ===== 左：速度 ===== -->
+<rect x="50" y="120" width="490" height="300" rx="9" fill="#F3F4F6" stroke="#9CA3AF" stroke-width="1.8"/>
+<text x="70" y="155" font-size="16" font-weight="700" fill="#374151">速度</text>
+
+<rect x="70" y="175" width="450" height="88" rx="9" fill="#FEF6EC" stroke="#B45309" stroke-width="1.8"/>
+<text x="90" y="203" font-size="12.5" fill="#6B7280">官方宣称</text>
+<text x="90" y="243" font-size="26" font-weight="700" fill="#92400E">193.6×</text>
+<text x="500" y="240" text-anchor="end" font-size="12" fill="#6B7280">对比 LLM 完成同一套决策流程</text>
+
+<rect x="70" y="273" width="450" height="88" rx="9" fill="#EDF7F5" stroke="#0F766E" stroke-width="1.8"/>
+<text x="90" y="301" font-size="12.5" fill="#6B7280">第三方 AY Automate 实测</text>
+<text x="90" y="341" font-size="26" font-weight="700" fill="#0F766E">约 2–3.6×</text>
+
+<!-- ===== 右：成本 ===== -->
+<rect x="560" y="120" width="490" height="300" rx="9" fill="#F3F4F6" stroke="#9CA3AF" stroke-width="1.8"/>
+<text x="580" y="155" font-size="16" font-weight="700" fill="#374151">成本</text>
+
+<rect x="580" y="175" width="450" height="88" rx="9" fill="#FEF6EC" stroke="#B45309" stroke-width="1.8"/>
+<text x="600" y="203" font-size="12.5" fill="#6B7280">官方宣称</text>
+<text x="600" y="243" font-size="26" font-weight="700" fill="#92400E">444.6×</text>
+
+<rect x="580" y="273" width="450" height="132" rx="9" fill="#EDF7F5" stroke="#0F766E" stroke-width="1.8"/>
+<text x="600" y="301" font-size="12.5" fill="#6B7280">第三方实测</text>
+<text x="600" y="337" font-size="14" font-weight="700" fill="#0F766E">对比小型模型约 4.7–7.5×</text>
+<text x="600" y="371" font-size="14" font-weight="700" fill="#0F766E">对比前沿大模型约 40–49×</text>
+
+<!-- ===== 数据来源 ===== -->
+<rect x="50" y="445" width="1000" height="70" rx="9" fill="#FFFFFF" stroke="#9CA3AF" stroke-width="1.8"/>
+<text x="80" y="475" font-size="13" fill="#475569">官方数据：TypeSafe 自己的四套工作流测试</text>
+<text x="80" y="502" font-size="13" fill="#475569">第三方数据：AY Automate 2026-09-20 报告</text>
+
+<!-- ===== 底部 ===== -->
+<text x="550" y="575" text-anchor="middle" font-size="13" fill="#475569">倍数取决于拿谁当分母 —— 读这类数字先问「对比的是哪个模型、哪套任务」</text>
+
+</g>
+</svg>

@@ -214,7 +214,7 @@ LLaMA (65B) 训练数据: 1.4T tokens   → 验证了Chinchilla定律
 
 ### 1.7 涌现能力：量变引起质变
 
-**涌现能力（Emergent Abilities）**是指模型在规模达到某个阈值后突然展现的能力，这些能力在小模型上完全不存在。
+**涌现能力**（Emergent Abilities）是指模型在规模达到某个阈值后突然展现的能力，这些能力在小模型上完全不存在。
 
 **涌现的特征**：
 
@@ -256,7 +256,7 @@ LLaMA (65B) 训练数据: 1.4T tokens   → 验证了Chinchilla定律
 | 长距离依赖 | 梯度消失/爆炸，信息衰减 | 自注意力直接连接任意位置 |
 | 训练效率 | O(n) 时间步，慢 | O(1) 时间步，快 |
 
-**Transformer的核心思想**：抛弃循环结构，完全依赖**自注意力机制（Self-Attention）**来建模序列中任意两个位置之间的关系。
+**Transformer的核心思想**：抛弃循环结构，完全依赖**自注意力机制**（Self-Attention）来建模序列中任意两个位置之间的关系。
 
 > **生活化类比：Transformer=翻译团队** —— Transformer 就像一个高效的翻译团队。RNN 像一个翻译员逐句翻，听到第一句才能翻第二句，前面听漏了后面就翻不对（长距离依赖差），而且一个人翻完全场很慢（无法并行）。Transformer 则是一个团队同时开工：每个译员负责一个词（并行计算），但他们会互相沟通（自注意力）——翻"it"的译员会问"刚才谁提到了 animal？"，确保代词指代正确。团队还有位置编号牌（位置编码），保证"我爱你"和"你爱我"不会被搞混。6 层 Encoder 像翻译的 6 道校对工序，越校对越精准。这就是 Transformer 比 RNN 快且准的根本原因。
 
@@ -402,7 +402,7 @@ flowchart TD
 
 ### 2.3 Q/K/V矩阵详解
 
-**Query（查询）、Key（键）、Value（值）**是Self-Attention的三个核心矩阵，它们都来自同一个输入X，通过不同的线性变换得到。
+**Query**（查询）、**Key**（键）、**Value**（值）是Self-Attention的三个核心矩阵，它们都来自同一个输入X，通过不同的线性变换得到。
 
 **直觉理解（类比数据库检索）**：
 
@@ -651,7 +651,7 @@ Transformer架构可以根据使用的子模块不同，分为三种主流变体
 
 ### 3.2 BERT类：Encoder-Only
 
-**BERT（Bidirectional Encoder Representations from Transformers）**由Google于2018年发布，只使用Transformer的Encoder部分。
+**BERT**（Bidirectional Encoder Representations from Transformers）由Google于2018年发布，只使用Transformer的Encoder部分。
 
 **核心特点**：
 
@@ -688,7 +688,7 @@ mat   ✓    ✓    ✓    ✓    ✓    ✓
 
 ### 3.3 GPT类：Decoder-Only
 
-**GPT（Generative Pre-trained Transformer）**只使用Transformer的Decoder部分，是目前最主流的LLM架构。
+**GPT**（Generative Pre-trained Transformer）只使用Transformer的Decoder部分，是目前最主流的LLM架构。
 
 **核心特点**：
 
@@ -721,7 +721,7 @@ mat   ✓    ✓    ✓    ✓    ✓    ✓
 
 ### 3.4 T5类：Encoder-Decoder
 
-**T5（Text-to-Text Transfer Transformer）**由Google于2019年发布，使用完整的Encoder-Decoder架构。
+**T5**（Text-to-Text Transfer Transformer）由Google于2019年发布，使用完整的Encoder-Decoder架构。
 
 **核心特点**：
 

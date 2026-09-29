@@ -7,7 +7,7 @@
 - **应用层玩两件事**：
   1. **应用开发**：调用模型服务商的接口，做一个有价值的 AI 工具（如 AI 编程工具）；
   2. **工具使用**：不写代码，用现成 AI 效能工具提升效率（本课后续主角是 AI 编程工具）。
-- 需要认识的概念：**tools（工具）**、**MCP（Model Context Protocol，模型上下文协议）**、**RAG（Retrieval-Augmented Generation，检索增强生成）**、\*\*Skills（技能）\*\*等；
+- 需要认识的概念：**tools（工具）**、**MCP（Model Context Protocol，模型上下文协议）**、**RAG（Retrieval-Augmented Generation，检索增强生成）**、**Skills**（技能）等；
 - 应用开发常见框架：**LangChain**、**LangGraph**、Deep Agents 等。
 
 > ⚠️ **两层界限其实不清晰**：很多概念会"流动"——**Skills / MCP / Tools** 这类能力会在应用层与服务层之间来回迁移——既可能由服务商在接口里内置，也可能由应用自己实现。分工逻辑很简单：**服务商做了你就不用做，服务商没做你就必须做——总有一方要做**。

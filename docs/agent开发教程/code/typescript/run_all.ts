@@ -7,19 +7,23 @@
 import { spawnSync } from "node:child_process";
 
 const FILES = [
-  "02_create_agent",
-  "03_middleware",
-  "04_tools",
-  "05_context",
-  "06_state_graph",
-  "07_persistence",
-  "08_hitl_stream",
-  "09_deep_agent",
-  "10_filesystem",
-  "11_delegation",
-  "12_skills_memory",
-  "13_observability",
-  "14_multiagent",
+  "02_models",
+  "03_messages_prompts",
+  "04_structured_output",
+  "05_create_agent",
+  "06_middleware",
+  "07_tools",
+  "08_rag",
+  "09_context",
+  "10_state_graph",
+  "11_persistence",
+  "12_hitl_stream",
+  "13_deep_agent",
+  "14_filesystem",
+  "15_delegation",
+  "16_skills_memory",
+  "17_observability",
+  "18_multiagent",
 ];
 
 let failed = 0;
