@@ -1,8 +1,8 @@
 # Agent 开发教程 · LangChain / LangGraph / Deep Agents
 
-一套自成体系的 **Agent 应用开发教程**：从「构建块 → 运行时 → 成品 harness」三层递进，讲清当下最主流的三个 Python / TypeScript Agent 框架，配 **Python 与 TypeScript 双语言实测示例**与自绘机制图。
+一套自成体系的 **Agent 应用开发教程**，分两条线：**框架线**（本文件，ch01–ch18）讲「用现成框架怎么搭」，从「构建块 → 运行时 → 成品 harness」三层递进，讲清当下最主流的三个 Python / TypeScript Agent 框架，配 **Python 与 TypeScript 双语言实测示例**与自绘机制图；**手写线**（[`handwritten/`](handwritten/README.md)，S1–S11）讲「框架底下是什么」，不依赖框架从零手写会话、工具、ReAct、Agent、Skill、MCP 与子代理。
 
-> **与 [`docs/harness/`](../harness/README.md) 的分工**：那篇回答「**为什么需要 harness**」（Agent = Model + Harness、五个必然问题、12 个组件），是原理篇；本篇回答「**用现成框架怎么搭**」，是工程篇。两篇可独立阅读，也可连着读。
+> **与 [`docs/harness/`](../harness/README.md) 的分工**：那篇回答「**为什么需要 harness**」（Agent = Model + Harness、五个必然问题、12 个组件），是原理篇；本篇回答「**用现成框架怎么搭**」，是工程篇；[手写线](handwritten/README.md)回答「**框架底下是什么**」，是实现篇。三条线可独立阅读，也可连着读。
 
 ---
 
@@ -10,7 +10,8 @@
 
 | 文件 | 类型 | 说明 |
 |---|---|---|
-| `ch01`–`ch18*.md` | 教程正文 | 18 章，每章统一骨架：这一章要解决的问题 → 机制与原理 → 双语言代码 → 常见坑 → 关键结论 → 本章要点回顾 |
+| `ch01`–`ch18*.md` | 教程正文（框架线） | 18 章，每章统一骨架：这一章要解决的问题 → 机制与原理 → 双语言代码 → 常见坑 → 关键结论 → 本章要点回顾 |
+| [`handwritten/`](handwritten/README.md) | **手写线** | S1–S11 共 11 章 + Python 手写代码包 + 11 张配图：从模型接口契约到五大 Engineering，不依赖框架从零实现 Agent |
 | `agent-frameworks-deep-dive.html` | 精读版长文 | 单文件自包含（无 CDN / 无外部字体 / 无外部 JS），深色主题，左侧目录滚动高亮，32 张内联 SVG，Python/TypeScript 代码切换。**由脚本生成，不手工改** |
 | `_build_html.py` | 元文件 · 构建脚本 | 从 18 章正文 + `assets/` 生成上面那份 HTML。**幂等**；改章节或配图后必须重跑 |
 | `code/python/` | 示例代码 | Python 示例，**全部实跑通过**；离线 Fake 模型，无需 API Key |
@@ -56,7 +57,7 @@
 | 17 | [ch17_observability.md](ch17_observability.md) | 可观测与评测：追踪、数据集与成本 |
 | 18 | [ch18_multiagent_and_migration.md](ch18_multiagent_and_migration.md) | 多智能体协作、从旧版迁移与生产部署 |
 
-**推荐学习顺序**：按章顺序通读（1→18 为叙事线）；只关心某一层可跳读——第 2–4 章是基础层（模型、消息、结构化输出），第 5–9 章是 LangChain（含第 8 章 RAG 全链路），第 10–12 章是 LangGraph，第 13–16 章是 Deep Agents，第 17–18 章是公共工程话题。
+**推荐学习顺序**：按章顺序通读（1→18 为叙事线）；只关心某一层可跳读——第 2–4 章是基础层（模型、消息、结构化输出），第 5–9 章是 LangChain（含第 8 章 RAG 全链路），第 10–12 章是 LangGraph，第 13–16 章是 Deep Agents，第 17–18 章是公共工程话题。想先搞懂「框架底下发生了什么」的读者，建议先读[手写线](handwritten/README.md)的 S1 → S4 → S6 → S7（契约 → 工具 → 循环 → 组装），再回框架线对照。
 
 ---
 

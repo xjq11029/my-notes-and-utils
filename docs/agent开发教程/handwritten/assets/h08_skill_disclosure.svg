@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 420" width="680" height="420" role="img">
+<title>Skill 渐进式披露：两个阶段，两种代价</title>
+<desc>阶段一启动时扫描 SKILL.md，只把 name 加 description 注入系统提示词；阶段二模型判断命中时调 load_skill 工具加载全文。</desc>
+<defs>
+<marker id="ar8h" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+</defs>
+
+<rect x="0" y="0" width="680" height="420" fill="#111721"/>
+
+<text x="34" y="38" font-family="system-ui, sans-serif" font-size="17" font-weight="700" fill="#dfe6ee">Skill 渐进式披露：两个阶段，两种代价</text>
+<text x="34" y="62" font-family="system-ui, sans-serif" font-size="12" fill="#7d8b9c">阶段一只注入 name + description（几十 token）；阶段二命中才加载全文——没命中几乎零成本</text>
+
+<!-- 阶段一 -->
+<text x="34" y="92" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#8ecbff">阶段一 · 启动时（扫描与注入）</text>
+
+<rect x="34" y="102" width="170" height="72" rx="8" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.3"/>
+<text x="119" y="124" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#8ecbff">skills/ 目录</text>
+<text x="119" y="142" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">weather-report/SKILL.md</text>
+<text x="119" y="158" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">text-summary/SKILL.md</text>
+
+<rect x="254" y="102" width="170" height="72" rx="8" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.3"/>
+<text x="339" y="124" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#8ecbff">SkillRegistry.scan()</text>
+<text x="339" y="142" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">只解析 YAML frontmatter</text>
+<text x="339" y="158" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">取 name + description</text>
+
+<rect x="474" y="102" width="172" height="72" rx="8" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.3"/>
+<text x="560" y="124" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#8ecbff">系统提示词「可用技能」节</text>
+<text x="560" y="142" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">每技能仅 name + description</text>
+<text x="560" y="158" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">合计几十 token</text>
+
+<path d="M204 138L250 138" fill="none" stroke="#6b7a8d" stroke-width="1.5" marker-end="url(#ar8h)"/>
+<path d="M424 138L470 138" fill="none" stroke="#6b7a8d" stroke-width="1.5" marker-end="url(#ar8h)"/>
+
+<!-- 阶段二 -->
+<text x="34" y="206" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#c9b8ff">阶段二 · 模型判断需要时（按需加载）</text>
+
+<rect x="34" y="216" width="170" height="72" rx="8" fill="#241f38" stroke="#a78bfa" stroke-width="1.3"/>
+<text x="119" y="238" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#c9b8ff">模型读到技能清单</text>
+<text x="119" y="256" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">用户问天气 → 判断命中</text>
+<text x="119" y="272" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">weather-report</text>
+
+<rect x="254" y="216" width="170" height="72" rx="8" fill="#241f38" stroke="#a78bfa" stroke-width="1.3"/>
+<text x="339" y="238" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#c9b8ff">调用 load_skill 工具</text>
+<text x="339" y="256" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">参数：name = weather-report</text>
+<text x="339" y="272" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">Agent 组装时自动注册</text>
+
+<rect x="474" y="216" width="172" height="72" rx="8" fill="#241f38" stroke="#a78bfa" stroke-width="1.3"/>
+<text x="560" y="238" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#c9b8ff">SKILL.md 全文进上下文</text>
+<text x="560" y="256" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">此时才付全文 token</text>
+<text x="560" y="272" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">模型按指引执行任务</text>
+
+<path d="M204 252L250 252" fill="none" stroke="#6b7a8d" stroke-width="1.5" marker-end="url(#ar8h)"/>
+<path d="M424 252L470 252" fill="none" stroke="#6b7a8d" stroke-width="1.5" marker-end="url(#ar8h)"/>
+
+<!-- 阶段间的关联 -->
+<path d="M560 174L560 212" fill="none" stroke="#3a4a5e" stroke-width="1.3" stroke-dasharray="4 3" marker-end="url(#ar8h)"/>
+<text x="570" y="196" font-family="system-ui, sans-serif" font-size="9.5" fill="#7d8b9c">清单是加载的入口</text>
+
+<!-- 代价对比 -->
+<rect x="34" y="318" width="298" height="62" rx="8" fill="#1b2532" stroke="#3a4a5e" stroke-width="1.3"/>
+<text x="183" y="342" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#9fb0c0">未命中</text>
+<text x="183" y="362" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">每轮只付清单的几十 token，其余零成本</text>
+
+<rect x="352" y="318" width="294" height="62" rx="8" fill="#2a2320" stroke="#e8a34b" stroke-width="1.3"/>
+<text x="499" y="342" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#f3c47a">命中</text>
+<text x="499" y="362" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">追加一次工具往返 + 全文常驻上下文</text>
+
+<text x="340" y="404" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#7d8b9c">description 写得好坏决定命中率——它是模型判断「是否命中」的唯一依据</text>
+</svg>

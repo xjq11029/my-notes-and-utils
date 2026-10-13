@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 420" width="680" height="420" role="img">
+<title>五大 Engineering 总览</title>
+<desc>抽象阶梯：Prompt → Context → Harness → Loop → Graph，每个维度回答一个核心问题，并标注手写线与框架线章节。</desc>
+<defs>
+<marker id="ar11h" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+</defs>
+
+<rect x="0" y="0" width="680" height="420" fill="#111721"/>
+
+<text x="34" y="38" font-family="system-ui, sans-serif" font-size="17" font-weight="700" fill="#dfe6ee">五大 Engineering：同一套系统的五个质量维度</text>
+<text x="34" y="62" font-family="system-ui, sans-serif" font-size="12" fill="#7d8b9c">抽象阶梯：越靠右越贴近系统结构；每个维度回答一个核心问题</text>
+
+<!-- 阶梯① Prompt -->
+<rect x="26" y="300" width="118" height="96" rx="10" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.3"/>
+<text x="85" y="322" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#8ecbff">Prompt Engineering</text>
+<text x="85" y="344" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">模型听懂了吗？</text>
+<text x="85" y="360" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">精简 · 自洽 · 结构化</text>
+<line x1="40" y1="370" x2="130" y2="370" stroke="#3a4a5e" stroke-width="1"/>
+<text x="85" y="386" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" fill="#7d8b9c">S2 · 框架线第 3 章</text>
+
+<!-- 阶梯② Context -->
+<rect x="154" y="244" width="118" height="96" rx="10" fill="#241f38" stroke="#a78bfa" stroke-width="1.3"/>
+<text x="213" y="266" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#c9b8ff">Context Engineering</text>
+<text x="213" y="288" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">够用且不膨胀吗？</text>
+<text x="213" y="304" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">只追加 · 保思维链</text>
+<line x1="168" y1="314" x2="258" y2="314" stroke="#3a4a5e" stroke-width="1"/>
+<text x="213" y="330" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" fill="#7d8b9c">S3/S8 · 框架线第 9 章</text>
+
+<!-- 阶梯③ Harness -->
+<rect x="282" y="188" width="118" height="96" rx="10" fill="#2a2320" stroke="#e8a34b" stroke-width="1.3"/>
+<text x="341" y="210" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#f3c47a">Harness Engineering</text>
+<text x="341" y="232" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">模型之外齐了吗？</text>
+<text x="341" y="248" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">工具 · 护栏 · 可观测</text>
+<line x1="296" y1="258" x2="386" y2="258" stroke="#3a4a5e" stroke-width="1"/>
+<text x="341" y="274" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" fill="#7d8b9c">S7 · 框架线第 6 章</text>
+
+<!-- 阶梯④ Loop -->
+<rect x="410" y="132" width="118" height="96" rx="10" fill="#2a1f24" stroke="#f0655f" stroke-width="1.3"/>
+<text x="469" y="154" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#ff9d94">Loop Engineering</text>
+<text x="469" y="176" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">循环可靠收敛吗？</text>
+<text x="469" y="192" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">终止条件 · 安全阀</text>
+<line x1="424" y1="202" x2="514" y2="202" stroke="#3a4a5e" stroke-width="1"/>
+<text x="469" y="218" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" fill="#7d8b9c">S5/S7/S10 · 框架线第 12 章</text>
+
+<!-- 阶梯⑤ Graph -->
+<rect x="538" y="76" width="118" height="96" rx="10" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.3"/>
+<text x="597" y="98" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#8ecbff">Graph Engineering</text>
+<text x="597" y="120" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">复杂任务有序编排？</text>
+<text x="597" y="136" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">子代理拓扑 · 规划</text>
+<line x1="552" y1="146" x2="642" y2="146" stroke="#3a4a5e" stroke-width="1"/>
+<text x="597" y="162" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" fill="#7d8b9c">S10 · 框架线第 10/15 章</text>
+
+<!-- 阶梯间箭头 -->
+<path d="M146 344 L152 298" fill="none" stroke="#6b7a8d" stroke-width="1.5" marker-end="url(#ar11h)"/>
+<path d="M274 288 L280 242" fill="none" stroke="#6b7a8d" stroke-width="1.5" marker-end="url(#ar11h)"/>
+<path d="M402 232 L408 186" fill="none" stroke="#6b7a8d" stroke-width="1.5" marker-end="url(#ar11h)"/>
+<path d="M530 176 L536 130" fill="none" stroke="#6b7a8d" stroke-width="1.5" marker-end="url(#ar11h)"/>
+
+<!-- 底部注释 -->
+<text x="340" y="410" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10.5" fill="#93a1b1">五个维度不是五个技术栈：手写线让你看见最小实现，框架线让你看见生产形态</text>
+</svg>

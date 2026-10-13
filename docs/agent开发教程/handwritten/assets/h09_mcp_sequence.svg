@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 420" width="680" height="420" role="img">
+<title>MCP 三步协议（stdio 传输）时序</title>
+<desc>客户端与服务器之间按 JSON-RPC 2.0 一行一条消息交互：initialize 握手、notifications/initialized 通知、tools/list 发现、tools/call 调用。</desc>
+<defs>
+<marker id="ar9h" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+</defs>
+
+<rect x="0" y="0" width="680" height="420" fill="#111721"/>
+
+<text x="34" y="38" font-family="system-ui, sans-serif" font-size="17" font-weight="700" fill="#dfe6ee">MCP 三步协议（stdio 传输）时序</text>
+<text x="34" y="62" font-family="system-ui, sans-serif" font-size="12" fill="#7d8b9c">一行一条 JSON-RPC 2.0 消息：initialize 握手 → tools/list 发现 → tools/call 调用</text>
+
+<!-- 参与者 -->
+<rect x="90" y="84" width="160" height="44" rx="8" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.4"/>
+<text x="170" y="103" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#8ecbff">Client（Agent 侧）</text>
+<text x="170" y="119" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">agent/mcp/client.py</text>
+
+<rect x="430" y="84" width="160" height="44" rx="8" fill="#2a2320" stroke="#e8a34b" stroke-width="1.4"/>
+<text x="510" y="103" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#f3c47a">Server（工具提供者）</text>
+<text x="510" y="119" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">本地子进程 · stdin/stdout</text>
+
+<!-- 生命线 -->
+<line x1="170" y1="128" x2="170" y2="396" stroke="#3a4a5e" stroke-width="1" stroke-dasharray="4 4"/>
+<line x1="510" y1="128" x2="510" y2="396" stroke="#3a4a5e" stroke-width="1" stroke-dasharray="4 4"/>
+
+<!-- 步骤标签 -->
+<text x="34" y="164" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#8ecbff">① 握手</text>
+<text x="34" y="266" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#c9b8ff">② 发现</text>
+<text x="34" y="344" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#f3c47a">③ 调用</text>
+
+<!-- initialize 请求 -->
+<path d="M172 158L506 158" fill="none" stroke="#4dabf7" stroke-width="1.5" marker-end="url(#ar9h)"/>
+<text x="340" y="152" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#8ecbff">initialize {protocolVersion, capabilities, clientInfo}</text>
+
+<!-- initialize 响应 -->
+<path d="M508 190L174 190" fill="none" stroke="#4dabf7" stroke-width="1.5" marker-end="url(#ar9h)"/>
+<text x="340" y="184" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#8ecbff">响应 {protocolVersion, capabilities, serverInfo}</text>
+
+<!-- initialized 通知 -->
+<path d="M172 222L506 222" fill="none" stroke="#6b7a8d" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#ar9h)"/>
+<text x="340" y="216" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">notifications/initialized（通知：无 id，无需响应）</text>
+
+<!-- tools/list -->
+<path d="M172 262L506 262" fill="none" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#ar9h)"/>
+<text x="340" y="256" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#c9b8ff">tools/list</text>
+<path d="M508 294L174 294" fill="none" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#ar9h)"/>
+<text x="340" y="288" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#c9b8ff">[{name, description, inputSchema}, …]</text>
+
+<!-- tools/call -->
+<path d="M172 334L506 334" fill="none" stroke="#e8a34b" stroke-width="1.5" marker-end="url(#ar9h)"/>
+<text x="340" y="328" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#f3c47a">tools/call {name: "add", arguments: {a: 123, b: 456}}</text>
+<path d="M508 372L174 372" fill="none" stroke="#e8a34b" stroke-width="1.5" marker-end="url(#ar9h)"/>
+<text x="340" y="366" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#f3c47a">{content: [{type: "text", text: "579"}]}</text>
+
+<!-- 底注 -->
+<text x="340" y="410" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#7d8b9c">换成 HTTP 传输时，三步协议的消息不变——协议与传输解耦</text>
+</svg>

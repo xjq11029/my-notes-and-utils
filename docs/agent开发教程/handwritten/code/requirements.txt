@@ -1,0 +1,10 @@
+# 手写线的全部第三方依赖（两件套 + Windows 时区库）
+#
+# 教学基调：Agent 的本体不需要框架——
+#   pydantic 负责参数校验与动态 Schema，jinja2 负责提示词模板，
+#   其余（事件、会话、ReAct、MCP 传输）全部用标准库手写。
+#
+# 真模型运行（可选）：另需 openai SDK， pip install openai
+pydantic==2.14.1
+jinja2==3.1.6
+tzdata==2025.2   # Windows 上 zoneinfo 需要它（Linux/macOS 自带时区库，装了也无害）

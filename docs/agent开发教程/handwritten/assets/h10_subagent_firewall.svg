@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 420" width="680" height="420" role="img">
+<title>子代理：一层上下文防火墙</title>
+<desc>主上下文只保留任务与结论（5 条消息）；两个子代理各自在独立会话里消化全部细节（各 7 条消息），只回传最终报告。</desc>
+<defs>
+<marker id="ar10hq" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+<marker id="ar10hr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+</defs>
+
+<rect x="0" y="0" width="680" height="420" fill="#111721"/>
+
+<text x="34" y="38" font-family="system-ui, sans-serif" font-size="17" font-weight="700" fill="#dfe6ee">子代理：一层上下文防火墙</text>
+<text x="34" y="62" font-family="system-ui, sans-serif" font-size="12" fill="#7d8b9c">细节消化在子代理自己的会话里；主上下文只收结论（数据来自 s10_subagent.py 实测）</text>
+
+<!-- 主上下文 -->
+<rect x="210" y="88" width="260" height="126" rx="10" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.4"/>
+<text x="340" y="108" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#8ecbff">主上下文（实测 5 条消息）</text>
+<rect x="222" y="116" width="236" height="15" rx="4" fill="#223650"/>
+<text x="232" y="127" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">[系统] 指令 + 工具清单</text>
+<rect x="222" y="134" width="236" height="15" rx="4" fill="#223650"/>
+<text x="232" y="145" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">[用户] 调研两个主题，汇总结论</text>
+<rect x="222" y="152" width="236" height="15" rx="4" fill="#223650"/>
+<text x="232" y="163" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">[助手] 调用 create_agent（仅 1 次工具调用）</text>
+<rect x="222" y="170" width="236" height="15" rx="4" fill="#223650"/>
+<text x="232" y="181" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">[工具] 【sub-orm】【sub-dto】两份报告</text>
+<rect x="222" y="188" width="236" height="15" rx="4" fill="#223650"/>
+<text x="232" y="199" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">[助手] 汇总结论</text>
+
+<!-- 派发 / 回传箭头（左侧） -->
+<path d="M250 218 L250 264" fill="none" stroke="#6b7a8d" stroke-width="1.5" marker-end="url(#ar10hq)"/>
+<text x="258" y="240" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">query 派发</text>
+<path d="M310 264 L310 218" fill="none" stroke="#e8a34b" stroke-width="1.7" marker-end="url(#ar10hr)"/>
+<text x="316" y="258" font-family="system-ui, sans-serif" font-size="9.5" fill="#f3c47a">只回结论</text>
+
+<!-- 派发 / 回传箭头（右侧） -->
+<path d="M430 218 L430 264" fill="none" stroke="#6b7a8d" stroke-width="1.5" marker-end="url(#ar10hq)"/>
+<text x="436" y="240" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">query 派发</text>
+<path d="M490 264 L490 218" fill="none" stroke="#e8a34b" stroke-width="1.7" marker-end="url(#ar10hr)"/>
+<text x="496" y="258" font-family="system-ui, sans-serif" font-size="9.5" fill="#f3c47a">只回结论</text>
+
+<!-- 防火墙分隔线 -->
+<line x1="340" y1="240" x2="340" y2="404" stroke="#f0655f" stroke-width="1.2" stroke-dasharray="5 4" opacity="0.7"/>
+<text x="340" y="254" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" font-weight="700" fill="#f0655f">上下文防火墙</text>
+
+<!-- 子上下文 sub-orm -->
+<rect x="40" y="272" width="270" height="118" rx="10" fill="#241f38" stroke="#a78bfa" stroke-width="1.4"/>
+<text x="175" y="292" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#c9b8ff">子上下文 sub-orm（7 条消息）</text>
+<rect x="54" y="300" width="242" height="15" rx="4" fill="#2e2749"/>
+<text x="64" y="311" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">[用户] 调研任务：ORM 数据层怎么搭</text>
+<rect x="54" y="318" width="242" height="15" rx="4" fill="#2e2749"/>
+<text x="64" y="329" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">[助手] read_file orm.md → migration.md（2 轮）</text>
+<rect x="54" y="336" width="242" height="15" rx="4" fill="#2e2749"/>
+<text x="64" y="347" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">[助手] 结论：SQLAlchemy 2.0 + Alembic</text>
+<text x="175" y="374" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" fill="#93a1b1">模式 isolated：全新会话 · 细节从未离开此框</text>
+
+<!-- 子上下文 sub-dto -->
+<rect x="370" y="272" width="270" height="118" rx="10" fill="#2a2320" stroke="#e8a34b" stroke-width="1.4"/>
+<text x="505" y="292" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#f3c47a">子上下文 sub-dto（7 条消息）</text>
+<rect x="384" y="300" width="242" height="15" rx="4" fill="#352c24"/>
+<text x="394" y="311" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">[用户] 调研任务：DTO 与接口怎么设计</text>
+<rect x="384" y="318" width="242" height="15" rx="4" fill="#352c24"/>
+<text x="394" y="329" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">[助手] read_file dto.md → api.md（2 轮）</text>
+<rect x="384" y="336" width="242" height="15" rx="4" fill="#352c24"/>
+<text x="394" y="347" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">[助手] 结论：Pydantic In/Out + FastAPI</text>
+<text x="505" y="374" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" fill="#93a1b1">模式 isolated：全新会话 · 细节从未离开此框</text>
+
+<text x="340" y="410" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10.5" fill="#93a1b1">防火墙只隔离上下文，不隔离世界：子代理共享工具注册表，写文件 / 执行命令的副作用真实发生</text>
+</svg>

@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 420" width="680" height="420" role="img">
+<title>系统提示词渲染管线：模板 + 环境变量 → messages[0]</title>
+<desc>system.j2 模板与运行环境变量（cwd/os/is_git）在启动时经 Jinja2 渲染一次，产物作为 messages[0] 冻结，之后每次调用随历史原样重传。</desc>
+<defs>
+<marker id="ar2h" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+</defs>
+
+<rect x="0" y="0" width="680" height="420" fill="#111721"/>
+
+<text x="34" y="38" font-family="system-ui, sans-serif" font-size="17" font-weight="700" fill="#dfe6ee">系统提示词：模板 + 环境变量 → messages[0]</text>
+<text x="34" y="62" font-family="system-ui, sans-serif" font-size="12" fill="#7d8b9c">渲染只发生在启动时；此后它是一段静态文本，随每次请求原样重传</text>
+
+<!-- 模板文件 -->
+<rect x="34" y="88" width="220" height="140" rx="8" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.3"/>
+<text x="48" y="110" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#8ecbff">system.j2（模板文件）</text>
+<text x="48" y="132" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">你是终端里的编码助手…</text>
+<text x="48" y="150" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">工作目录：{{ cwd }}</text>
+<text x="48" y="168" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">操作系统：{{ os }}</text>
+<text x="48" y="186" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">Git 仓库：{{ "是" if is_git else "否" }}</text>
+<text x="48" y="212" font-family="system-ui, sans-serif" font-size="9" fill="#7d8b9c">agent/prompt/system.j2</text>
+
+<!-- 环境变量 -->
+<rect x="34" y="248" width="220" height="104" rx="8" fill="#241f38" stroke="#a78bfa" stroke-width="1.3"/>
+<text x="48" y="270" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#c9b8ff">运行环境变量</text>
+<text x="48" y="292" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">cwd = D:\…\handwritten\code</text>
+<text x="48" y="310" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">os = Windows</text>
+<text x="48" y="328" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">is_git = True（本仓库内）</text>
+<text x="48" y="344" font-family="system-ui, sans-serif" font-size="9" fill="#7d8b9c">agent/prompt.py：启动时各取一次</text>
+
+<!-- Jinja2 渲染 -->
+<rect x="308" y="176" width="132" height="88" rx="8" fill="#2a2320" stroke="#e8a34b" stroke-width="1.3"/>
+<text x="374" y="204" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#f3c47a">Jinja2 渲染</text>
+<text x="374" y="224" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">agent/prompt.py</text>
+<text x="374" y="240" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">render_prompt()</text>
+
+<!-- 产物 -->
+<rect x="494" y="108" width="152" height="196" rx="8" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.3"/>
+<text x="508" y="130" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#8ecbff">messages[0]</text>
+<text x="508" y="150" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">{ "role": "system",</text>
+<text x="508" y="166" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">  "content": 渲染结果 }</text>
+<line x1="508" y1="180" x2="632" y2="180" stroke="#3a4a5e" stroke-width="1"/>
+<text x="508" y="200" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">Session(system_prompt=…)</text>
+<text x="508" y="218" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">构造时 add_message 写入</text>
+<text x="508" y="244" font-family="system-ui, sans-serif" font-size="9" fill="#7d8b9c">之后每次调用</text>
+<text x="508" y="260" font-family="system-ui, sans-serif" font-size="9" fill="#7d8b9c">原样随历史重传</text>
+<text x="508" y="282" font-family="system-ui, sans-serif" font-size="9" fill="#93a1b1">（重传与缓存见 S3）</text>
+
+<!-- 管线箭头 -->
+<path d="M254 150 L281 150 L281 210 L306 210" fill="none" stroke="#6b7a8d" stroke-width="1.5" marker-end="url(#ar2h)"/>
+<path d="M254 300 L281 300 L281 232 L306 232" fill="none" stroke="#6b7a8d" stroke-width="1.5" marker-end="url(#ar2h)"/>
+<path d="M440 220 L492 220" fill="none" stroke="#6b7a8d" stroke-width="1.5" marker-end="url(#ar2h)"/>
+<text x="466" y="210" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" fill="#7d8b9c">渲染一次</text>
+
+<!-- 底部警示 -->
+<rect x="34" y="372" width="612" height="36" rx="7" fill="#2a1f24" stroke="#f0655f" stroke-width="1.2"/>
+<text x="340" y="395" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10.5" fill="#f08a84">保持静态：渲染一次后不再变动 —— 把当前时间 / 用户名写进系统提示词，每轮请求都会打穿 prompt cache（S3）</text>
+</svg>

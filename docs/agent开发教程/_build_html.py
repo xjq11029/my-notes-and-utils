@@ -4,13 +4,18 @@
 构建《Agent 开发教程》单文件精读版 HTML。
 
 用法（仓库根目录下执行）：
-    python docs/agent开发教程/_build_html.py
+    python docs/agent开发教程/_build_html.py            # 框架线（默认）
+    python docs/agent开发教程/_build_html.py handwritten # 手写线
 
-输入：
-    docs/agent开发教程/ch01..ch18*.md   —— 18 章正文
-    docs/agent开发教程/assets/NN_*.svg  —— 32 张机制图（内联，做 marker id 去重）
-输出：
-    docs/agent开发教程/agent-frameworks-deep-dive.html
+框架线：
+    输入  docs/agent开发教程/ch01..ch18*.md   —— 18 章正文
+          docs/agent开发教程/assets/NN_*.svg  —— 32 张机制图（内联，做 marker id 去重）
+    输出  docs/agent开发教程/agent-frameworks-deep-dive.html
+
+手写线（handwritten 参数）：
+    输入  docs/agent开发教程/handwritten/ch_s01..ch_s11*.md —— 11 章正文
+          docs/agent开发教程/handwritten/assets/hNN_*.svg   —— 11 张机制图
+    输出  docs/agent开发教程/handwritten/agent-from-scratch.html
 
 约束：
     * 仅用 Python 标准库，无第三方依赖
@@ -55,6 +60,9 @@ LANG_LABEL = {
     "text": "文本 / 输出",
     "": "文本",
 }
+
+# 章标题（H1）解析模式：框架线「第 N 章 …」；手写线「S N …」（build() 内按参数重设）
+H1_RE = re.compile(r"^第\s*(\d+)\s*章\s*(.*)$")
 
 
 # --------------------------------------------------------------------------
@@ -314,8 +322,8 @@ def inline_svg(fig_no, path):
 # --------------------------------------------------------------------------
 # Markdown -> blocks
 # --------------------------------------------------------------------------
-IMG_RE = re.compile(r"^!\[([^\]]*)\]\(([^)]+)\)\s*$")
-CAP_RE = re.compile(r"^\*(图\s*\d+[^*]*)\*$")
+IMG_RE = re.compile(r"^!\[(.*?)\]\(([^)]+)\)\s*$")  # alt 非贪婪：允许内嵌 [0] 这类方括号
+CAP_RE = re.compile(r"^\*(图\s*(?:\d+|h\d+)[^*]*)\*$")
 H_RE = re.compile(r"^(#{1,6})\s+(.*)$")
 
 
@@ -382,6 +390,13 @@ def parse_blocks(text):
                     caption = cm.group(1).strip()
                     i = j
             blocks.append({"t": "fig", "src": src, "alt": alt, "caption": caption or alt})
+            i += 1
+            continue
+
+        # 孤立图注行（前一非空行不是图片时的兜底）：当作普通段落，
+        # 否则会掉进段落分支、buf 为空且 i 不推进 → 死循环
+        if CAP_RE.match(stripped):
+            blocks.append({"t": "p", "text": stripped})
             i += 1
             continue
 
@@ -482,7 +497,7 @@ def render_blocks(blocks, chapter_no, anchors):
         t = b["t"]
         if t == "h1":
             title = b["text"]
-            m = re.match(r"^第\s*(\d+)\s*章\s*(.*)$", title)
+            m = H1_RE.match(title)
             num, rest = (m.group(1), m.group(2)) if m else (str(chapter_no), title)
             html.append('<h2 class="chap" id="ch%s"><span class="num">%s</span>%s</h2>' % (chapter_no, num, render_inline(rest)))
         elif t == "h2":
@@ -507,16 +522,17 @@ def render_blocks(blocks, chapter_no, anchors):
         elif t == "codetabs":
             html.append(render_code_tabs(b["py"], b["ts"], b["notes"]))
         elif t == "fig":
-            m = re.match(r"assets/(\d+)_", b["src"])
+            m = re.match(r"assets/((?:\d+|h\d+))_", b["src"])
             if not m:
                 continue
-            fig_no = int(m.group(1))
+            no = m.group(1)
+            fig_no = int(no[1:]) if no.startswith("h") else int(no)
             svg_path = os.path.join(ASSETS, os.path.basename(b["src"]).rsplit(".", 1)[0] + ".svg")
             if not os.path.exists(svg_path):
                 raise SystemExit("缺少 SVG：%s" % svg_path)
             svg = inline_svg(fig_no, svg_path)
             cap = b["caption"]
-            cm = re.match(r"^(图\s*\d+)(.*)$", cap)
+            cm = re.match(r"^(图\s*(?:\d+|h\d+))(.*)$", cap)
             cap_html = ("<b>%s</b>%s" % (cm.group(1), render_inline(cm.group(2)))) if cm else render_inline(cap)
             html.append('<figure id="fig%d">%s<figcaption>%s</figcaption></figure>' % (fig_no, svg, cap_html))
     return "\n".join(x for x in html if x)
@@ -700,9 +716,19 @@ document.addEventListener('click', function(e){
 """
 
 
-def build():
+def build(chapter_files=CHAPTERS, assets_dir=ASSETS, out_html=OUT_HTML,
+          page_title="Agent 开发教程精读版：LangChain / LangGraph / Deep Agents",
+          hero_html=None, h1_pattern=r"^第\s*(\d+)\s*章\s*(.*)$", brand="Agent 开发教程"):
+    """构建一份单文件精读版 HTML。
+
+    框架线用默认参数；手写线传 handwritten 组参数（见 HANDWRITTEN 配置与 main()）。
+    """
+    global ASSETS, H1_RE
+    ASSETS = assets_dir
+    H1_RE = re.compile(h1_pattern)
+
     chapters = []
-    for name in CHAPTERS:
+    for name in chapter_files:
         path = os.path.join(HERE, name)
         if not os.path.exists(path):
             raise SystemExit("缺少章节文件：%s" % path)
@@ -719,7 +745,7 @@ def build():
             if b["t"] == "h1":
                 title = b["text"]
                 break
-        m = re.match(r"^第\s*(\d+)\s*章\s*(.*)$", title)
+        m = H1_RE.match(title)
         nav_title = m.group(2) if m else title
         anchors = []
         html = render_blocks(blocks, idx, anchors)
@@ -727,13 +753,32 @@ def build():
         body.append('<section class="chapter" id="chap%d">\n%s\n</section>' % (idx, html))
 
     # 目录
-    toc = ['<div class="brand">Agent 开发教程</div>']
+    toc = ['<div class="brand">%s</div>' % esc(brand)]
     for idx, nav_title, anchors in nav:
         toc.append('<a class="lv1" href="#ch%d">%d · %s</a>' % (idx, idx, esc(nav_title)))
         for aid, atext, _lv in anchors:
             toc.append('<a class="lv2" href="#%s">%s</a>' % (aid, esc(atext)))
 
-    hero = """
+    if hero_html is None:
+        hero_html = HERO_FRAMEWORK
+
+    html = (
+        "<!DOCTYPE html>\n"
+        '<html lang="zh-CN">\n<head>\n<meta charset="UTF-8">\n'
+        '<meta name="viewport" content="width=device-width, initial-scale=1.0">\n'
+        "<title>%s</title>\n" % page_title +
+        "<style>" + CSS + "</style>\n</head>\n<body>\n"
+        '<div class="wrap">\n\n<nav class="toc">\n  ' + "\n  ".join(toc) + "\n</nav>\n\n"
+        "<main>\n<article>\n" + hero_html + "\n" + "\n\n".join(body) + "\n</article>\n</main>\n</div>\n\n"
+        "<script>" + JS + "</script>\n</body>\n</html>\n"
+    )
+    with open(out_html, "w", encoding="utf-8", newline="\n") as f:
+        f.write(html)
+    print("已生成：%s" % out_html)
+    print("行数：%d  字节：%d" % (html.count("\n") + 1, len(html.encode("utf-8"))))
+
+
+HERO_FRAMEWORK = """
 <header class="hero">
   <div class="eyebrow">LangChain · LangGraph · Deep Agents · 深度精读</div>
   <h1>Agent 开发教程：从构建块、运行时<br>到成品 harness</h1>
@@ -747,21 +792,50 @@ def build():
 </header>
 """
 
-    html = (
-        "<!DOCTYPE html>\n"
-        '<html lang="zh-CN">\n<head>\n<meta charset="UTF-8">\n'
-        '<meta name="viewport" content="width=device-width, initial-scale=1.0">\n'
-        "<title>Agent 开发教程精读版：LangChain / LangGraph / Deep Agents</title>\n"
-        "<style>" + CSS + "</style>\n</head>\n<body>\n"
-        '<div class="wrap">\n\n<nav class="toc">\n  ' + "\n  ".join(toc) + "\n</nav>\n\n"
-        "<main>\n<article>\n" + hero + "\n" + "\n\n".join(body) + "\n</article>\n</main>\n</div>\n\n"
-        "<script>" + JS + "</script>\n</body>\n</html>\n"
+HERO_HANDWRITTEN = """
+<header class="hero">
+  <div class="eyebrow">从零手写 · 契约 → 工具 → 循环 → Agent → MCP · 深度精读</div>
+  <h1>手写 Agent：从一份 JSON 契约<br>到五大 Engineering</h1>
+  <p class="sub">框架帮你调模型的那一下，网络上跑的是一份 OpenAI 兼容的 JSON 契约；循环、会话、工具系统、技能、MCP，全都是这份契约之上薄薄一层结构。这条手写线不引入任何 Agent 框架，从契约开始逐章手写出完整 Agent 与它的全部能力，配 11 张自绘机制图与 10 个离线实测脚本——读完再看框架，一切都不再是魔法。</p>
+  <div class="meta">
+    <span>11 章 · 精读版</span>
+    <span>11 张自绘机制图</span>
+    <span>10 个脚本离线实测</span>
+    <span>全部内容内联 · 可离线打开</span>
+  </div>
+</header>
+"""
+
+
+def build_handwritten():
+    here = HERE
+    hw = os.path.join(here, "handwritten")
+    chapters = [
+        "handwritten/ch_s01_model_contract.md",
+        "handwritten/ch_s02_system_prompt.md",
+        "handwritten/ch_s03_session.md",
+        "handwritten/ch_s04_tools.md",
+        "handwritten/ch_s05_tool_package.md",
+        "handwritten/ch_s06_react.md",
+        "handwritten/ch_s07_agent.md",
+        "handwritten/ch_s08_skill.md",
+        "handwritten/ch_s09_mcp.md",
+        "handwritten/ch_s10_subagent.md",
+        "handwritten/ch_s11_engineering.md",
+    ]
+    build(
+        chapter_files=chapters,
+        assets_dir=os.path.join(hw, "assets"),
+        out_html=os.path.join(hw, "agent-from-scratch.html"),
+        page_title="手写 Agent 精读版：从模型接口契约到五大 Engineering",
+        hero_html=HERO_HANDWRITTEN,
+        h1_pattern=r"^S\s*(\d+)\s*(.*)$",
+        brand="Agent 开发教程 · 手写线",
     )
-    with open(OUT_HTML, "w", encoding="utf-8", newline="\n") as f:
-        f.write(html)
-    print("已生成：%s" % OUT_HTML)
-    print("行数：%d  字节：%d" % (html.count("\n") + 1, len(html.encode("utf-8"))))
 
 
 if __name__ == "__main__":
-    build()
+    if len(sys.argv) > 1 and sys.argv[1] == "handwritten":
+        build_handwritten()
+    else:
+        build()
