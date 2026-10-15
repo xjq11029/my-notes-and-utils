@@ -1,5 +1,5 @@
 /**
- * 第 10 章示例（TypeScript 版，与 10_state_graph.py 对应）：
+ * 第 11 章示例（TypeScript 版，与 11_state_graph.py 对应）：
  * LangGraph 的图与状态。
  *
  * 演示五件事：
@@ -9,7 +9,7 @@
  *   4. Send：从一条边派发 N 个并行分支（map-reduce）
  *   5. Overwrite：绕过 reducer 强制覆盖
  *
- * 运行：pnpm run 06_state_graph
+ * 运行：pnpm run 11_state_graph
  */
 
 import {

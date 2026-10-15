@@ -1,5 +1,5 @@
 /**
- * 第 14 章示例（TypeScript 版，与 14_filesystem.py 对应）：
+ * 第 15 章示例（TypeScript 版，与 15_filesystem.py 对应）：
  * 虚拟文件系统与执行环境。
  *
  * 演示四件事：
@@ -8,7 +8,7 @@
  *   3. FilesystemPermission 的声明式权限
  *   4. 后端谱系：StoreBackend / FilesystemBackend / CompositeBackend
  *
- * 运行：pnpm run 10_filesystem
+ * 运行：pnpm run 15_filesystem
  */
 
 import {

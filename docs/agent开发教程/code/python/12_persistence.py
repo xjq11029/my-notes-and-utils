@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""第 11 章示例：持久化与持久执行。
+"""第 12 章示例：持久化与持久执行。
 
 演示五件事：
   1. checkpointer 让「同一线程」的第二次调用接着上次的状态跑
@@ -8,7 +8,7 @@
   4. Store —— 跨线程的长期记忆（与 checkpointer 的分工）
   5. Store 的命名空间与前缀搜索语义
 
-运行：python 07_persistence.py
+运行：python 12_persistence.py
 """
 
 import sys

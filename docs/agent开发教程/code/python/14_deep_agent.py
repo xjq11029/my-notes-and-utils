@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""第 13 章示例：Deep Agents 全景。
+"""第 14 章示例：Deep Agents 全景。
 
 演示四件事：
   1. create_deep_agent 默认给你哪些工具（与官方文档的差异在这里显式指出）
@@ -7,7 +7,7 @@
   3. 预装中间件栈 —— 打印真实的图节点名
   4. HarnessProfile：声明式地裁掉不要的能力
 
-运行：python 09_deep_agent.py
+运行：python 14_deep_agent.py
 """
 
 import sys

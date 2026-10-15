@@ -1,10 +1,12 @@
-# 第 10 章 LangGraph 图与状态：Reducer、条件边与 Send
+# 第 11 章 LangGraph 图与状态：Reducer、条件边与 Send
 
 ## 一、这一章要解决的问题
 
-前五章都活在 `create_agent` 里。它很好用，但流程形状是固定的：模型 → 工具 → 模型 → …… 直到模型不再请求工具。第 6 章的中间件能往这个循环上挂钩子，却改不了循环本身的形状。
+第 5–9 章都活在 `create_agent` 里。它很好用，但流程形状是固定的：模型 → 工具 → 模型 → …… 直到模型不再请求工具。第 6 章的中间件能往这个循环上挂钩子，却改不了循环本身的形状。
 
 一旦需求不是这个形状——先分类再分流、把 100 个文件并行处理再汇总、加一道人工审批、跑一条多阶段流水线——就得自己画图。LangGraph 就是干这个的：**图 + 状态 + 持久化**。
+
+先回收一个伏笔：**第 5 章的 `AgentState` 就是一张最小图的状态，`create_agent` 编译出来的本来就是一张 LangGraph 图**（第 1 章的分层图说过这句话，这里兑现）。本章把「图」这层黑盒打开：你自己画一张图时，状态、合并、流转、并行各由什么说了算。
 
 ![图 18　图的基本构件](assets/18_graph_building_blocks.png)
 
@@ -57,7 +59,7 @@ new_value = reducer(left = 当前状态值, right = 节点返回的更新)
 
 ### 2.3 `add_messages`
 
-消息不是普通列表，它需要按 ID 去重更新：同一条消息（同一个 `id`）再次出现应该是**替换**，而不是重复追加。`add_messages` 就是内置的消息专用 reducer。JS 侧对应的是 `messagesStateReducer`（另有预置 schema `MessagesAnnotation`）——注意本章 JS 示例为了与 Python 对照，`messages` 用的是普通 `concat`，所以行为上只追加、不去重。
+消息不是普通列表，它需要按 ID 去重更新：同一条消息（同一个 `id`）再次出现应该是**替换**，而不是重复追加。`add_messages` 就是内置的消息专用 reducer——第 5 章 2.3 节「`AgentState.messages` 只追加」就是它在 agent 状态上的样子，那里给了实测证据，这里给出形式化定义。JS 侧对应的是 `messagesStateReducer`（另有预置 schema `MessagesAnnotation`）——注意本章 JS 示例为了与 Python 对照，`messages` 用的是普通 `concat`，所以行为上只追加、不去重。
 
 ### 2.4 `Overwrite`：合并型 reducer 的逃生舱
 
@@ -76,19 +78,21 @@ new_value = reducer(left = 当前状态值, right = 节点返回的更新)
 
 ### 2.6 `Send`：一条边派发 N 个并行分支
 
-条件边是「选一条路」，`Send` 是「**同时走多条路**」。路由函数不再返回节点名，而是返回一个 `Send` 列表：`[Send("worker", {"item": it}) for it in state["items"]]`。LangGraph 会为每一项起一个并行任务，它们在**同一个 super-step** 里执行，结果靠目标字段的 reducer 汇总——这就是 map-reduce。
+条件边是「选一条路」，`Send` 是「**同时走多条路**」。路由函数不再返回节点名，而是返回一个 `Send` 列表：`[Send("worker", {"item": it}) for it in state["items"]]`。LangGraph 会为每一项起一个并行任务，它们在**同一个 super-step**（超步——「一轮里可以并行执行的节点」，第 12 章讲检查点时还会用到这个词）里执行，结果靠目标字段的 reducer 汇总——这就是 map-reduce（派发一批并行任务、再把各自结果汇总起来的模式）。
 
 注意：`Send` 携带的 payload 是**给目标节点的输入**，不是完整状态。所以 worker 节点读的是 `state["item"]`（单数、当前那一项），而不是 `state["items"]`。
 
 ### 2.7 `Command` 与子图
 
-- **`Command`**：在节点里返回它，可以**同时**做两件事——`update` 更新状态、`goto` 跳转到指定节点。它是「动态路由 + 状态更新」的合一。第 12 章会讲它的另一种形态 `Command(resume=...)`。
-  - 双语言差异第 8 条：**JS 侧返回 `Command` 的节点必须显式声明去向** `addNode(name, fn, { ends: [...] })`，否则编译时报 `UnreachableNodeError`；Python 靠类型注解 `Command[Literal[...]]`。
-- **子图**：编译好的图可以直接当节点用。Python 直接 `add_node("x", agent)`；JS 要取 `agent.graph`——`ReactAgent` 包装对象本身不是 Runnable（差异第 9 条）。
+- **`Command`**：在节点里返回它，可以**同时**做两件事——`update` 更新状态、`goto` 跳转到指定节点。它是「动态路由 + 状态更新」的合一。第 13 章会讲它的另一种形态 `Command(resume=...)`。
+  - **JS 侧返回 `Command` 的节点必须显式声明去向** `addNode(name, fn, { ends: [...] })`，否则编译时报 `UnreachableNodeError`；Python 靠类型注解 `Command[Literal[...]]`。
+- **子图**：编译好的图可以直接当节点用。Python 直接 `add_node("x", agent)`；JS 要取 `agent.graph`——`ReactAgent` 包装对象本身不是 Runnable（实测）。
 
 ### 2.8 同一线程再次 `invoke` 的语义
 
-这一条官方文档只讲 reducer 本身，没讲「同一线程再次 `invoke` 时输入如何进入状态」。本机实测（差异清单第 9 条，`langgraph` 1.2.12 / JS 1.4.17，两侧一致）给出如下结果——图只有一个节点 `bump`：`n = n + 1`，`trail` 追加 `f"→{n}"`；`n` 无 reducer（覆盖），`trail` 有 `operator.add`（追加）。
+**前置说明**：这一节要用到下一章的检查点（checkpointer）——只需知道一件事：**图 `compile()` 时带上 checkpointer 后，同一个 `thread_id` 的多次 `invoke` 会共享一条状态历史**；不配则每次调用都是失忆重来。checkpointer 本身是第 12 章的主题。
+
+这一条官方文档只讲 reducer 本身，没讲「同一线程再次 `invoke` 时输入如何进入状态」。本机实测（`langgraph` 1.2.12 / JS 1.4.17，两侧一致）给出如下结果——图只有一个节点 `bump`：`n = n + 1`，`trail` 追加 `f"→{n}"`；`n` 无 reducer（覆盖），`trail` 有 `operator.add`（追加）。
 
 | 调用 | 传入 | 结果 `n` | 结果 `trail` | 为什么 |
 |---|---|---|---|---|
@@ -102,13 +106,13 @@ new_value = reducer(left = 当前状态值, right = 节点返回的更新)
 
 1. 输入字典里**出现**的字段 → 按**该字段自己的 reducer** 合并进检查点状态；
 2. 输入字典里**没出现**的字段 → **保留检查点里的值**；
-3. `invoke(None, cfg)` 是**空操作**；`invoke({}, cfg)` 才是「从检查点续跑」——这两个极容易搞混。
+3. `invoke(None, cfg)` **不注入新输入**——线程已跑完时表现为**空操作**；`invoke({}, cfg)` 注入一个空字典，才是「从检查点续跑」——这两个极容易搞混。
 
 第 1、2 条是最阴的坑：以为「同一线程会累积」，结果标量字段被输入悄悄重置了。
 
 ## 三、代码：Python 与 TypeScript
 
-完整可运行版本见 `code/python/10_state_graph.py` 与 `code/typescript/10_state_graph.ts`。
+完整可运行版本见 `code/python/11_state_graph.py` 与 `code/typescript/11_state_graph.ts`。
 
 **① State schema 与 reducer**——一个字段覆盖、一个字段合并：
 
@@ -124,6 +128,9 @@ class State(TypedDict):
 
 def node_a(state: State) -> dict:
     return {"counter": 1, "log": ["a 跑过"], "messages": [AIMessage(content="a")]}
+
+def node_b(state: State) -> dict:
+    return {"counter": 2, "log": ["b 跑过"], "messages": [AIMessage(content="b")]}
 
 g = (StateGraph(State).add_node("a", node_a).add_node("b", node_b)
      .add_edge(START, "a").add_edge("a", "b").add_edge("b", END).compile())
@@ -227,16 +234,16 @@ new StateGraph(State)
 ## 四、常见坑与边界条件
 
 - **默认 reducer 是覆盖，不是合并**：**顺序执行**的两个节点都写同一个标量字段时，留下的是**最后执行的那个**。但**同一 super-step 的并行分支写同一个无 reducer 字段会直接报错**——实测抛 `InvalidUpdateError: At key 'x': Can receive only one value per step.`。不是「不确定地覆盖」，而是**编译能过、跑起来抛异常**。凡可能被并发写入的字段，必须给 reducer。
-- **`invoke(None)` 与 `invoke({})` 完全不同**：前者是空操作（什么都不做，直接返回当前状态），后者才是「从检查点续跑」。实测第 2、3 次调用就是这两个。
+- **`invoke(None)` 与 `invoke({})` 完全不同**：前者不注入输入，线程已跑完时什么都不做、直接返回当前状态；后者注入空字典，才是「从检查点续跑」。实测第 2、3 次调用就是这两个。
 - **输入字典里的字段会被自己的 reducer 处理**：标量字段传了值就覆盖检查点里的值（实测第 4 次 `n=100` → `101`）。想「续跑但不动状态」就传 `{}`。
 - **`Overwrite` 只对合并型字段有意义**：无 reducer 的字段本来就是覆盖，包不包都一样。
 - **`Send` 的 payload 是目标节点的输入**：worker 里读的是 `state["item"]`（当次那一项），不是完整的 `state["items"]`。
 - **`Send` 的汇总靠 reducer**：`results` 必须是 `Annotated[list, operator.add]` 这类合并型字段，否则并行分支互相覆盖。
-- **JS 返回 `Command` 的节点必须声明 `ends`**（差异第 8 条），否则编译报 `UnreachableNodeError`。
-- **JS 把 agent 当节点要取 `agent.graph`**（差异第 9 条）；Python 可以直接 `add_node("x", agent)`。
-- **没有 checkpointer 就没有跨 `invoke` 的记忆**：2.8 节的所有结论都建立在 `compile(checkpointer=...)` 之上。Python 用 `InMemorySaver`，JS 用 `MemorySaver`（差异第 2 条）。
+- **JS 返回 `Command` 的节点必须声明 `ends`**（实测），否则编译报 `UnreachableNodeError`。
+- **JS 把 agent 当节点要取 `agent.graph`**（实测）；Python 可以直接 `add_node("x", agent)`。
+- **没有 checkpointer 就没有跨 `invoke` 的记忆**：2.8 节的所有结论都建立在 `compile(checkpointer=...)` 之上。Python 用 `InMemorySaver`，JS 用 `MemorySaver`（实测）。
 - **JS 示例的 `messages` 用的是普通 `concat`**：与 Python 的 `add_messages` 不完全等价（少了按 ID 去重更新）。要消息语义就用 `messagesStateReducer` 或 `MessagesAnnotation`。
-- **节点名是内部实现细节**：跨语言、跨版本都会变（差异第 12 条），别硬编码。
+- **节点名是内部实现细节**：跨语言、跨版本都会变（实测），别硬编码。
 
 ## 五、关键结论
 
@@ -246,7 +253,7 @@ new StateGraph(State)
 4. **`Overwrite` 是合并型 reducer 的逃生舱**：返回空列表**不会**清空字段，要包 `Overwrite([])`。
 5. **条件边选一条路，`Send` 走多条路**：`Send` 是 map-reduce，靠目标字段的 reducer 汇总。
 6. **`Command` = 状态更新 + 动态跳转**；子图可以直接当节点（JS 取 `.graph`）。
-7. **同一线程再次 `invoke`（实测）**：输入里出现的字段按各自 reducer 合并、没出现的保留检查点值；`invoke(None)` 是空操作、`invoke({})` 才是续跑。
+7. **同一线程再次 `invoke`（实测）**：输入里出现的字段按各自 reducer 合并、没出现的保留检查点值；`invoke(None)` 不注入新输入（已跑完的线程上为空操作）、`invoke({})` 才是续跑。
 
 ## 本章要点回顾
 

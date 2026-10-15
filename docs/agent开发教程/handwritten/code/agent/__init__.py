@@ -9,6 +9,6 @@
     s06 ReAct        → events（事件系统，model 层此前已用上）
     s07 Agent        → agent + listener + printer
     s08 Skill        → skill
-    s09 MCP          → mcp/jsonrpc + mcp/client
-    s10 子代理       → subagent
+    s10 MCP          → mcp/jsonrpc + mcp/client
+    s09 子代理       → subagent
 """

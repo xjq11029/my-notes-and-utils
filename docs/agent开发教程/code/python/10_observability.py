@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""第 17 章示例：可观测与评测。
+"""第 10 章示例：可观测与评测。
 
 本示例用**离线回调**搭出一棵 trace 树，把「一次 agent 调用产生了哪些 span」
 这件事讲清楚——因为 LangSmith 上报需要账号，本机无法实测。
@@ -9,7 +9,7 @@
   2. 每个 run 上能拿到什么元数据（类型、耗时、输入输出）
   3. 离线评测的最小骨架：跑用例 → 判定 → 汇总
 
-运行：python 13_observability.py
+运行：python 10_observability.py
 """
 
 import sys

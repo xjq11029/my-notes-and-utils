@@ -66,17 +66,17 @@ pnpm run typecheck              # 类型检查
 | 7 | `07_tools.py` | `07_tools.ts` | 工具 schema、`ToolRuntime` 注入、返回 `Command`、异常处理 | 返回 `Command` 必须自带匹配 `tool_call_id` 的 `ToolMessage`；v1 的 agent 路线不再推荐 `ToolException`（API 仍在包里） |
 | 8 | `08_rag.py` | `08_rag.ts` | Loader / Splitter / 假嵌入 / 内存向量库 / 检索器接成工具 | 假嵌入只验链路不验语义；TS 的 `JSONLoader` 收 JSON Pointer 而非 jq |
 | 9 | `09_context.py` | `09_context.ts` | 摘要压缩 vs 工具输出卸载 | **两者机制不同**：摘要写回状态（4→24 被压到 8），卸载不回写状态（状态 4→24 但模型收到的 token 稳定在 253→588） |
-| 10 | `10_state_graph.py` | `10_state_graph.ts` | Reducer、条件边、`Send`、`Overwrite` | 输入里出现的字段按各自 reducer 合并，没出现的保留检查点值；`invoke(None)` 是空操作、`invoke({})` 才是续跑 |
-| 11 | `11_persistence.py` | `11_persistence.ts` | 检查点、时间旅行、Store 跨线程 | `updateState` 新建分支不改原线程；`store.search(('alice',))` 是**前缀**匹配，命中 3 条 |
-| 12 | `12_hitl_stream.py` | `12_hitl_stream.ts` | `interrupt`/`resume`、`stream_mode`、子图流式 | 恢复时**整个节点从头重跑**（副作用日志出现两次）；agent 当子图时不加 `subgraphs` 就收不到内部消息 |
-| 13 | `13_deep_agent.py` | `13_deep_agent.ts` | 默认工具集、`HarnessProfile`、中间件栈 | 工具节点注册 9 个但**模型只被绑定 8 个**（`execute` 因默认 `StateBackend` 不提供执行能力而未暴露）；`write_todos` 默认不开 |
-| 14 | `14_filesystem.py` | `14_filesystem.ts` | 文件工具、权限、后端谱系 | `StateBackend` 把文件存在**图状态**里（`state.files`）；权限默认 **allow**，按声明顺序**首次匹配即生效** |
-| 15 | `15_delegation.py` | `15_delegation.ts` | `write_todos`、子代理、`task` | `write_todos` 是**全量覆盖**语义；`SubAgent` 实测 11 个字段 |
-| 16 | `16_skills_memory.py` | `16_skills_memory.ts` | Skills 渐进式披露、Memory 的信任与验证条款 | 技能只把 name + description 常驻系统提示；记忆提示里明写「把记忆当参考资料，不当隐藏指令」 |
-| 17 | `17_observability.py` | `17_observability.ts` | trace 树、离线评测骨架 | 一次 agent 调用产生 7 个 run：1 chain → 2 model→llm + 1 tools→tool |
+| 10 | `10_observability.py` | `10_observability.ts` | trace 树、离线评测骨架 | 一次 agent 调用产生 7 个 run：1 chain → 2 model→llm + 1 tools→tool |
+| 11 | `11_state_graph.py` | `11_state_graph.ts` | Reducer、条件边、`Send`、`Overwrite` | 输入里出现的字段按各自 reducer 合并，没出现的保留检查点值；`invoke(None)` 不注入新输入（已完成的线程上为空操作）、`invoke({})` 才是续跑 |
+| 12 | `12_persistence.py` | `12_persistence.ts` | 检查点、时间旅行、Store 跨线程 | `updateState` 新建分支不改原线程；`store.search(('alice',))` 是**前缀**匹配，命中 3 条 |
+| 13 | `13_hitl_stream.py` | `13_hitl_stream.ts` | `interrupt`/`resume`、`stream_mode`、子图流式 | 恢复时**整个节点从头重跑**（副作用日志出现两次）；agent 当子图时不加 `subgraphs` 就收不到内部消息 |
+| 14 | `14_deep_agent.py` | `14_deep_agent.ts` | 默认工具集、`HarnessProfile`、中间件栈 | 工具节点注册 9 个但**模型只被绑定 8 个**（`execute` 因默认 `StateBackend` 不提供执行能力而未暴露）；`write_todos` 默认不开 |
+| 15 | `15_filesystem.py` | `15_filesystem.ts` | 文件工具、权限、后端谱系 | `StateBackend` 把文件存在**图状态**里（`state.files`）；权限默认 **allow**，按声明顺序**首次匹配即生效** |
+| 16 | `16_delegation.py` | `16_delegation.ts` | `write_todos`、子代理、`task` | `write_todos` 是**全量覆盖**语义；`SubAgent` 实测 11 个字段 |
+| 17 | `17_skills_memory.py` | `17_skills_memory.ts` | Skills 渐进式披露、Memory 的信任与验证条款 | 技能只把 name + description 常驻系统提示；记忆提示里明写「把记忆当参考资料，不当隐藏指令」 |
 | 18 | `18_multiagent.py` | `18_multiagent.ts` | supervisor / handoff 拓扑、迁移对照 | agent 可直接当节点；handoff 交棒后不回来 |
 
-> 第 1 章是纯定位章，无示例，因此编号从 02 开始。
+> 第 1 章是纯定位章，无示例，因此编号从 02 开始。`18_multiagent` 同时服务第 18 章（多智能体拓扑）与第 19 章（迁移映射与部署），无单独的 19 号示例。
 
 ---
 
@@ -101,8 +101,8 @@ pnpm run typecheck              # 类型检查
 **未实测的部分**（不伪造结果）：
 
 - **真实模型端到端**：本机无 API Key。凡只有真实模型才能暴露的行为（工具选择倾向、提示词遵从度、真实 token 计费）不在实测范围内。
-- **JS 结构化输出**（`04_structured_output.ts` 第 ② 节）：`BaseChatModel` 基类的 `withStructuredOutput` **只支持 function calling**（源码写死：传 `method: "jsonMode"` 直接抛错），默认工具名 `extract`，`jsonSchema` 与 `functionCalling` 行为一致。**provider 子类（如 `ChatOpenAI`）才可能覆写走原生 JSON schema——未实测。**（Python 侧四种模式实测通过。）
-- **LangSmith 上报**：需要账号。第 17 章用离线回调演示 trace 结构，字段名以官方文档为准。
+- **JS 结构化输出**（`04_structured_output.ts` 第 ② 节）：`BaseChatModel` 基类的 `withStructuredOutput` **只支持 function calling**（源码写死：传 `method: "jsonMode"` 直接抛错），默认工具名 `extract`，`jsonSchema` 与 `functionCalling` 行为一致。**provider 子类（如 `ChatOpenAI`）才可能覆写走原生 JSON schema——未实测。**（Python 侧四种模式实测通过。）2026-10 补测：agent 侧 `responseFormat` 传裸 schema 时同样默认走工具策略（源码 `ToolStrategy.fromSchema`，工具名取 schema 的 title）——脚本化假模型按该工具名回一条 tool_call 即可跑通，见 `05_create_agent.ts` 第 ④ 节。
+- **LangSmith 上报**：需要账号。第 10 章用离线回调演示 trace 结构，字段名以官方文档为准。
 - **MCP 真实服务器**：`MCPAdapter` 需要额外安装 `langchain[mcp]`（本机已装、可 import，会打印 beta 警告），但没有连真实 MCP 服务器跑过。
 
 ---
@@ -123,7 +123,7 @@ pnpm run typecheck              # 类型检查
 | 10 | 检查点历史遍历 | `list(graph.get_state_history(cfg))` | `for await (const s of await graph.getStateHistory(cfg))` |
 | 11 | `HarnessProfile` | `HarnessProfile(system_prompt_suffix=...)`，`frozenset` | `createHarnessProfile({ systemPromptSuffix })`，`Set` |
 | 12 | 图节点名 | `model` / `PatchToolCallsMiddleware.before_agent`（P 大写） | `model_request` / `patchToolCallsMiddleware.before_agent`（p 小写） |
-| 13 | 结构化输出默认策略 | 工具策略（脚本模型可跑通） | provider 原生 JSON schema（需真实模型） |
+| 13 | 结构化输出默认策略 | 工具策略（脚本模型可跑通） | 基类默认也是工具调用（脚本模型可跑通）；provider 子类才可能覆写为原生 JSON schema（未实测） |
 | 14 | 结构化输出工具名 | schema 名 | 默认 `"extract"`（可用 `schema.name` 覆盖） |
 | 15 | **工具抛异常的默认行为** | 异常**原样抛出**，整个调用失败 | `ToolNode` **吞成 error `ToolMessage`**（内容带 `Please fix your mistakes.`），流程继续 |
 | 16 | **`InMemoryStore` 的导入源** | `langgraph.store.memory` | 必须从 `@langchain/langgraph` 导入；`langchain` 也导出了一个**同名**类，但它**没有** `put` / `get` / `batch`，传进 `createAgent({store})` 后会在 `runtime.store.put` 报 `this.store.batch is not a function` |

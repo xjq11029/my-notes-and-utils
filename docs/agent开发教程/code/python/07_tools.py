@@ -7,7 +7,7 @@
   3. 工具返回 Command —— 直接修改图状态（v1 的新写法）
   4. 工具抛异常时，用 wrap_tool_call 把它变成模型能读懂的 ToolMessage
 
-运行：python 04_tools.py
+运行：python 07_tools.py
 """
 
 import sys

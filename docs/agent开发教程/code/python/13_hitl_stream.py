@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""第 12 章示例：人在回路与流式输出。
+"""第 13 章示例：人在回路与流式输出。
 
 演示四件事：
   1. interrupt() / Command(resume=...) 的完整往返
@@ -7,7 +7,7 @@
   3. stream_mode 各档投影分别给你什么
   4. agent 作为子图时，不加 subgraphs=True 就拿不到 token
 
-运行：python 08_hitl_stream.py
+运行：python 13_hitl_stream.py
 """
 
 import sys

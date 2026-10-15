@@ -53,7 +53,7 @@
 
 ### 教程交付物（`docs/agent开发教程/**`）
 
-**两条线并行**：框架线（18 章 Markdown 教程 `chNN_英文小写下划线.md` + 单文件 HTML 精读版）与手写线（`handwritten/`，S1–S11 共 11 章 `ch_sNN_*.md` + Python 手写代码包）。
+**两条线并行**：框架线（19 章 Markdown 教程 `chNN_英文小写下划线.md` + 单文件 HTML 精读版）与手写线（`handwritten/`，S1–S11 共 11 章 `ch_sNN_*.md` + Python 手写代码包）。
 
 - **章节骨架固定**：框架线 `## 一、这一章要解决的问题` → `## 二、机制与原理` → `## 三、代码：Python 与 TypeScript` → `## 四、常见坑与边界条件` → `## 五、关键结论` → `## 本章要点回顾`；手写线相同（第三节为 `## 三、代码：Python`，方法论章无代码）
 - **配图与 HTML 同源**：`assets/` 里的深色面板 SVG 既导出 2× PNG 给 Markdown，也被内联进 HTML。⚠️ 内联时 SVG 的 `id`（`ar1` 这类 marker）会全局冲突，**必须加图号前缀去重**并同步改写 `url(#…)`；手写线图号 `h1`–`h11` 与框架线图 1–32 相互独立，marker 前缀 `arNh`

@@ -1,4 +1,4 @@
-# S9 MCP：把工具来源标准化，一次实现两头复用
+# S10 MCP：把工具来源标准化，一次实现两头复用
 
 ## 一、这一章要解决的问题
 
@@ -60,7 +60,7 @@ JSON-RPC 2.0 的消息一共四种形态，MCP 全用得上：
 
 MCP 服务器的全部协议义务只有三步（握手 → 发现 → 调用）：
 
-![图 h9　MCP 三步协议（stdio 传输）时序](assets/h09_mcp_sequence.png)
+![图 h10　MCP 三步协议（stdio 传输）时序](assets/h10_mcp_sequence.png)
 
 *图 h9　MCP 三步协议（stdio 传输）时序*
 
@@ -111,7 +111,7 @@ def main() -> None:
 }
 ```
 
-这份 inputSchema 与 S5 里 `@tool` 装饰器生成的 schema **形状完全一致**（JSON Schema 的 `type: object`）——所以它才能被 `Tool.from_mcp` 原样转发给模型。工具调用这条契约从 S4 一路贯穿到 S9，没有变过。
+这份 inputSchema 与 S5 里 `@tool` 装饰器生成的 schema **形状完全一致**（JSON Schema 的 `type: object`）——所以它才能被 `Tool.from_mcp` 原样转发给模型。工具调用这条契约从 S4 一路贯穿到 S10，没有变过。
 
 `tools/call` 的执行分支也值得看一眼——错误被包成**带 `isError` 的正常响应**而不是 JSON-RPC error：
 
@@ -203,13 +203,13 @@ tool._external_schema = {
 
 ## 三、代码：Python
 
-实测脚本 `s09_mcp.py`，运行命令：
+实测脚本 `s10_mcp.py`，运行命令：
 
 ```bash
-cd "docs/agent开发教程/handwritten/code" && python s09_mcp.py
+cd "docs/agent开发教程/handwritten/code" && python s10_mcp.py
 ```
 
-脚本先配置服务器（一个 stdio 子进程），三节依次验证：裸协议、客户端封装、Agent 接入（摘自 `s09_mcp.py`）：
+脚本先配置服务器（一个 stdio 子进程），三节依次验证：裸协议、客户端封装、Agent 接入（摘自 `s10_mcp.py`）：
 
 ```python
 server_config = {
@@ -329,4 +329,4 @@ MCP 与 Skill 最容易被混为一谈，实际定位互补（参考《Agents底
 - 手写 server 主循环：stdin 逐行读 → handle 分发 → stdout 逐行写 + flush；**日志一律 stderr**；get_current_time 动态、add 确定性，一个验活一个复现。
 - Agent 接入：`MCPClient.register_tools` + `Tool.from_mcp`（`server__tool` 命名、直接转发 inputSchema）；实测注册表出现 `time__get_current_time`、`time__add`，对话循环与 S7 完全同构。
 - 四个坑：stdout 污染、Windows tzdata 缺失、官方 SDK 的 asyncio 与同步环境冲突、HTTP 传输留作练习（协议与传输解耦）。
-- 最佳实践：MCP 定义「谁来做」，Skill 定义「怎么做」——下一章 S10 会看到，多 Agent 协作不过是把这个循环再套一层。
+- 最佳实践：MCP 定义「谁来做」，Skill 定义「怎么做」——上一章 S9 会看到，多 Agent 协作不过是把这个循环再套一层。

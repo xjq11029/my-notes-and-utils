@@ -1,5 +1,5 @@
 /**
- * 第 15 章示例（TypeScript 版，与 15_delegation.py 对应）：
+ * 第 16 章示例（TypeScript 版，与 16_delegation.py 对应）：
  * 规划与委派。
  *
  * 演示四件事：
@@ -8,7 +8,7 @@
  *   3. task 工具：主代理如何把活派出去
  *   4. mode 'isolated' 与 'fork' 的区别
  *
- * 运行：pnpm run 11_delegation
+ * 运行：pnpm run 16_delegation
  */
 
 import { createDeepAgent } from "deepagents";

@@ -7,7 +7,7 @@
   3. thread_id（对话作用域）与 context（单次运行作用域）的区别
   4. 结构化输出 response_format
 
-运行：python 02_create_agent.py
+运行：python 05_create_agent.py
 """
 
 import sys

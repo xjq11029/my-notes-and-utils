@@ -1,6 +1,6 @@
-"""s09 MCP：手写客户端、手写服务器、Agent 接入——全程离线。
+"""s10 MCP：手写客户端、手写服务器、Agent 接入——全程离线。
 
-运行：python s09_mcp.py
+运行：python s10_mcp.py
 
 MCP 的本质是「工具来源的标准化」：
 - 传输：stdio（一行一条 JSON-RPC 消息的子进程）；

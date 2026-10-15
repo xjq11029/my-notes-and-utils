@@ -1,12 +1,12 @@
-# 第 11 章 持久化与持久执行：检查点、线程、时间旅行与长期记忆
+# 第 12 章 持久化与持久执行：检查点、线程、时间旅行与长期记忆
 
 ## 一、这一章要解决的问题
 
-第 10 章讲的是**一次运行之内**状态怎么合并。但真实应用里，图跑完之后问题才开始：进程重启了，对话历史还在吗？agent 走到第 5 步崩了，是整条链路重来还是接着跑？模型在某一步记错了事实，能不能改回正确状态让它从那里继续？张三在 A 会话说过「我住杭州」，换个会话还记得吗？
+第 11 章讲的是**一次运行之内**状态怎么合并。但真实应用里，图跑完之后问题才开始：进程重启了，对话历史还在吗？agent 走到第 5 步崩了，是整条链路重来还是接着跑？模型在某一步记错了事实，能不能改回正确状态让它从那里继续？张三在 A 会话说过「我住杭州」，换个会话还记得吗？
 
 这四件事对应两套**互不替代**的机制：**检查点（checkpoint）** 管「这一段对话」，**存储（store）** 管「这个人」。本章把两套都讲清，并给出本机实测的行为边界。
 
-> 版本锚点：本章结论在 `langgraph` **1.2.12**（Python）与 `@langchain/langgraph` **1.4.17**（JS）上实测；示例源码见 `code/python/11_persistence.py` 与 `code/typescript/11_persistence.ts`。
+> 版本锚点：本章结论在 `langgraph` **1.2.12**（Python）与 `@langchain/langgraph` **1.4.17**（JS）上实测；示例源码见 `code/python/12_persistence.py` 与 `code/typescript/12_persistence.ts`。
 
 ## 二、机制与原理
 
@@ -40,7 +40,7 @@
 | `checkpoint_ns` | `""` | 线程里的哪张图；顶层图为空串，子图有自己的命名空间 |
 | `checkpoint_id` | `"1ef4..."` | 哪一个快照；不传就取最新 |
 
-`thread_id` 是**对话的身份证**——同一个 `thread_id` 的多次 `invoke` 共享同一条状态历史，换一个就是一张白纸。`checkpoint_ns` 区分「同一个线程里这条状态属于哪张图」，把 agent 当子图挂进父图后，子图的状态就落在自己的命名空间里（第 12 章「子图消息不透传」用的是同一个底层概念）。`checkpoint_id` 指向具体快照；`update_state` 之所以能改写历史，就是因为它接收的是**某个历史快照自带的 config**。
+`thread_id` 是**对话的身份证**——同一个 `thread_id` 的多次 `invoke` 共享同一条状态历史，换一个就是一张白纸。`checkpoint_ns` 区分「同一个线程里这条状态属于哪张图」，把 agent 当子图挂进父图后，子图的状态就落在自己的命名空间里（第 13 章「子图消息不透传」用的是同一个底层概念）。`checkpoint_id` 指向具体快照；`update_state` 之所以能改写历史，就是因为它接收的是**某个历史快照自带的 config**。
 
 ### 2.3 持久执行（durable execution）与内置实现
 
@@ -58,7 +58,7 @@
 | `SqliteSaver` | `langgraph.checkpoint.sqlite` | 单个 SQLite 文件 | 本地单机 |
 | `PostgresSaver` | `langgraph.checkpoint.postgres` | PostgreSQL | 生产 |
 
-> ⚠️ **与官方文档的差异（差异清单第 5 条）**：文档在排障章节直接写 `from langgraph.checkpoint.sqlite import SqliteSaver`，但 **`langgraph` 1.2.12 的默认安装不含 `langgraph.checkpoint.sqlite`**，必须先 `pip install langgraph-checkpoint-sqlite`（生产用 `langgraph-checkpoint-postgres`）。本仓库 `code/python/requirements.txt` 里这一行特意注释掉了，就是为了提醒。JS 侧对应 `@langchain/langgraph-checkpoint-*` 系列包（未实跑）。
+> ⚠️ **与官方文档的差异**：文档在排障章节直接写 `from langgraph.checkpoint.sqlite import SqliteSaver`，但 **`langgraph` 1.2.12 的默认安装不含 `langgraph.checkpoint.sqlite`**，必须先 `pip install langgraph-checkpoint-sqlite`（生产用 `langgraph-checkpoint-postgres`）。本仓库 `code/python/requirements.txt` 里这一行特意注释掉了，就是为了提醒。JS 侧对应 `@langchain/langgraph-checkpoint-*` 系列包（未实跑）。
 
 ### 2.4 读与改：get_state / get_state_history / update_state
 
@@ -113,6 +113,8 @@ Store 的模型很简单：**命名空间是一个字符串元组，任意层数
 Python 侧先跑四次 `invoke` 看 `n` 怎么变，再读快照与历史，最后挑一个中间快照改写后重放。
 
 ```python
+from typing import TypedDict
+
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import END, START, StateGraph
 
@@ -179,7 +181,7 @@ const forked = await graph.updateState(history[history.length - 2].config, {
 console.log(await graph.invoke(null, forked));                  // 从改写点往后重放
 ```
 
-**四个数字要记住**：第 1 次 `n=1`；第 2 次传 `{}` → `n=2`（从检查点状态**重新执行**了那个节点）；第 3 次传 `None` / `null` → `n=2`（**空操作**，已跑完的线程没有待执行任务，图一步都没跑）；第 4 次传 `{n: 100}` → 默认 reducer 覆盖掉检查点里的 2，再 +1 得 `101`。`trail` 一直在变长，因为四次输入里从没给过 `trail`——它始终沿用检查点里的值。这就是第 10 章那条结论的另一面：**输入里出现的字段按各自的 reducer 合并，没出现的保留检查点值**。
+**四个数字要记住**：第 1 次 `n=1`；第 2 次传 `{}` → `n=2`（从检查点状态**重新执行**了那个节点）；第 3 次传 `None` / `null` → `n=2`（**空操作**，已跑完的线程没有待执行任务，图一步都没跑）；第 4 次传 `{n: 100}` → 默认 reducer 覆盖掉检查点里的 2，再 +1 得 `101`。`trail` 一直在变长，因为四次输入里从没给过 `trail`——它始终沿用检查点里的值。这就是第 11 章那条结论的另一面：**输入里出现的字段按各自的 reducer 合并，没出现的保留检查点值**。
 
 ### 3.2 Store：跨线程记忆与前缀搜索
 
@@ -225,13 +227,13 @@ console.log(await store.listNamespaces({ prefix: ["alice"] }));
 await store.delete(USER, "pref-city");
 ```
 
-> 完整可跑版本（含打印格式与末尾的分工对照表）：`code/python/11_persistence.py`、`code/typescript/11_persistence.ts`。
+> 完整可跑版本（含打印格式与末尾的分工对照表）：`code/python/12_persistence.py`、`code/typescript/12_persistence.ts`。
 
 ## 四、常见坑与边界条件
 
-1. **`invoke({})` 和 `invoke(None)` 语义相反**。空字典 = 从检查点状态重新执行；`None` / `null` = 空操作。想「续跑」用空字典，想「从这份快照重放」用 `None`。
+1. **`invoke({})` 与 `invoke(None)` 不是「相反」，而是「注入空输入」与「不注入输入」的区别**。空字典把「空输入」按各字段的 reducer 合并进检查点状态并重跑节点——想「续跑」用它；`None` 不注入任何输入，线程已跑完时就是空操作（图一步不跑），但若 config 指向一个还有待执行任务的状态（例如 `update_state` 刚改写出的分叉点），图会从那里继续往下执行——想「从历史快照重放」，用 `update_state` 返回的新分支 config 配 `invoke(None, cfg)`（3.1 节实测：从改写点重放到 `n=101`）。
 2. **生产环境别用 `InMemorySaver` / `MemorySaver` / `InMemoryStore`**。进程一退出全没，表现为「用户的会话随机丢失」。
-3. **`SqliteSaver` 要另装包**（`pip install langgraph-checkpoint-sqlite`），否则 import 就失败（差异清单第 5 条）。**中途换后端，历史搬不过去**——持久化方案要在项目早期定。
+3. **`SqliteSaver` 要另装包**（`pip install langgraph-checkpoint-sqlite`），否则 import 就失败（实测）。**中途换后端，历史搬不过去**——持久化方案要在项目早期定。
 4. **`search` 是前缀匹配**。命名空间写粗了会误命中；数据一多就把命名空间写细。
 5. **时间旅行不是改历史**。`update_state` 返回的是新分支的 config，原线程不受影响；要接着新分支跑，必须用返回的那个 config。
 6. **两边挂 store 的位置不同**。Python 是 `compile(checkpointer=..., store=...)`，JS 是把 store 放进运行配置一起传（`invoke(input, { ...cfg, store })`）——这是双语言差异里容易漏的一处。**另外 `get_state_history` 在 JS 侧是异步迭代器**，直接 `console.log` 只会得到迭代器对象，必须先 `for await` 收进数组。

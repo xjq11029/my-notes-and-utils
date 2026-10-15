@@ -8,7 +8,7 @@
     python docs/agent开发教程/_build_html.py handwritten # 手写线
 
 框架线：
-    输入  docs/agent开发教程/ch01..ch18*.md   —— 18 章正文
+    输入  docs/agent开发教程/ch01..ch19*.md   —— 19 章正文
           docs/agent开发教程/assets/NN_*.svg  —— 32 张机制图（内联，做 marker id 去重）
     输出  docs/agent开发教程/agent-frameworks-deep-dive.html
 
@@ -42,15 +42,16 @@ CHAPTERS = [
     "ch07_tools_and_context.md",
     "ch08_rag.md",
     "ch09_context_engineering.md",
-    "ch10_langgraph_state.md",
-    "ch11_langgraph_persistence.md",
-    "ch12_langgraph_control.md",
-    "ch13_deepagents_overview.md",
-    "ch14_deepagents_filesystem.md",
-    "ch15_deepagents_delegation.md",
-    "ch16_deepagents_context.md",
-    "ch17_observability.md",
-    "ch18_multiagent_and_migration.md",
+    "ch10_observability.md",
+    "ch11_langgraph_state.md",
+    "ch12_langgraph_persistence.md",
+    "ch13_langgraph_control.md",
+    "ch14_deepagents_overview.md",
+    "ch15_deepagents_filesystem.md",
+    "ch16_deepagents_delegation.md",
+    "ch17_deepagents_context.md",
+    "ch18_multiagent.md",
+    "ch19_migration_and_deploy.md",
 ]
 
 LANG_LABEL = {
@@ -784,7 +785,7 @@ HERO_FRAMEWORK = """
   <h1>Agent 开发教程：从构建块、运行时<br>到成品 harness</h1>
   <p class="sub">网上讲 LangChain / LangGraph / Deep Agents 的教程很多，但大多把三个框架混着讲，读完还是不知道「遇到一个需求该翻谁的文档」。这篇按「基础层 → 构建块 → 运行时 → 成品 harness」四层递进，逐章讲清边界、机制、双语言写法与实测坑点，配 32 张自绘机制图与 Python / TypeScript 双语言可切换代码。</p>
   <div class="meta">
-    <span>18 章 · 精读版</span>
+    <span>19 章 · 精读版</span>
     <span>32 张自绘机制图</span>
     <span>Python / TypeScript 双语言代码</span>
     <span>全部内容内联 · 可离线打开</span>
@@ -819,8 +820,8 @@ def build_handwritten():
         "handwritten/ch_s06_react.md",
         "handwritten/ch_s07_agent.md",
         "handwritten/ch_s08_skill.md",
-        "handwritten/ch_s09_mcp.md",
-        "handwritten/ch_s10_subagent.md",
+        "handwritten/ch_s09_subagent.md",
+        "handwritten/ch_s10_mcp.md",
         "handwritten/ch_s11_engineering.md",
     ]
     build(

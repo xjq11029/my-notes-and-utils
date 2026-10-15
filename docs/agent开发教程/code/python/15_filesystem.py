@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""第 14 章示例：虚拟文件系统与执行环境。
+"""第 15 章示例：虚拟文件系统与执行环境。
 
 演示四件事：
   1. 默认后端 StateBackend：文件存在图状态里，随线程走
@@ -7,7 +7,7 @@
   3. FilesystemPermission 的声明式权限：首次匹配即生效
   4. 换后端：StoreBackend（跨线程持久）与 CompositeBackend（按路径分流）
 
-运行：python 10_filesystem.py
+运行：python 15_filesystem.py
 """
 
 import sys

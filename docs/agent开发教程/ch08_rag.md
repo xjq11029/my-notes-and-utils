@@ -14,6 +14,8 @@
 
 本章讲 RAG 的**完整链路**——Load（加载）→ Split（切分）→ Embed（嵌入）→ Store（入库）→ Retrieve（检索），以及最后一跳：把检索器包成工具，交给第 5 章的 agent 调用。
 
+> **本章依赖需单独安装**（其他章不受影响）：Python 侧 `pip install langchain-text-splitters langchain-community pypdf`；JS 侧 `pnpm add @langchain/textsplitters @langchain/classic @langchain/community d3-dsv`。精确版本见 `code/python/requirements.txt` 与 `code/typescript/package.json`。
+
 本章**不涉及**：向量库的选型运维（Milvus / Chroma 只讲到「什么时候该换」）、重排序与混合检索（那是检索调优的下一层）、模型侧的上下文治理（见第 9 章 上下文工程）。
 
 ![图 14　RAG 检索链路](assets/14_rag_pipeline.png)

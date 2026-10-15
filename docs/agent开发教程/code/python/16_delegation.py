@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""第 15 章示例：规划与委派。
+"""第 16 章示例：规划与委派。
 
 演示四件事：
   1. write_todos：任务列表长什么样、存在状态哪里
@@ -7,7 +7,7 @@
   3. task 工具：主代理如何把活派出去
   4. mode='isolated' 与 mode='fork' 的区别（子代理能看见什么）
 
-运行：python 11_delegation.py
+运行：python 16_delegation.py
 """
 
 import sys

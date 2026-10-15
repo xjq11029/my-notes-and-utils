@@ -1,5 +1,5 @@
 /**
- * 第 17 章示例（TypeScript 版，与 17_observability.py 对应）：
+ * 第 10 章示例（TypeScript 版，与 10_observability.py 对应）：
  * 可观测与评测。
  *
  * 本示例用**离线回调**搭出一棵 trace 树，把「一次 agent 调用产生了哪些 span」
@@ -10,7 +10,7 @@
  *   2. 每个 run 上能拿到什么元数据（类型、耗时）
  *   3. 离线评测的最小骨架：跑用例 → 判定 → 汇总
  *
- * 运行：pnpm run 13_observability
+ * 运行：pnpm run 10_observability
  */
 
 import { createAgent, tool, HumanMessage } from "langchain";

@@ -106,37 +106,36 @@ console.log("④ 结构化输出：responseFormat");
 console.log("=".repeat(72));
 
 /**
- * ⚠️ 本小节**未离线实测**，只给写法。
+ * 本节**离线实测通过**（2026-10 探针补测）。
  *
- * 原因：JS 侧的结构化输出默认走「provider 原生 JSON schema 输出」，
- * 需要真实模型声明支持；退到工具策略时，策略工具也不经 `bindTools` 暴露，
- * 脚本化假模型无法命中。所以这里不伪造结果。
- *
- * Python 侧同一件事是实测通过的（见 02_create_agent.py 第 ④ 节）。
+ * 常见误读：「JS 结构化输出默认走 provider 原生 JSON schema」——那只说对了
+ * provider 子类（如 ChatOpenAI 覆写了 withStructuredOutput）。源码
+ * （langchain 1.5.11 的 agents/responses.js）里裸 schema 一律包成 ToolStrategy：
+ * 策略工具名取 schema 的 title，没有 title 时退化为 extract-N。
+ * 所以脚本化假模型能跑通——脚本按该工具名回一条 tool_call 即可。
  */
 const Weather = z.object({
   city: z.string().describe("城市名"),
   tempC: z.number().describe("摄氏度温度"),
-});
+}).meta({ title: "Weather", description: "天气查询结果" });
 
+// 策略工具名 = schema 的 title（这里即 "Weather"），与 Python 侧取类名对应
+const structModel = new ScriptedChatModel({
+  script: [toolCall("Weather", { city: "上海", tempC: 22 }, "s1")],
+});
 const structAgent = createAgent({
-  model: "openai:gpt-4o" as any, // ← 换成你有 Key 的真实模型
+  model: structModel as any,
   tools: [],
   responseFormat: Weather,
 });
-
-// 真实模型下这样取：
-//   const s = await structAgent.invoke({ messages: [new HumanMessage("上海天气？")] });
-//   console.log(s.structuredResponse);   // { city: '上海', tempC: 22 }
-void structAgent;
-
-console.log("  写法：createAgent({ model, tools: [], responseFormat: Weather })");
-console.log("  取结果：result.structuredResponse  ← 已校验的对象，不是字符串");
+const structOut: any = await structAgent.invoke({
+  messages: [new HumanMessage("上海天气？")],
+});
+console.log(`  result.structuredResponse = ${JSON.stringify(structOut.structuredResponse)}`);
+console.log("  → 与 Python 一样拿到按 schema 解析的对象，不用自己 JSON.parse。");
+console.log("  → 参数不合法时框架走「校验失败写回 ToolMessage → 模型重试」（见 04 示例第 ⑥ 节）。");
 console.log();
-console.log("  ⚠️ 与 Python 的两处差异（实测）：");
-console.log("     ① JS 默认走 provider 原生 JSON schema 输出，需要模型支持；");
-console.log("        Python 侧默认走工具策略，脚本模型也能跑通。");
-console.log("     ② JS 的策略工具名默认是 \"extract\"（源码：");
-console.log("        name: structuredResponseFormat.strategy.schema?.name ?? \"extract\"）。");
-console.log();
-console.log("  ⚠️ 本小节未实测（需 API Key）——本机无 Key，不伪造输出。");
+console.log("  ⚠️ 假模型回普通文本而不回工具调用时，structuredResponse 是 undefined——");
+console.log("     策略没被命中，框架不报错；真实模型下由模型自己决定调不调这个工具。");
+console.log("  ⚠️ 「JS 默认走 provider 原生 JSON schema」只对 provider 子类成立（未实测）；");
+console.log("     裸 schema 与纯 BaseChatModel 子类的默认策略都是工具调用（源码可证）。");

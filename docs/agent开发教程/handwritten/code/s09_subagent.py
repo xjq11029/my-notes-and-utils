@@ -1,6 +1,6 @@
-"""s10 子代理：上下文防火墙——大任务拆给独立上下文的子代理。
+"""s09 子代理：上下文防火墙——大任务拆给独立上下文的子代理。
 
-运行：python s10_subagent.py
+运行：python s09_subagent.py
 
 对比视角：
 - 不拆：主上下文里堆满两个主题的全部调研细节（几十条消息）；
@@ -70,7 +70,7 @@ client = FakeClient([
 
 # 演示文件（系统临时目录）
 import tempfile
-demo_dir = tempfile.mkdtemp(prefix="agent-s10-")
+demo_dir = tempfile.mkdtemp(prefix="agent-s09-")
 for name, text in {
     "docs/orm.md": "ORM：推荐 SQLAlchemy 2.0 声明式模型……",
     "docs/migration.md": "迁移：Alembic，版本号递增……",

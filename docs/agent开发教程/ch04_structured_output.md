@@ -67,6 +67,8 @@ console.log(person.name, person.age);
 
 ### 2.2 四种 schema 模式：分界线是「有没有运行时类型信息」
 
+> 先对齐一个概念：**Pydantic** 是 Python 最常用的数据校验库——用「类 + 字段类型注解」声明结构，拿到数据时自动校验、自动转换。看不懂 `class P(BaseModel)` 这个形态没关系，把它理解成「带校验的结构体」即可，本章所有结论都不依赖你熟悉 Pydantic。
+
 LangChain 接受四种写法。下表回答的问题是：**描述一个结构，有哪几种写法，各自的代价是什么？**
 
 | 模式 | 写法 | 返回 | 类型校验 | 能力边界 |
@@ -445,11 +447,11 @@ Python 输出里的第 ④ 节有两行值得单独看：`TypedDict 字段名全
 
 **1. 工具名对不上，后果在两边不同。** Python 侧静默返回 `None`（实测），TS 侧抛 `No tool call found with name extract.`（实测）。所以在 Python 里换 schema 时要格外小心：**`None` 不是「模型没输出」，是「解析器没找到这条 tool_call」**。工具名的来源见 2.2 节的表。
 
-**2. `Optional[X]` 不等于「有默认值」。** `Optional[int]` 只是允许 `None`，字段本身仍然必填——模型不给就抛 `missing`。要真正的默认值必须写 `Field(default=...)` 或 `Field(30, ...)`。另外**不同 provider 对 `default` 的支持不一致**（讲义里同一段代码在 CloseAI 与 OpenRouter 上给出了不同结果），这一条**属真实模型行为，本教程未实测**，只提醒你别把默认值当成跨 provider 的保证。
+**2. `Optional[X]` 不等于「有默认值」。** `Optional[int]` 只是允许 `None`，字段本身仍然必填——模型不给就抛 `missing`。要真正的默认值必须写 `Field(default=...)` 或 `Field(30, ...)`。另外**不同 provider 对 `default` 的支持不一致**（同一段代码在不同 provider 上给出的结果不同），这一条**属真实模型行为，本教程未实测**，只提醒你别把默认值当成跨 provider 的保证。
 
 **3. 枚举字段模型给了非法值，只在 Pydantic 侧会被拦。** `Priority(str, Enum)` 或 `Literal["低","中","高"]` 都会被渲染成 JSON Schema 的 `enum`，但拦下非法值的仍是 Pydantic 的校验。TS 侧写 `z.enum([...])`，**而基类 `withStructuredOutput` 不校验**，非法值会原样通过——要拦住必须走 agent 侧的工具策略。
 
-**4. 嵌套结构的字段名要对上，层级别太深。** 嵌套 `BaseModel` 在 Python 侧会被递归校验，字段名写错同样抛 `ValidationError`；但在 `TypedDict` / `@dataclass` / JSON Schema 三种模式里**嵌套的字段名错了也不报错**。另外讲义给的经验是**嵌套 ≤ 3 层**——这是模型能力问题而非框架限制，属**未实测**范围。
+**4. 嵌套结构的字段名要对上，层级别太深。** 嵌套 `BaseModel` 在 Python 侧会被递归校验，字段名写错同样抛 `ValidationError`；但在 `TypedDict` / `@dataclass` / JSON Schema 三种模式里**嵌套的字段名错了也不报错**。另外一条经验是**嵌套 ≤ 3 层**——这是模型能力问题而非框架限制，属**未实测**范围。
 
 **5. 四种模式的「支持差异」集中在三处。** 一是**返回类型**（只有 Pydantic 是实例）；二是**是否校验**（只有 Pydantic 校验）；三是**工具名来源**（类名 vs `title` vs 默认 `"extract"`）。这三处差异合起来解释了大量「明明绑了 schema 却拿到 `None` / 拿到 dict」的困惑。
 

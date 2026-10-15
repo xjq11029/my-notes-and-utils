@@ -1,5 +1,5 @@
 /**
- * 第 12 章示例（TypeScript 版，与 12_hitl_stream.py 对应）：
+ * 第 13 章示例（TypeScript 版，与 13_hitl_stream.py 对应）：
  * 人在回路与流式输出。
  *
  * 演示四件事：
@@ -8,7 +8,7 @@
  *   3. streamMode 各档投影分别给你什么
  *   4. agent 作为子图时，不加 subgraphs 就拿不到内部消息
  *
- * 运行：pnpm run 08_hitl_stream
+ * 运行：pnpm run 13_hitl_stream
  */
 
 import { createAgent, tool, HumanMessage } from "langchain";

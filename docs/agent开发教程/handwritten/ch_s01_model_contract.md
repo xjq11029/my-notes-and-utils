@@ -1,10 +1,10 @@
 # S1 模型接口契约：一切从一份 JSON 开始
 
-> 手写线第 1 章｜配套代码：`code/s01_model_contract.py`｜配图：`assets/h01_chat_contract.svg`
+> 手写线第 1 章｜配套代码：`code/s01_model_contract.py`｜配图：`assets/h01_chat_contract.png`
 
 ## 一、这一章要解决的问题
 
-在框架线里，你在 LangChain 中写下 `llm.invoke("你好")`（框架线第 5 章），一行代码，回答就回来了。很方便，但也很难受：**这行代码底下，网络上实际跑的是什么？**
+在框架线里，你在 LangChain 中写下 `llm.invoke("你好")`（框架线第 2 章），一行代码，回答就回来了。很方便，但也很难受：**这行代码底下，网络上实际跑的是什么？**
 
 答案是：一份 JSON。准确地说，是 **OpenAI Chat Completions** 这个 HTTP 接口约定——请求长什么样、响应长什么样、出错时返回什么，全部写在一份公开的接口契约里。LangChain 的 `invoke`、`stream`，本质上都是在帮你拼这份 JSON、收这份 JSON。
 
@@ -200,6 +200,16 @@ class Model(EventEmitter):
 | `stream=True` 时返回可迭代的 chunk | 同样返回 chunk 迭代器 | 一致 |
 
 这就是 **duck-typing**：走起来像鸭子、叫起来像鸭子，那就是鸭子。`Model` 只依赖形状，不依赖类型——所以 s01 不联网、不装 SDK 也能跑，而且**恰好证明了契约的稳定性**：只要响应形状符合契约，真模型和假模型对上层完全不可区分。
+
+FakeClient 的核心是**剧本（script）**——一张「看到什么说什么」的应答规则表，每条规则三个键：
+
+| 键 | 作用 |
+|---|---|
+| `match` | 命中条件。字符串 = 与**最后一条 user 消息**做子串匹配；函数 = 接收全部消息自己判断（s03 会话章会用到） |
+| `resp` | 命中后返回的剧本：`content`（正文）/ `reasoning`（思考）/ `tool_calls`（请求工具），按需给 |
+| `once` | 默认 `True`：匹配后**消费一次**，再问同样的内容就轮到下一条规则，或回落默认回复 |
+
+所有规则都没命中时返回 `default_content`（默认文案「（假模型：没有匹配到脚本）」）。第三节示例代码的第一行就是 `client = FakeClient([...])`——整条手写线的离线可跑性都建立在这张表上。它还会用 `calls` 字段记下每次请求，供你检视「模型实际收到了什么」。
 
 再看一眼请求侧实际发出了什么（`s01_model_contract.py` 第 5 节，FakeClient 会记录每次收到的请求）：
 

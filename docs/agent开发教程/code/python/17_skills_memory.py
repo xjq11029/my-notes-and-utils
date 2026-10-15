@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""第 16 章示例：技能（Skills）与记忆（Memory）。
+"""第 17 章示例：技能（Skills）与记忆（Memory）。
 
 演示四件事：
   1. SkillsMiddleware 往系统提示里塞了什么（把它抓出来看）
@@ -7,7 +7,7 @@
   3. MemoryMiddleware 的默认提示词里那段「信任与验证」条款
   4. 两者的时间尺度差异：技能 = 能力，记忆 = 经验
 
-运行：python 12_skills_memory.py
+运行：python 17_skills_memory.py
 """
 
 import inspect

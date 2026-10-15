@@ -29,8 +29,8 @@ python s01_model_contract.py
 | `s06_react.py` | 事件流 + 手写 ReAct 循环（读→写→答三轮） | summary.txt |
 | `s07_agent.py` | Agent 组装、行车记录仪、max_turns 安全阀 | 完整轨迹 |
 | `s08_skill.py` | SKILL.md 扫描、清单注入、load_skill 全文加载 | 三次工具往返 |
-| `s09_mcp.py` | 手写 MCP 服务器 + 手写客户端 + Agent 接入 | 协议交互 JSON |
-| `s10_subagent.py` | 子代理派发与上下文防火墙 | 主/子上下文对比 |
+| `s09_subagent.py` | 子代理派发与上下文防火墙 | 主/子上下文对比 |
+| `s10_mcp.py` | 手写 MCP 服务器 + 手写客户端 + Agent 接入 | 协议交互 JSON |
 
 `s11`（五大 Engineering）是方法论章，无代码。
 
@@ -49,9 +49,9 @@ python s01_model_contract.py
 | `agent/listener.py` / `agent/printer.py` | 监听器抽象与控制台打印实现 | S7 |
 | `agent/agent.py` | Agent：ReAct 循环编排 + max_turns 安全阀 | S7 |
 | `agent/skill.py` | SKILL.md 扫描、清单注入、load_skill 工具 | S8 |
-| `agent/mcp/jsonrpc.py` | 手写 JSON-RPC over stdio 传输 | S9 |
-| `agent/mcp/client.py` | MCPClient：initialize / tools/list / tools/call | S9 |
-| `agent/subagent.py` | create_agent 工具：子代理派发 | S10 |
+| `agent/mcp/jsonrpc.py` | 手写 JSON-RPC over stdio 传输 | S10 |
+| `agent/mcp/client.py` | MCPClient：initialize / tools/list / tools/call | S10 |
+| `agent/subagent.py` | create_agent 工具：子代理派发 | S9 |
 
 配套资产：
 

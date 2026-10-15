@@ -1,4 +1,4 @@
-# 第 12 章 人在回路与流式：interrupt / resume / stream_mode
+# 第 13 章 人在回路与流式：interrupt / resume / stream_mode
 
 ## 一、这一章要解决的问题
 
@@ -9,7 +9,7 @@
 
 两件事看着不相关，但**暂停与恢复**共用同一个底层事实：它们建立在检查点之上。所以本章的第一条硬性前置条件就是上一章的 checkpointer。（**流式本身不需要 checkpointer**——只有 `stream_mode` 里的 `checkpoints` / `tasks` 两档才要求，3.2 节那个父图流式示例就没配。）
 
-> 版本锚点：本章结论在 `langgraph` **1.2.12**（Python）与 `@langchain/langgraph` **1.4.17**（JS）上实测；示例源码见 `code/python/12_hitl_stream.py` 与 `code/typescript/12_hitl_stream.ts`。
+> 版本锚点：本章结论在 `langgraph` **1.2.12**（Python）与 `@langchain/langgraph` **1.4.17**（JS）上实测；示例源码见 `code/python/13_hitl_stream.py` 与 `code/typescript/13_hitl_stream.ts`。
 
 ## 二、机制与原理
 
@@ -177,7 +177,7 @@ const r2: any = await hitl.invoke(new Command({ resume: true }), cfg);   // 同�
 console.log(r2.status, SIDE_EFFECTS);             // 日志里「节点开始」出现两次
 ```
 
-> 差异清单第 8 条：**JS 侧返回 `Command` 的节点必须用 `ends` 声明去向**，Python 侧靠类型注解表达。忘了写就是编译期报错，不是运行期。
+> **JS 侧返回 `Command` 的节点必须用 `ends` 声明去向**，Python 侧靠类型注解表达。忘了写就是编译期报错，不是运行期。
 
 ### 3.2 子图流式：A / B / C 三组对比
 
@@ -223,7 +223,7 @@ const c = await collect(await parent.stream(inp, { streamMode: "messages", subgr
 ```
 
 > ⚠️ **别把 A/B/C 的「分块个数」当结论**：示例用的是脚本化假模型，它一次吐一条完整消息，不是逐 token 吐，所以个数不可比（Python 侧实测 B 是 2 条，JS 侧是 1 条，会随版本变）。真正要看的是**哪几条消息能看见**：A 全见、B 只剩进出两条、C 恢复并标出来源。
-> 完整可跑版本：`code/python/12_hitl_stream.py`、`code/typescript/12_hitl_stream.ts`。
+> 完整可跑版本：`code/python/13_hitl_stream.py`、`code/typescript/13_hitl_stream.ts`。
 
 ## 四、常见坑与边界条件
 

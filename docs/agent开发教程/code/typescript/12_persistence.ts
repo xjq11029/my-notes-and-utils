@@ -1,5 +1,5 @@
 /**
- * 第 11 章示例（TypeScript 版，与 11_persistence.py 对应）：
+ * 第 12 章示例（TypeScript 版，与 12_persistence.py 对应）：
  * 持久化与持久执行。
  *
  * 演示五件事：
@@ -9,7 +9,7 @@
  *   4. Store —— 跨线程的长期记忆（与 checkpointer 的分工）
  *   5. Store 的命名空间与前缀搜索语义
  *
- * 运行：pnpm run 07_persistence
+ * 运行：pnpm run 12_persistence
  */
 
 import {

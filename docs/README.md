@@ -7,7 +7,7 @@
 | 子工程 | 定位 | 规模 | 入口 |
 |--------|------|------|------|
 | [`harness/`](harness/) | Agent Harness（智能体脚手架 / 运行时控制层）深度讲解：精读版 HTML 长文 + 纯文本版 MD 长文 + 可运行最小实现 | 14 个文件 / 2 篇 | [README](harness/README.md) |
-| [`agent开发教程/`](agent开发教程/) | **Agent 应用开发教程**，两条线：框架线（LangChain v1 / LangGraph v1 / Deep Agents 四层递进，18 章 + HTML 精读版 + Python / TypeScript 双语言实测示例 + 32 张自绘机制图）与手写线（[`handwritten/`](agent开发教程/handwritten/README.md)，S1–S11 从模型接口契约到五大 Engineering，不依赖框架从零手写 Agent，Python 单语言离线实测 + 11 张配图） | 196 个文件 / 36 篇 | [README](agent开发教程/README.md) |
+| [`agent开发教程/`](agent开发教程/) | **Agent 应用开发教程**，两条线：框架线（LangChain v1 / LangGraph v1 / Deep Agents 四层递进，19 章 + HTML 精读版 + Python / TypeScript 双语言实测示例 + 32 张自绘机制图）与手写线（[`handwritten/`](agent开发教程/handwritten/README.md)，S1–S11 从模型接口契约到五大 Engineering，不依赖框架从零手写 Agent，Python 单语言离线实测 + 11 张配图） | 198 个文件 / 37 篇 | [README](agent开发教程/README.md) |
 | [`大模型与神经网络原理笔记/`](大模型与神经网络原理笔记/) | 两门视频课程的结构化笔记：**大模型与神经网络原理**（10 章）+ **Coding Agent 原理与工具链**（8 章，子目录 [`coding-agent/`](大模型与神经网络原理笔记/coding-agent/README.md)） | 57 个文件 / 21 篇 | [README](大模型与神经网络原理笔记/README.md) · [coding-agent](大模型与神经网络原理笔记/coding-agent/README.md) |
 | [`Jev/`](Jev/) | **决策式模型 Jev 主题笔记**（非课程整理）：TypeSafe AI 的「System One 模型」，6 章覆盖定位与由来 / 三个原语与 API 契约 / RLCD 校准原理 / 与 LLM 的分工 / 工程实践 / 基准与争议；另含单文件 HTML 精读版 | 23 个文件 / 8 篇 | [README](Jev/README.md) |
 

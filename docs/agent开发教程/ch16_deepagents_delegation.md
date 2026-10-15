@@ -1,4 +1,4 @@
-# 第 15 章 规划与委派：write_todos 与子代理
+# 第 16 章 规划与委派：write_todos 与子代理
 
 ## 一、这一章要解决的问题
 
@@ -14,7 +14,7 @@ Deep Agents 给这两个麻烦各准备了一件工具：**规划**（`write_tod
 3. 一个 `SubAgent` 能配哪些字段？主代理凭什么决定要不要派活？
 4. 子代理的两种 `mode` 差在哪？为什么说它的价值是**上下文隔离**而不是并行？
 
-> 版本锚点：本章结论在 `deepagents` **0.7.18**（Python）/ **1.14.0**（JS）、`langchain` **1.4.2** 上实测；示例源码见 `code/python/15_delegation.py` 与 `code/typescript/15_delegation.ts`。
+> 版本锚点：本章结论在 `deepagents` **0.7.18**（Python）/ **1.14.0**（JS）、`langchain` **1.4.2** 上实测；示例源码见 `code/python/16_delegation.py` 与 `code/typescript/16_delegation.ts`。
 
 ## 二、机制与原理
 
@@ -47,7 +47,7 @@ state['todos'] = [
 
 ### 2.2 规划要显式开启
 
-`write_todos` **默认不在**绑定给模型的工具里（第 13 章「注册 9 个、模型可见 8 个」都不含它）。要开规划，必须显式加中间件：
+`write_todos` **默认不在**绑定给模型的工具里（第 14 章「注册 9 个、模型可见 8 个」都不含它）。要开规划，必须显式加中间件：
 
 - Python：`from langchain.agents.middleware import TodoListMiddleware`，然后 `create_deep_agent(model=..., middleware=[TodoListMiddleware()])`
 - TypeScript：`import { todoListMiddleware } from "langchain"`，然后 `middleware: [todoListMiddleware()]`
@@ -63,7 +63,7 @@ state['todos'] = [
 
 ### 2.3 SubAgent 的全部 11 个字段
 
-这张表回答「定义一个子代理能配什么」。官方文档只列了 `name` / `description` / `system_prompt` / `tools`（可选 `model` / `middleware`），**本机实测一共 11 个字段**（差异清单第 12 条）。
+这张表回答「定义一个子代理能配什么」。官方文档只列了 `name` / `description` / `system_prompt` / `tools`（可选 `model` / `middleware`），**本机实测一共 11 个字段**（实测签名）。
 
 | 字段（Python） | TypeScript | 作用 |
 |---|---|---|
@@ -75,7 +75,7 @@ state['todos'] = [
 | `middleware` | `middleware` | 子代理专属中间件 |
 | `interrupt_on` | `interruptOn` | 子代理内哪些工具调用前要人工审批 |
 | `skills` | `skills` | 子代理可加载的技能 |
-| `permissions` | `permissions` | 子代理的文件权限（第 14 章） |
+| `permissions` | `permissions` | 子代理的文件权限（第 15 章） |
 | `response_format` | `responseFormat` | 子代理的结构化输出 |
 | `mode` | `mode` | `isolated`（默认）或 `fork`（见 2.5） |
 
@@ -228,12 +228,12 @@ await boss.invoke({ messages: [{ role: "user", content: "帮我调研一下检�
                   { configurable: { thread_id: "delegate-1" } });
 ```
 
-> 完整可跑版本（含 `SubAgent` 11 个字段逐个打印、`task` 返回值截取、`mode` 两种取值的说明）：`code/python/15_delegation.py`、`code/typescript/15_delegation.ts`。
+> 完整可跑版本（含 `SubAgent` 11 个字段逐个打印、`task` 返回值截取、`mode` 两种取值的说明）：`code/python/16_delegation.py`、`code/typescript/16_delegation.ts`。
 
 ## 四、常见坑与边界条件
 
 1. **把 `write_todos` 当 append-only**。它是**全量覆盖**；模型漏写一条，那条就从状态里消失，没有「历史待办」可回查。
-2. **忘了加 `TodoListMiddleware`**。默认没有 `write_todos`，模型想规划也没工具可用（第 13 章第 2 条坑）。
+2. **忘了加 `TodoListMiddleware`**。默认没有 `write_todos`，模型想规划也没工具可用（第 14 章第 2 条坑）。
 3. **`description` 写成自我介绍**。主代理只凭 `name` + `description` 决定派不派活，含糊的描述等于这个子代理**不存在**。
 4. **以为 `task` 会返回子代理的完整对话**。它只返回**最终报告**；中间过程在主代理这里不可见，结论出错时很难追溯。
 5. **把子代理当并行加速器**。`isolated` 子代理**可以并发**（主代理一轮里发多个 `task`，它们并行执行——`task` 工具描述就是这么写的），但**发几个由模型决定**，不保证并发；核心收益仍是上下文隔离，耦合紧的任务拆出去会更慢。
@@ -254,7 +254,9 @@ await boss.invoke({ messages: [{ role: "user", content: "帮我调研一下检�
 
 - **规划表结构**：`todos` 是列表，每条含 `content` 与 `status`（`pending` / `in_progress` / `completed`）。
 - **全量覆盖语义**：模型每轮重写整张表；**忘掉一条就真没了**——规划表不是 append-only。
-- **开启方式**：`TodoListMiddleware()` / `todoListMiddleware()`；开启后状态多出 `todos` 键，模型多出 `write_todos` 工具。- **`SubAgent` 11 字段**：`name` / `description` / `system_prompt` / `tools` / `model` / `middleware` / `interrupt_on` / `skills` / `permissions` / `response_format` / `mode`（JS 侧为 camelCase）。
-- **`description` 决定生死**：主代理只看 `name` + `description` 决定派不派活；含糊 = 子代理不存在。- **`task(description, subagent_type)`**：`subagent_type` 对应 `name`；返回的是**最终报告**，不是完整对话。
+- **开启方式**：`TodoListMiddleware()` / `todoListMiddleware()`；开启后状态多出 `todos` 键，模型多出 `write_todos` 工具。
+- **`SubAgent` 11 字段**：`name` / `description` / `system_prompt` / `tools` / `model` / `middleware` / `interrupt_on` / `skills` / `permissions` / `response_format` / `mode`（JS 侧为 camelCase）。
+- **`description` 决定生死**：主代理只看 `name` + `description` 决定派不派活；含糊 = 子代理不存在。
+- **`task(description, subagent_type)`**：`subagent_type` 对应 `name`；返回的是**最终报告**，不是完整对话。
 - **`mode` 取舍**：`isolated`（默认，干净上下文，背景要自己写全）/ `fork`（继承历史，省交接但上下文长）。
 - **核心收益是上下文隔离**；并行是**可选项**（一轮可发多个 `task` 并发跑，但发几个由模型决定）而非保证；**耦合紧的任务别拆**；子代理是否被正确选中、报告质量**需 API Key，未实测**。

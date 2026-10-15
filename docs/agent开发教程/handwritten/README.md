@@ -2,7 +2,7 @@
 
 手写线回答的问题是：**LangChain 这些框架在你点 `invoke` 的那一下，底下到底发生了什么？** 本线不引入任何 Agent 框架，只用 OpenAI 兼容的模型接口 + 两个基础库（`pydantic` / `jinja2`），从一份 JSON 契约开始，逐章手写出会话、工具系统、ReAct 循环、完整 Agent、Skill 渐进式披露、MCP 客户端与服务器、子代理——最后收束为五大 Engineering 方法论。
 
-> **三条线的分工**：`docs/harness/` 回答「**为什么需要 harness**」（原理篇）；框架线 `ch01–ch18` 回答「**用现成框架怎么搭**」（工程篇）；本线回答「**框架底下是什么**」（实现篇）。手写线的每一章都能在框架线找到对应物，正文逐处标注对照关系。三条线可独立阅读，也可按 原理 → 手写 → 框架 的顺序连读。
+> **三条线的分工**：`docs/harness/` 回答「**为什么需要 harness**」（原理篇）；框架线 `ch01–ch19` 回答「**用现成框架怎么搭**」（工程篇）；本线回答「**框架底下是什么**」（实现篇）。手写线的每一章都能在框架线找到对应物，正文逐处标注对照关系。三条线可独立阅读，也可按 原理 → 手写 → 框架 的顺序连读。
 
 ---
 
@@ -28,12 +28,12 @@
 | S5 | [ch_s05_tool_package.md](ch_s05_tool_package.md) | 封装 tools：`@tool` 装饰器、动态参数模型、注册表 | 第 7 章 |
 | S6 | [ch_s06_react.md](ch_s06_react.md) | ReAct：事件系统 + 手写循环（Agent 的心脏） | 第 5 章 |
 | S7 | [ch_s07_agent.md](ch_s07_agent.md) | Agent：分层编排、监听器、max_turns 安全阀 | 第 5 / 6 章 |
-| S8 | [ch_s08_skill.md](ch_s08_skill.md) | Skill：SKILL.md 与渐进式披露 | 第 16 章 |
-| S9 | [ch_s09_mcp.md](ch_s09_mcp.md) | MCP：手写客户端与服务器、Skill vs MCP 对照 | 第 7 章 |
-| S10 | [ch_s10_subagent.md](ch_s10_subagent.md) | 子代理：上下文防火墙 | 第 15 章 |
+| S8 | [ch_s08_skill.md](ch_s08_skill.md) | Skill：SKILL.md 与渐进式披露 | 第 17 章 |
+| S9 | [ch_s09_subagent.md](ch_s09_subagent.md) | 子代理：上下文防火墙 | 第 16 章 |
+| S10 | [ch_s10_mcp.md](ch_s10_mcp.md) | MCP：手写客户端与服务器、Skill vs MCP 对照 | 第 7 章 |
 | S11 | [ch_s11_engineering.md](ch_s11_engineering.md) | 五大 Engineering：Prompt / Context / Harness / Loop / Graph | 第 9 章等 |
 
-**推荐学习顺序**：按章顺序通读（S1→S11 是一条「从契约到方法论」的递进线）。赶时间的最小闭环是 S1 → S4 → S6 → S7（契约 → 工具 → 循环 → 组装），大约等于一个 Agent 的全部主干。
+**推荐学习顺序**：按章顺序通读（S1→S11 是一条「从契约到方法论」的递进线）。赶时间的最小闭环是 S1 → S3 → S4 → S5 → S6 → S7（契约 → 提示词与会话 → 工具 → 封装 → 循环 → 组装），大约等于一个 Agent 的全部主干——S6 / S7 的代码直接用到 S3 的 `Session` 与 S5 的 `registry`，这两章不建议跳。**S10（MCP）是全线认知负荷峰值的一章**，赶时间可先读 S9 再回读 S10。
 
 ---
 
@@ -52,8 +52,8 @@
 | 注册表（registry） | 工具的调度中心：`schemas()` 供清单、`invoke()` 管执行 | S5 |
 | ReAct | Reasoning + Acting：思考 → 行动 → 观察 的循环模式 | S6 |
 | 事件通道 | 流式响应的三条并行数据流：思考 / 正文 / 工具调用 | S6 |
-| 上下文防火墙 | 子代理用独立会话消化细节，只把结论带回主上下文 | S10 |
-| JSON-RPC 2.0 | MCP 的消息格式：请求/响应靠 `id` 配对，通知无 `id` | S9 |
+| 上下文防火墙 | 子代理用独立会话消化细节，只把结论带回主上下文 | S9 |
+| JSON-RPC 2.0 | MCP 的消息格式：请求/响应靠 `id` 配对，通知无 `id` | S10 |
 | Harness | 围绕模型循环的一切工程——挽具；五大 Engineering 之一 | S11 |
 
 ---

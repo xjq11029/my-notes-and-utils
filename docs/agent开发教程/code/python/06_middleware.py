@@ -4,7 +4,7 @@
 本示例做一件文档里没有、但写代码时最需要知道的事：
 **把六个钩子在一次含工具调用的完整轮次里的真实触发顺序打出来。**
 
-运行：python 03_middleware.py
+运行：python 06_middleware.py
 """
 
 import sys

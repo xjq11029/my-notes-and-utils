@@ -14,15 +14,16 @@ LangChain、LangGraph、Deep Agents 这三个名字在彼此的文档里反复�
 
 ## 二、机制与原理
 
-本教程共 18 章，按「地基 → 三件套 → 工程话题」分五部分——
+本教程共 19 章，按「地基 → 三件套 → 工程话题」分六部分——
 
 | 部分 | 章 | 主题 |
 |---|---|---|
 | **基础层** | 2–4 | 模型怎么造、话怎么说、结果怎么收 |
 | **构建块** | 5–9 | LangChain v1：`create_agent`、中间件、工具、RAG 全链路、上下文工程 |
-| **运行时** | 10–12 | LangGraph v1：图与状态、持久化、人在回路与流式 |
-| **成品 harness** | 13–16 | Deep Agents：预装工具、文件系统、规划委派、技能与记忆 |
-| **公共工程话题** | 17–18 | 可观测与评测、多智能体与迁移部署 |
+| **可观测** | 10 | 追踪、数据集与成本——横切话题，只依赖第 5 章，关心排查的读者可提前读 |
+| **运行时** | 11–13 | LangGraph v1：图与状态、持久化、人在回路与流式 |
+| **成品 harness** | 14–17 | Deep Agents：预装工具、文件系统、规划委派、技能与记忆 |
+| **多智能体与收尾** | 18–19 | 多智能体拓扑、迁移与生产部署 |
 
 本章只回答一个问题：**这三个框架各自站在哪一层**。后面每一章都会回到这张分层图。
 
@@ -97,9 +98,9 @@ LangChain、LangGraph、Deep Agents 这三个名字在彼此的文档里反复�
 | 5 | 中间件定义 | 装饰器（`@before_model` 等）或 `AgentMiddleware` 子类 | `createMiddleware({ beforeModel, wrapModelCall, ... })` |
 | 6 | 改写模型请求 | `handler(request.override(model=...))` | `handler({ ...request, model })` |
 | 7 | `HarnessProfile` | `HarnessProfile(system_prompt_suffix=...)`，集合用 `frozenset` | `createHarnessProfile({ systemPromptSuffix })`，集合用 `Set` |
-| 8 | 结构化输出默认策略 | 工具策略（脚本模型即可跑通） | provider 原生 JSON schema（需真实模型支持） |
+| 8 | 结构化输出默认策略 | 工具策略，工具名取类名 / title | 同为工具策略，工具名取 schema 的 `title`（无 title 为 `extract-N`）；「provider 原生 JSON schema」只对 provider 子类成立（未实测） |
 
-命名规律很清楚：**Python 用 snake_case 的参数与函数名，JS 用 camelCase**（`response_format` / `responseFormat`、`context_schema` / `contextSchema`）。完整 14 条差异清单见 [`code/README.md`](code/README.md)——那里面还包含几条只有踩过才知道的坑（比如节点名的大小写、返回 `Command` 时 JS 必须显式声明 `ends`）。
+命名规律很清楚：**Python 用 snake_case 的参数与函数名，JS 用 camelCase**（`response_format` / `responseFormat`、`context_schema` / `contextSchema`）。完整差异清单见 [`code/README.md`](code/README.md)——那里面还包含几条只有踩过才知道的坑（比如节点名的大小写、返回 `Command` 时 JS 必须显式声明 `ends`）。
 
 ## 三、安装与环境
 
@@ -119,11 +120,18 @@ pip install langchain langgraph deepagents
 pnpm add langchain @langchain/langgraph deepagents
 ```
 
-两处**可选**依赖需要单独装，官方文档常把它们当成默认就有（详见下一节）：
+三处**可选**依赖需要单独装，官方文档常把它们当成默认就有（详见下一节）：
 
 ```bash
 pip install "langchain[mcp]"        # MCP 接入，beta
 pip install langgraph-checkpoint-sqlite   # SqliteSaver，默认安装不含
+```
+
+跑第 8 章（RAG）还要再装三个包（只影响该章，其他章不受影响；精确版本见 `code/python/requirements.txt`）：
+
+```bash
+pip install langchain-text-splitters langchain-community pypdf   # Python
+pnpm add @langchain/textsplitters @langchain/classic @langchain/community d3-dsv   # JS
 ```
 
 装完跑一段最小验证。Python 侧：
@@ -184,7 +192,7 @@ console.log(result.messages[result.messages.length - 1].content);
 - **分层判据**：提示词 / 工具 / 中间件去 LangChain 找，状态 / 检查点 / 中断去 LangGraph 找——这是最快的定位方式（**心智模型上的分工**，不是「谁没这个能力」）。
 - **版本锚点 2025-10-22**：LangChain v1 与 LangGraph v1 同步 GA；见**图 2**。
 - **两语言版本号不同步**，功能差异以各自包为准。
-- **双 SDK 对照**：`create_agent` / `createAgent`、`InMemorySaver` / `MemorySaver`、`@tool` / `tool(fn, { schema })`；完整 14 条见 `code/README.md`。
+- **双 SDK 对照**：`create_agent` / `createAgent`、`InMemorySaver` / `MemorySaver`、`@tool` / `tool(fn, { schema })`；完整清单见 `code/README.md`。
 - **三个反复踩的坑**：节点名不可硬编码；「注册了 ≠ 模型看得见」；`FilesystemMiddleware` / `SubAgentMiddleware` / `SkillsMiddleware` 都在 `deepagents` 而不在 `langchain.agents.middleware`。
 - **需额外安装**：`langchain[mcp]`、`langgraph-checkpoint-sqlite`。
 - **示例全部离线可跑**（假模型），真实模型端到端、LangSmith、MCP 真实服务器**均未实测**。

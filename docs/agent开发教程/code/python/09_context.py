@@ -12,7 +12,7 @@
 两者在 `SummarizationMiddleware` 下会一起变小，在 `ContextEditingMiddleware`
 下却会**分道扬镳**——这正是本示例最值得看的一处。
 
-运行：python 05_context.py
+运行：python 09_context.py
 """
 
 import sys
@@ -138,4 +138,4 @@ print("  ⚠️ 两者都会造成**静默失败**：清理和压缩本身不报
 print("     只是关键信息悄悄没了，后面的回答开始变差——不报错的失败最难查。")
 print()
 print("  第四种手段「外部存储」不在本章演示：把长内容写进虚拟文件系统或 Store，")
-print("  上下文里只留一句「已保存到 /xxx」——见第 10 章与第 12 章。")
+print("  上下文里只留一句「已保存到 /xxx」——见第 11 章与第 13 章。")

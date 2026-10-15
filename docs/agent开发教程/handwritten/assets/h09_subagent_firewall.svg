@@ -13,7 +13,7 @@
 <rect x="0" y="0" width="680" height="420" fill="#111721"/>
 
 <text x="34" y="38" font-family="system-ui, sans-serif" font-size="17" font-weight="700" fill="#dfe6ee">子代理：一层上下文防火墙</text>
-<text x="34" y="62" font-family="system-ui, sans-serif" font-size="12" fill="#7d8b9c">细节消化在子代理自己的会话里；主上下文只收结论（数据来自 s10_subagent.py 实测）</text>
+<text x="34" y="62" font-family="system-ui, sans-serif" font-size="12" fill="#7d8b9c">细节消化在子代理自己的会话里；主上下文只收结论（数据来自 s09_subagent.py 实测）</text>
 
 <!-- 主上下文 -->
 <rect x="210" y="88" width="260" height="126" rx="10" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.4"/>

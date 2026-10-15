@@ -2,7 +2,7 @@
 
 ## 一、这一章要解决的问题
 
-第 1 章把三件套的边界画清楚了。从这一章开始写代码，而所有代码都从同一个函数长出来：`create_agent`（JS 侧 `createAgent`）。
+第 1 章把三件套的边界画清楚了，第 2–4 章把「原料」（模型、消息、结构化输出）备齐了。从这一章开始，所有代码都从同一个函数长出来：`create_agent`（JS 侧 `createAgent`）。
 
 它看起来只是一个「创建 agent」的工厂函数，实际上它一次性替你决定了好几件互相牵连的事：
 
@@ -44,18 +44,19 @@
 | `response_format` / `responseFormat` | 结构化输出 schema（见 2.5） | 实测示例 |
 | `state_schema` / `stateSchema` | 自定义状态 schema（默认即 `AgentState`） | 官方文档 |
 | `context_schema` / `contextSchema` | 单次运行的上下文 schema（见 2.4） | 实测示例 |
-| `checkpointer` | 检查点存储，`thread_id` 生效的前提（见第 11 章） | 实测示例 |
-| `store` | 跨线程长期记忆（见第 11 章） | 官方文档（本教程未实测） |
+| `checkpointer` | 检查点存储，`thread_id` 生效的前提（见第 12 章） | 实测示例 |
+| `store` | 跨线程长期记忆（见第 12 章） | 官方文档（本教程未实测） |
 | `name` | agent 的名字；把它当子图挂进别的图时用于标识（见第 18 章） | 实测示例 |
 | `interrupt_before` / `interrupt_after` | 在指定节点前后中断执行 | **实测签名**（文档正文未列出） |
+| `debug` | 调试日志 | **实测签名**（文档正文未列出） |
 | `cache` | 节点级缓存 | **实测签名**（文档正文未列出） |
 | `transformers` | 消息变换器 | **实测签名**（文档正文未列出） |
 
-最后三行是**差异清单第 7 条**的内容：官方文档的**正文叙述**只列了部分参数；`interrupt_before`、`interrupt_after`、`cache`、`transformers` 这几个要从 **API 参考页的签名**（或本机 `inspect.signature`）才看得到（实测版本 `langchain` 1.4.2）。所以「文档没写」指的是**正文没讲**，不是查不到——参考页本身就是签名。能用，但也不等于稳定，用之前先看自己版本的签名。
+最后三行的依据是**本机实测签名**：官方文档的**正文叙述**只列了部分参数；`interrupt_before`、`interrupt_after`、`cache`、`transformers` 这几个要从 **API 参考页的签名**（或本机 `inspect.signature`）才看得到（实测版本 `langchain` 1.4.2）。所以「文档没写」指的是**正文没讲**，不是查不到——参考页本身就是签名。能用，但也不等于稳定，用之前先看自己版本的签名。
 
 ### 2.3 `AgentState.messages` 只追加
 
-agent 的状态容器是 `AgentState`，它内置一个 `messages` 字段，并给这个字段绑定了 `add_messages` reducer（归并函数）。语义是：**你传进来的消息被追加到历史尾部，而不是替换历史**。
+agent 的状态容器是 `AgentState`，它内置一个 `messages` 字段，并给这个字段绑定了 `add_messages` reducer（归并函数——决定「新内容怎么并入旧状态」的规则，第 11 章会系统讲）。语义是：**你传进来的消息被追加到历史尾部，而不是替换历史**。
 
 实测证据：同一个 `thread_id` 连续问两轮，第一轮后历史 1 条，**第二轮后历史 4 条而不是 2 条**——第二轮那一条 user 消息是「加」进去的，不是「换」上去的。
 
@@ -64,7 +65,7 @@ agent 的状态容器是 `AgentState`，它内置一个 `messages` 字段，并�
 - **好处**：多轮对话天然成立，不需要你手动拼历史；
 - **代价**：历史只增不减，几轮之后就会撞上上下文窗口——这就是第 9 章「上下文工程」要处理的问题。
 
-注意这个「只追加」是 **`messages` 字段专属**的（靠 `add_messages` reducer 实现）。**自定义字段没有 reducer 时是「覆盖」语义**，两条规则不一样，第 10 章会给出实测对照。
+注意这个「只追加」是 **`messages` 字段专属**的（靠 `add_messages` reducer 实现）。**自定义字段没有 reducer 时是「覆盖」语义**，两条规则不一样，第 11 章会给出实测对照。
 
 ### 2.4 两类作用域：`thread_id` 与 `context`
 
@@ -94,15 +95,18 @@ agent 里的数据分两层，混用会出很多怪问题。
 
 实测结论（Python 侧，`langchain` 1.4.2）：`result["structured_response"]` 拿到的是**已校验的 Pydantic 实例**，不是字符串，不需要自己 `json.loads`。
 
-但两语言的**默认策略不同**，这是必须记住的差异：
+**两语言的默认策略都是工具策略**——把 schema 包装成一个工具让模型调用，参数不合法就写回一条错误 `ToolMessage` 让模型重试。差别在策略工具名怎么定：
 
 | | Python | TypeScript |
 |---|---|---|
-| 默认策略 | **工具策略**（把 schema 包装成一个工具让模型调用） | **provider 原生 JSON schema 输出** |
-| 脚本化假模型能否跑通 | 能（实测通过） | **不能**（策略工具不经 `bindTools` 暴露，假模型无法命中） |
-| 实测状态 | **已实测** | **未实测——只给写法，不给结果** |
+| 默认策略 | 工具策略 | 工具策略（源码：裸 schema 一律包成 `ToolStrategy`） |
+| 策略工具名 | 取 schema 的类名 / title | 取 schema 的 `title`；没有 title 时退化为 `extract-N` |
+| 脚本化假模型能否跑通 | 能（实测通过） | **能**（2026-10 探针补测：脚本按该工具名回一条 tool_call 即出结果） |
+| 实测状态 | **已实测** | **已实测**（假模型；真实 provider 行为仍未实测） |
 
-TypeScript 侧的写法是 `createAgent({ model, tools: [], responseFormat: Weather })`，取结果用 `result.structuredResponse`。这段代码需要真实模型（需 API Key），本机没有 Key，因此**未实测**。另外 JS 的策略工具名默认是 `"extract"`，可用 `schema.name` 覆盖。
+TypeScript 侧的写法是 `createAgent({ model, tools: [], responseFormat: Weather })`，取结果用 `result.structuredResponse`——**这段用脚本化假模型就能跑通**，不需要 API Key：假模型的脚本按 `Weather`（schema 的 title）回一条 `toolCall("Weather", {...})` 即可。若脚本回的是普通文本而不是工具调用，`structuredResponse` 会是 `undefined`——策略没被命中，框架不报错。
+
+> ⚠️ **「JS 默认走 provider 原生 JSON schema」是一个流传较广的误读**：那只说对了 **provider 子类**（如 `ChatOpenAI` 覆写了 `withStructuredOutput`）。纯 `BaseChatModel` 子类（含本教程假模型）和 agent 侧的裸 schema 路径，默认都是工具调用——`langchain` 1.5.11 的 `agents/responses.js` 源码可证。真实 provider 下的原生 JSON schema 路径**未实测**。
 
 ## 三、代码：Python 与 TypeScript
 
@@ -194,11 +198,18 @@ console.log(second.messages.length);        // 4，不是 2
 await ctxAgent.invoke({ messages: [new HumanMessage("我是谁？")] },
   { configurable: { thread_id: "ctx-1" }, context: { userId: "u-42" } });
 
-// ④ 结构化输出（⚠️ 未离线实测，只给写法）
-const Weather = z.object({ city: z.string(), tempC: z.number() });
-const structAgent = createAgent({ model: "openai:gpt-4o" as any, tools: [], responseFormat: Weather });
-// const s = await structAgent.invoke({ messages: [new HumanMessage("上海天气？")] });
-// console.log(s.structuredResponse);      // { city: '上海', tempC: 22 }
+// ④ 结构化输出：responseFormat（假模型实测通过；策略工具名 = schema 的 title）
+const Weather = z.object({ city: z.string(), tempC: z.number() })
+  .meta({ title: "Weather", description: "天气查询结果" });
+const structAgent = createAgent({
+  model: new ScriptedChatModel({
+    script: [toolCall("Weather", { city: "上海", tempC: 22 }, "s1")],
+  }) as any,
+  tools: [],
+  responseFormat: Weather,
+});
+const structOut: any = await structAgent.invoke({ messages: [new HumanMessage("上海天气？")] });
+console.log(structOut.structuredResponse);   // { city: '上海', tempC: 22 }
 ```
 
 实测输出（Python，2026-09-24）：
@@ -222,33 +233,34 @@ const structAgent = createAgent({ model: "openai:gpt-4o" as any, tools: [], resp
 
 ## 四、常见坑与边界条件
 
-**1. `response_format` 传了却取不到值。** 先确认读的是 `result["structured_response"]` 而不是最后一条消息。Python 侧返回的是**已校验的对象**（实测：Pydantic 实例），不是 JSON 字符串。JS 侧默认走 provider 原生 JSON schema，**脚本化假模型跑不通**——这不是你的代码错了，是策略不同。
+**1. `response_format` 传了却取不到值。** 先确认读的是 `result["structured_response"]`（JS 侧 `result.structuredResponse`）而不是最后一条消息。Python 侧返回的是**已校验的对象**（实测：Pydantic 实例），不是 JSON 字符串。JS 侧同样能跑通（实测）：默认走工具策略，假模型的脚本要按策略工具名（schema 的 title）回一条 tool_call——回普通文本的话 `structuredResponse` 是 `undefined`，这是策略没被命中，不是代码写错了。
 
-**2. `thread_id` 不生效。** 没有 `checkpointer` 时，`thread_id` 只是个没人读的字符串，历史不会累积。要么配 `InMemorySaver`（JS `MemorySaver`），要么接受「每轮都是全新对话」。
+**2. `thread_id` 不生效。** 没有 `checkpointer` 时，`thread_id` 只是个没人读的字符串，历史不会累积——checkpointer 是给图状态按线程存档的组件（第 12 章的主题，`InMemorySaver` 是它的内存实现）。要么配一个，要么接受「每轮都是全新对话」。
 
 **3. 把 `context` 当全局变量用。** `context` **不进检查点也不进消息历史**，运行一结束就没了。它适合放「这一次运行的随身数据」（用户 ID、租户、连接），不适合放「下次还要用的东西」。
 
-**4. 把 `messages` 的追加语义套到自定义字段上。** `messages` 只追加是因为它绑了 `add_messages` reducer；**自定义字段默认是覆盖语义**。两条规则不同，第 10 章有实测对照表。
+**4. 把 `messages` 的追加语义套到自定义字段上。** `messages` 只追加是因为它绑了 `add_messages` reducer；**自定义字段默认是覆盖语义**。两条规则不同，第 11 章有实测对照表。
 
 **5. 指望 `create_agent` 记住「非消息」的东西。** 默认 `AgentState` 里只有 `messages`。要放别的东西得用 `state_schema` 扩展，并且想清楚 reducer——否则你写的字段会被下一次 `invoke` 覆盖掉。
 
-**6. 未实测范围。** TypeScript 侧的结构化输出（需 API Key）**未实测**；真实模型下的工具选择行为、token 计费同样不在实测范围内。本节的实测结论均来自脚本化假模型 + `langchain` 1.4.2。
+**6. 未实测范围。** 真实模型下的工具选择倾向、token 计费，以及 provider 子类的原生 JSON schema 结构化输出路径，均**未实测**（本机无 API Key）。本节的实测结论均来自脚本化假模型 + `langchain` 1.4.2。
 
 ## 五、关键结论
 
-1. **Agent Loop = 模型 → 工具 → 回灌 → 再模型**；**模型只输出工具调用意图，执行工具的是框架的 tools 节点**。
-2. **`create_agent` 的参数不止文档正文列的那些**——实测签名还含 `interrupt_before` / `interrupt_after` / `cache` / `transformers`（`langchain` 1.4.2）。
-3. **`AgentState.messages` 只追加**（`add_messages` reducer）：实测第二轮历史 4 条而非 2 条；代价是上下文只增不减。
-4. **两类作用域**：`thread_id` = 对话作用域，进检查点；`context` = 单次运行作用域，不进检查点、不进消息历史、模型看不到。
-5. **结构化输出**：Python 侧 `result["structured_response"]` 是已校验对象（实测通过）；**JS 侧默认走 provider 原生 JSON schema，未实测**，只给写法。
-6. **判断某个行为归属**：先问「这是模型做的还是框架做的」——大部分「模型幻觉」其实是框架的消息改写。
+1. **排查 agent 行为问题的第一问：「这是模型做的还是框架做的？」**——模型只输出工具调用意图，执行工具、写回 `ToolMessage` 的全是框架的 tools 节点；大部分「模型幻觉」其实是框架在某一步改写或丢弃了消息。
+2. **`create_agent` 的参数以实测签名为准，不以文档正文为准**——正文只列一部分，实测签名还含 `interrupt_before` / `interrupt_after` / `debug` / `cache` / `transformers`；且参数默认值随版本变化，用前先看自己版本的签名。
+3. **「只追加」是 `messages` 字段的专属语义，不是状态的默认语义**——它靠 `add_messages` reducer 实现；自定义字段没有 reducer 就是覆盖。两条规则不同，混用会引出最怪的一类 bug。
+4. **判断一个数据放哪的口径：「这次对话结束后还需要吗？」**——需要 → `thread_id`（进检查点，下次同线程续上）；不需要 → `context`（单次运行的随身证件，模型看不到）。
+5. **结构化输出的默认策略，两语言都是工具策略**——「JS 默认走 provider 原生 JSON schema」只对 provider 子类成立；脚本化假模型均可跑通，差别只在策略工具名怎么定（类名 / schema 的 title）。
 
 ## 本章要点回顾
 
 - **循环四步**：用户消息 → 模型 → 有 `tool_calls` 就执行工具并回灌 → 再模型，直到不再请求工具；见**图 8**。
-- **模型从不执行工具**；`ToolMessage` 是框架写的。实测消息序列：Human → AI(tool_call) → ToolMessage → AI(final)。
-- **参数表**按实测签名给全，含文档正文未列的 `interrupt_before` / `interrupt_after` / `cache` / `transformers`；**表内不列默认值**。
-- **`messages` 只追加**；第二轮历史 4 条而非 2 条。自定义字段**没有 reducer 就是覆盖**。
+- **模型从不执行工具**；`ToolMessage` 是框架写的。实测消息序列：Human → AI(tool_call) → ToolMessage → AI(final)；同一 `thread_id` 第二轮历史 4 条而非 2 条。
+- **参数表 15 项**按实测签名给全（含文档正文未列的 `interrupt_before` / `interrupt_after` / `debug` / `cache` / `transformers`）；表内不列默认值。
+- **`messages` 只追加**；自定义字段**没有 reducer 就是覆盖**（第 11 章有实测对照表）。
 - **两类作用域**见**图 9**：`thread_id`（对话，进检查点）/ `context`（单次运行，不进检查点、模型看不到）；`context` 需要 `context_schema`。
-- **结构化输出**：Python `result["structured_response"]` 是已校验对象（实测）；JS `result.structuredResponse`，**未实测**，默认策略是 provider 原生 JSON schema。
+- **结构化输出**：默认都是工具策略、假模型都能跑通（实测）；Python 取 `result["structured_response"]`（已校验实例），JS 取 `result.structuredResponse`；策略工具名分别取类名 / schema 的 title。
 - **JS 侧三个命名差异**：`createAgent`、`responseFormat`、`contextSchema`；工具定义 `schema` 必填。
+- **三个高频坑**：`thread_id` 不生效 = 没配 checkpointer；把 `context` 当全局变量用；指望默认 `AgentState` 记住非消息字段（要 `state_schema` 扩展并想清 reducer）。
+- **未实测**：真实模型下的工具选择倾向、token 计费、provider 子类的原生 JSON schema 路径（本机无 API Key）。

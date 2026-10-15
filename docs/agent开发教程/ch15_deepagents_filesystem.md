@@ -1,8 +1,8 @@
-# 第 14 章 虚拟文件系统与执行环境：文件工具、权限与后端
+# 第 15 章 虚拟文件系统与执行环境：文件工具、权限与后端
 
 ## 一、这一章要解决的问题
 
-第 13 章看到 Deep Agents 预装了一套文件工具，本章把它拆开讲透。要回答四个问题：
+第 14 章看到 Deep Agents 预装了一套文件工具，本章把它拆开讲透。要回答四个问题：
 
 1. 这些文件与执行工具跑起来**到底返回什么**？
 2. 文件存在**哪里**？——默认后端 `StateBackend` 的存储语义是什么？
@@ -11,13 +11,13 @@
 
 一句话主线：**工具是「面」，后端是「里」**。同一套文件工具，换个后端就从「只活一个线程」变成「跨线程持久」或「直写真实磁盘」。
 
-> 版本锚点：本章结论在 `deepagents` **0.7.18**（Python）/ **1.14.0**（JS）、`langchain` **1.4.2** 上实测；示例源码见 `code/python/14_filesystem.py` 与 `code/typescript/14_filesystem.ts`。
+> 版本锚点：本章结论在 `deepagents` **0.7.18**（Python）/ **1.14.0**（JS）、`langchain` **1.4.2** 上实测；示例源码见 `code/python/15_filesystem.py` 与 `code/typescript/15_filesystem.ts`。
 
 ## 二、机制与原理
 
 ### 2.1 8 个文件与执行工具的实际行为
 
-这张表回答「每个工具是干什么的、本章示例覆盖了哪些」。Deep Agents 预装 **8 个文件与执行工具**：7 个纯文件工具（`ls` / `read_file` / `write_file` / `edit_file` / `delete` / `glob` / `grep`）加上 `execute`。第 13 章那个「注册 9 个」里的第 9 个是委派用的 `task`，归第 15 章。
+这张表回答「每个工具是干什么的、本章示例覆盖了哪些」。Deep Agents 预装 **8 个文件与执行工具**：7 个纯文件工具（`ls` / `read_file` / `write_file` / `edit_file` / `delete` / `glob` / `grep`）加上 `execute`。第 14 章那个「注册 9 个」里的第 9 个是委派用的 `task`，归第 16 章。
 
 | 工具 | 做什么 | 本章示例是否覆盖 |
 |---|---|---|
@@ -30,7 +30,7 @@
 | `grep` | 按内容搜 | ❌（只讲用途） |
 | `execute` | 执行命令（取决于后端） | ❌（默认后端不提供） |
 
-**实测返回值的原样**（`deepagents` 0.7.18，示例 `10_filesystem.py` 一次 `invoke` 内四连调用）：
+**实测返回值的原样**（`deepagents` 0.7.18，示例 `15_filesystem.py` 一次 `invoke` 内四连调用）：
 
 ```text
 [write_file] Updated file /notes/todo.md
@@ -41,7 +41,7 @@
 
 三个返回值各藏一处设计意图：
 
-- **`read_file` 的 `@@ lines 1-3 of 3 @@` 是分页头**：告诉模型「你看到的是第 1–3 行，全文 3 行」，长文件可翻页，模型也知道**自己有没有看全**——这正是第 16 章「技能正文按需读、`limit=1000`」的前提。
+- **`read_file` 的 `@@ lines 1-3 of 3 @@` 是分页头**：告诉模型「你看到的是第 1–3 行，全文 3 行」，长文件可翻页，模型也知道**自己有没有看全**——这正是第 17 章「技能正文按需读、`limit=1000`」的前提。
 - **`edit_file` 的 `1 instance(s)` 是匹配计数**：没匹配上会是 `0 instance(s)`，比抛异常温和——模型能自己发现改失败了。
 - **`ls` 返回 Python 列表的字符串形态**：说明路径是**扁平存储 + 前缀匹配**，没有真实目录树。
 
@@ -62,7 +62,7 @@ state['files'] = {
 }
 ```
 
-把文件塞进状态，换来一组明确的**好处与代价**：好处是文件**跟着线程走**，天然享受检查点（第 11 章）——可回放、可时间旅行、崩溃后能恢复；代价是**换 `thread_id` 就没了**，新线程打开是一张白纸。一句话：`StateBackend` 的文件是**线程级**的，不是**全局级**的。要跨线程，得换后端（见 2.5）。
+把文件塞进状态，换来一组明确的**好处与代价**：好处是文件**跟着线程走**，天然享受检查点（第 12 章）——可回放、可时间旅行、崩溃后能恢复；代价是**换 `thread_id` 就没了**，新线程打开是一张白纸。一句话：`StateBackend` 的文件是**线程级**的，不是**全局级**的。要跨线程，得换后端（见 2.5）。
 
 > 官方文档说默认写入「图状态中的本地文件系统」，与本机实测一致（`create_deep_agent` 源码里 `backend = backend if backend is not None else StateBackend()`）。
 
@@ -79,7 +79,7 @@ state['files'] = {
 | `max_execute_timeout` | `3600` | `execute` 的最长执行秒数 |
 | `grep_max_count` | `1000` | `grep` 最多返回多少条命中 |
 
-两点提醒：**`tools` 是白名单，不是追加**——砍内置文件工具走这里（或 `HarnessProfile.excluded_tools`），`create_deep_agent(tools=...)` 那条路是**追加**自定义工具，砍不掉内置的（第 13 章第 5 条坑）；**两个 token 阈值是「卸载」而不是「截断」**——超限输出写进虚拟文件系统，上下文只留引用，即第 9 章的「工具输出卸载」。
+两点提醒：**`tools` 是白名单，不是追加**——砍内置文件工具走这里（或 `HarnessProfile.excluded_tools`），`create_deep_agent(tools=...)` 那条路是**追加**自定义工具，砍不掉内置的（第 14 章第 5 条坑）；**两个 token 阈值是「卸载」而不是「截断」**——超限输出写进虚拟文件系统，上下文只留引用，即第 9 章的「工具输出卸载」。
 
 ### 2.4 FilesystemPermission：声明式权限
 
@@ -95,7 +95,7 @@ state['files'] = {
 
 - `allow` —— 放行。
 - `deny` —— 拒绝。
-- **`interrupt` —— 暂停下来问人**，不是拒绝。这一档把**权限系统与人在回路（第 12 章）打通**了：agent 想动敏感路径时，图会 `interrupt` 等人审批，人放行才继续。
+- **`interrupt` —— 暂停下来问人**，不是拒绝。这一档把**权限系统与人在回路（第 13 章）打通**了：agent 想动敏感路径时，图会 `interrupt` 等人审批，人放行才继续。
 
 **规则按声明顺序「首次匹配即生效」（first match wins）**。这跟防火墙 ACL 是同一个思路，所以写法有讲究：
 
@@ -230,23 +230,23 @@ const backend = (config: any) =>
   });
 ```
 
-> 完整可跑版本（含五个后端的签名打印、`LangSmithSandbox` 的导入路径验证、`CompositeBackend` 分流示例）：`code/python/14_filesystem.py`、`code/typescript/14_filesystem.ts`。
+> 完整可跑版本（含五个后端的签名打印、`LangSmithSandbox` 的导入路径验证、`CompositeBackend` 分流示例）：`code/python/15_filesystem.py`、`code/typescript/15_filesystem.ts`。
 
 ## 四、常见坑与边界条件
 
 1. **换 `thread_id` 文件就没了**。默认 `StateBackend` 是线程级的；要跨线程必须换 `StoreBackend` 或 `CompositeBackend`，别指望它自己持久。
 2. **权限规则顺序写反等于没写**。`allow /workspace/**` 放前面，后面的 `deny /workspace/secrets/**` 永远不会命中——**具体规则在前、宽泛规则在后**。
-3. **`mode='interrupt'` 不是拒绝**。它会让图暂停等人审批，如果你没接人在回路（第 12 章）的处理逻辑，agent 会停在那里。
+3. **`mode='interrupt'` 不是拒绝**。它会让图暂停等人审批，如果你没接人在回路（第 13 章）的处理逻辑，agent 会停在那里。
 4. **`LangSmithSandbox` 顶层导不出来**。必须从 `deepagents.backends.langsmith` 导入——这是实测确认的路径（`deepagents` 0.7.18）。
-5. **`LocalShellBackend` 会给模型 `execute` 能力**。默认 `StateBackend` 之所以不暴露 `execute`（第 13 章的「注册 9 可见 8」），就是因为默认后端没有执行能力；换上 shell 后端，这个工具就出现了——**生产环境慎用**。
+5. **`LocalShellBackend` 会给模型 `execute` 能力**。默认 `StateBackend` 之所以不暴露 `execute`（第 14 章的「注册 9 可见 8」），就是因为默认后端没有执行能力；换上 shell 后端，这个工具就出现了——**生产环境慎用**。
 6. **`permissions` 与「能执行命令的后端」互斥**——这是本节最容易撞墙的一处。实测（`deepagents` 0.7.18）：`FilesystemMiddleware(backend=LocalShellBackend(), _permissions=[...])` 直接抛 `NotImplementedError: FilesystemMiddleware does not yet support permissions with backends that provide command execution (SandboxBackendProtocol)`。原因是权限只覆盖文件工具，**约束不到 `execute` 的 shell 命令**，官方选择「直接拒绝」而不是「假装安全」。另外官方明确警告：开了 shell 后 `root_dir` / `virtual_mode=True` **都不构成安全边界**（命令能访问系统任意路径）。所以「限制 agent 只能动某些目录」这件事，**在带执行能力的后端上目前做不到**——要隔离就得换真沙箱（`LangSmithSandbox` 之类）。
-6. **`tools=` 是追加，不是替换**。砍内置文件工具要走 `FilesystemMiddleware(tools=...)` 白名单或 `HarnessProfile.excluded_tools`。
-7. **`FilesystemBackend` 直写真实磁盘**。务必用 `root_dir` 圈定范围，并配上 `FilesystemPermission`；它写的是你本机真实文件，不是沙箱。
-8. **真实模型下的行为未实测**。工具**返回值**是框架产生的、可复现；但「模型会不会在合适时机选 `grep` 而不是 `read_file`」这类**工具选择倾向**需 API Key，**未实测**；`execute` 在 `LocalShellBackend` 下的真实执行输出、`LangSmithSandbox` 的实际沙箱执行（需账号）**均未实测**。
+7. **`tools=` 是追加，不是替换**。砍内置文件工具要走 `FilesystemMiddleware(tools=...)` 白名单或 `HarnessProfile.excluded_tools`。
+8. **`FilesystemBackend` 直写真实磁盘**。务必用 `root_dir` 圈定范围，并配上 `FilesystemPermission`；它写的是你本机真实文件，不是沙箱。
+9. **真实模型下的行为未实测**。工具**返回值**是框架产生的、可复现；但「模型会不会在合适时机选 `grep` 而不是 `read_file`」这类**工具选择倾向**需 API Key，**未实测**；`execute` 在 `LocalShellBackend` 下的真实执行输出、`LangSmithSandbox` 的实际沙箱执行（需账号）**均未实测**。
 
 ## 五、关键结论
 
-1. **文件工具共 8 个**：7 个纯文件工具 + `execute`；第 13 章「注册 9 个」的第 9 个是委派用的 `task`。
+1. **文件工具共 8 个**：7 个纯文件工具 + `execute`；第 14 章「注册 9 个」的第 9 个是委派用的 `task`。
 2. **返回值即反馈**：`read_file` 的 `@@ lines 1-3 of 3 @@` 是分页头、`edit_file` 的 `Successfully replaced 1 instance(s)` 是匹配计数——模型靠这些文本自我纠错。
 3. **默认 `StateBackend` 把文件存进图状态**（`state.files`，含 `content` / `encoding` / `created_at` / `modified_at`）：好处是跟线程走、享受检查点，代价是**换 `thread_id` 就没了**。
 4. **`FilesystemMiddleware` 控制着卸载阈值**：`tool_token_limit_before_evict=20000` / `human_message_token_limit_before_evict=50000` / `max_execute_timeout=3600` / `grep_max_count=1000`，以及 `tools` 白名单。
@@ -256,7 +256,7 @@ const backend = (config: any) =>
 
 ## 本章要点回顾
 
-- **8 个文件与执行工具**：`ls` / `read_file` / `write_file` / `edit_file` / `delete` / `glob` / `grep` + `execute`；`task` 属委派（第 15 章）。
+- **8 个文件与执行工具**：`ls` / `read_file` / `write_file` / `edit_file` / `delete` / `glob` / `grep` + `execute`；`task` 属委派（第 16 章）。
 - **实测返回值**：`Updated file /notes/todo.md`、`@@ lines 1-3 of 3 @@` 开头的读结果、`Successfully replaced 1 instance(s)`、`['/notes/todo.md']`。
 - **`StateBackend` = 文件存在图状态里**：`state.files` 每条记录含 `content` / `encoding` / `created_at` / `modified_at`；**跟 `thread_id` 走、享受检查点，但换线程即失忆**，跨线程要换 `StoreBackend`。
 - **`FilesystemMiddleware` 参数**：`backend`、`tools`（白名单）、两个 token 卸载阈值（`20000` / `50000`）、`max_execute_timeout=3600`、`grep_max_count=1000`。**注意 `permissions` 与带执行能力的后端（`LocalShellBackend` / 沙箱）互斥，同时用会抛 `NotImplementedError`。**

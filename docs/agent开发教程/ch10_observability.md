@@ -1,15 +1,15 @@
-# 第 17 章 可观测与评测：追踪、数据集与成本
+# 第 10 章 可观测与评测：追踪、数据集与成本
 
 ## 一、这一章要解决的问题
 
-前 12 章把 agent 搭起来了，但它跑起来之后有两个问题一直没回答：
+第 5–9 章把 agent 搭起来了，但它跑起来之后有两个问题一直没回答：
 
 1. **它内部到底发生了什么？** 一次 `invoke` 出去，回来一个最终答案。中间调了几次模型、每次给模型看了什么、工具收到什么参数、从哪一步开始跑偏——不看过程，这些全是黑盒。agent 又是多步、自主的，「答案不对」往往只是表象，真正的原因藏在中间某一步。这叫**可观测（observability）**。
 2. **它到底好不好？** 改了一版提示词、换了个模型、加了个工具，是变好还是变坏？靠几个手测样例拍脑袋不行，要有**用例集 + 判定 + 汇总**，也就是**评测（evaluation）**。
 
 两件事共用一个基础：**一次运行留下的结构化记录**。有了它，追踪能逐层下钻、评测能自动判定。
 
-> 版本锚点：本章结论在 `langchain` **1.4.2**（Python）/ **1.5.11**（JS）、`langchain-core` **1.6.4** 上实测；示例源码见 `code/python/17_observability.py` 与 `code/typescript/17_observability.ts`。
+> 版本锚点：本章结论在 `langchain` **1.4.2**（Python）/ **1.5.11**（JS）、`langchain-core` **1.6.4** 上实测；示例源码见 `code/python/10_observability.py` 与 `code/typescript/10_observability.ts`。
 > ⚠️ **LangSmith 上报需要账号，本机无 API Key，未实测**。本章 trace 结构用**离线回调桩**演示——它和 LangSmith 记录的是同一批事件，只是不往外发。字段名一律以官方文档为准。
 
 ## 二、机制与原理
@@ -110,7 +110,7 @@ LangChain 的执行天然是**嵌套**的：一次 agent 调用里套着若干�
 
 2.5 节讲了 LangSmith 与离线回调在机制上是同一件事，差别只在数据去向。这一节补上 2.5 节跳过的部分：**怎么把数据送出去**。三步——拿账号、配环境变量、看界面。
 
-> ⚠️ **未实测**：本机没有 LangSmith 账号，下面三步**一步都没有真跑通过**。步骤与变量名来自讲义（`尚硅谷-03-LangSmith的使用`）与官方文档；其中「环境变量的读取规则」用本机 `langsmith` 0.14.0 源码离线核对过（只是读环境变量，不涉及上报），**上报、页面、指标全部未验证**。
+> ⚠️ **未实测**：本机没有 LangSmith 账号，下面三步**一步都没有真跑通过**。步骤与变量名来自官方文档；其中「环境变量的读取规则」用本机 `langsmith` 0.14.0 源码离线核对过（只是读环境变量，不涉及上报），**上报、页面、指标全部未验证**。
 
 **第一步：注册并拿到 API Key**
 
@@ -120,7 +120,7 @@ LangChain 的执行天然是**嵌套**的：一次 agent 调用里套着若干�
 
 **第二步：配环境变量**
 
-在 `.env` 里加四个变量（讲义口径）：
+在 `.env` 里加四个变量（以官方文档为准）：
 
 ```bash
 LANGSMITH_TRACING=true                                # 总开关：不开就不上报，代码照常跑
@@ -151,7 +151,7 @@ LANGSMITH_PROJECT="pr-clear-harmony-32"               # 项目名：WebUI 按它
 - **run 树**：2.1–2.3 节讲的那棵树原样出现在页面上——根节点是一次 `invoke`，下面挂 `model` / `tools` 节点，再下面才是真正的 `llm` / `tool` run。点任一节点看它自己的输入输出，这就是 2.3 节说的「逐层下钻」。想确认自己对 trace 结构的理解，就拿 2.4 节的 `TraceRecorder` 打出来的树和页面上的树对一遍，两者应该长得一样。
 - **耗时**：每个 run 的起止时间与总时长。长尾藏在哪个节点，一眼能看出来——对应 2.8 节「该盯的五个数」里的端到端 P95。
 - **token 用量**：`llm` run 上有输入 / 输出 token 数。**这是离线回调拿不到的数据**（2.8 节已标注未实测）：token 来自模型响应里的 `usage` 元数据，只有真实模型才有，页面把它汇总到项目维度，成本估算也建在这上面。
-- **标签与元数据**：`invoke(..., config={"run_name": ..., "tags": [...], "metadata": {...}})` 里的三个字段会挂到对应 run 上，用来在项目里筛选、分组（讲义示例用 `run_name` 给一次运行起名、用 `metadata` 记 `user_id` / `session_id`）。实测（离线、无 tracer）：这三个 config 字段不会让调用报错，但**不配 LangSmith 时它们不产生任何效果**，只是被 Runnable 原样收下。
+- **标签与元数据**：`invoke(..., config={"run_name": ..., "tags": [...], "metadata": {...}})` 里的三个字段会挂到对应 run 上，用来在项目里筛选、分组（示例常用 `run_name` 给一次运行起名、用 `metadata` 记 `user_id` / `session_id`）。实测（离线、无 tracer）：这三个 config 字段不会让调用报错，但**不配 LangSmith 时它们不产生任何效果**，只是被 Runnable 原样收下。
 
 > ⚠️ 页面上的字段名、按钮位置、指标口径都随 LangSmith 版本变化，**本节全部未实测**，以官方文档与页面实际显示为准。
 
@@ -231,7 +231,7 @@ class TraceRecorder extends BaseCallbackHandler {
 }
 ```
 
-> 完整可跑版本（含 `tree()` 递归打印与 `agent.invoke(..., { callbacks: [recorder], runName: "price_lookup" })`）：`code/python/17_observability.py`、`code/typescript/17_observability.ts`。
+> 完整可跑版本（含 `tree()` 递归打印与 `agent.invoke(..., { callbacks: [recorder], runName: "price_lookup" })`）：`code/python/10_observability.py`、`code/typescript/10_observability.ts`。
 
 ### 3.2 离线评测的最小骨架
 
@@ -303,24 +303,22 @@ console.log(`结果：${passed}/${CASES.length} 通过`);
 
 ## 五、关键结论
 
-1. **run 是被记录的最小执行单元，trace 是整棵 run 树，span 是 run 在 OTel 语境下的叫法**。层级按调用关系排，不按类型排。
-2. **一次 agent 调用实测产生 7 个 run**：1 个根 chain + 2 个 `model` chain（各挂 1 个 `llm`）+ 1 个 `tools` chain（挂 1 个 `tool`）。run 数直接反映 loop 转了几圈。
-3. **每个 run 都有自己的输入输出，所以能逐层下钻**——这是 trace 能回答「agent 为什么走了这一步」的根本原因。
-4. **离线回调就能搭出同一棵树**：`BaseCallbackHandler` + start / end 事件 + `run_id` / `parent_run_id`。LangSmith 本质相同，只是把数据送到服务端并支持跨进程。
-5. **评测分两层**：第一层结果对不对，第二层过程对不对。**第二层是 agent 评测与普通 LLM 评测的分水岭**——答案碰对了但过程全错，换个输入就崩。
-6. **判定器本身也要评测**：LLM 当裁判有位置 / 冗长 / 自我偏好 / 风格四类系统性偏差；能用确定性规则就别用 LLM。
-7. **上线盯五个数**：模型调用次数、输入 token、缓存命中率、工具调用次数、端到端 P95。
-8. **LangSmith 上报需账号，本机未实测**；本章 trace 结构来自离线桩，字段名以官方文档为准。
+1. **trace 是「谁嵌套在谁」的树，不是「谁打印了什么」的日志**——run 是被记录的最小执行单元，trace 是整棵 run 树，span 是 OTel 语境下的叫法；层级按调用关系排、不按类型排，判断执行顺序要看时间戳，不要看缩进。
+2. **trace 能回答「agent 为什么走了这一步」，靠的是每个 run 都带自己的输入输出**——只有一堆时间点没有因果链的观测，回答不了任何「为什么」。
+3. **离线回调就能搭出同一棵树，「等接好观测再做 agent」是伪命题**：`BaseCallbackHandler` + start / end 事件 + `run_id` / `parent_run_id` 就够；LangSmith 本质相同，只是把数据送到服务端并支持跨进程。
+4. **agent 评测与普通 LLM 评测的分水岭在第二层：过程对不对**——答案碰对、过程全错是最常见的假阳性；判定器本身也要被评测，LLM 当裁判有四类系统性偏差，能用确定性规则就别用。
+5. **上线盯五个数**：模型调用次数、输入 token、缓存命中率、工具调用次数、端到端 P95——token 与成本来自模型返回的 `usage` 元数据，离线桩里没有（需真实模型，未实测）。
 
 ## 本章要点回顾
 
-- **三个词**：run（最小执行单元）/ trace（整棵 run 树）/ span（OTel 叫法）。
-- **实测 trace 树**：7 个 run —— 1 根 chain + 2 个 model chain + 2 个 llm + 1 个 tools chain + 1 个 tool。
+- **三个词**：run（最小执行单元）/ trace（整棵 run 树）/ span（OTel 叫法）；见**图 31**。
+- **实测 trace 树**：一次 agent 调用 7 个 run —— 1 根 chain + 2 个 model chain（各挂 1 个 llm）+ 1 个 tools chain（挂 1 个 tool）；run 数直接反映 loop 转了几圈。
 - **能下钻的原因**：每个 run 都带自己的 input / output。
-- **离线搭树**：继承 `BaseCallbackHandler`，在 start / end 里记 `run_id` / `parent_run_id`；Python 工具名在 `serialized["name"]`，JS 在第 7 个参数。
-- **LangSmith = 同一套事件 + 上报服务端 + 跨进程 + UI**；⚠️ **需账号，未实测**。
+- **离线搭树**：继承 `BaseCallbackHandler`，在 start / end 里记 `run_id` / `parent_run_id`；Python 工具名在 `serialized["name"]`，JS 在 `handleToolStart` 的第 7 个参数。
+- **LangSmith = 同一套事件 + 上报服务端 + 跨进程 + UI**；⚠️ **需账号，未实测**，字段名以官方文档为准。
 - **开通配置就三步**：注册拿 Key → 配 `LANGSMITH_TRACING` / `LANGSMITH_ENDPOINT` / `LANGSMITH_API_KEY` / `LANGSMITH_PROJECT` → 在 WebUI 看 run 树 / 耗时 / token 用量。**总开关只认小写 `"true"`**（离线核对 `langsmith` 0.14.0 源码，`True` / `1` 一律判为关闭）；整节**未实测**（见 2.9 节）。
 - **评测两层**：结果对不对（第一层，普通 LLM 评测也能做）、过程对不对（第二层，**agent 评测的分水岭**）。
 - **判定器四偏差**：位置 / 冗长 / 自我偏好 / 风格；能确定性判定就别上 LLM。
 - **五个数**：模型调用次数 / 输入 token / 缓存命中率 / 工具调用次数 / 端到端 P95。
 - **示例结果**：3 个用例、工具名 + 字符串匹配判定、**3/3 通过**。
+- **三个坑**：别把 trace 当日志；只做第一层评测会给坏系统打高分；trace 数据不是免费的（完整记录输入输出会放大存储与隐私风险）。

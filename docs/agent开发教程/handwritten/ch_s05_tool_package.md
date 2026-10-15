@@ -285,7 +285,7 @@ registry.invoke 返回: [
 
 **坑六：注册顺序与 Schema 顺序会影响模型选择。** `schemas()` 按注册序输出，工具越多、越相似，排在前面的越容易被模型优先考虑。把最核心的工具先 `register`，是零成本的引导手段。
 
-**边界：MCP 工具不走 Pydantic。** `Tool.from_mcp` 直接采用服务器返回的 `inputSchema`，跳过本地建模（工具名规范为 `server__tool` 防冲突）。这条路径在 S9 展开，此处只需知道：`schema()` 和 `__call__` 对两种来源一视同仁。
+**边界：MCP 工具不走 Pydantic。** `Tool.from_mcp` 直接采用服务器返回的 `inputSchema`，跳过本地建模（工具名规范为 `server__tool` 防冲突）。这条路径在 S10 展开，此处只需知道：`schema()` 和 `__call__` 对两种来源一视同仁。
 
 ## 五、关键结论
 

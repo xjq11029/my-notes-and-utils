@@ -1,5 +1,5 @@
 /**
- * 第 16 章示例（TypeScript 版，与 16_skills_memory.py 对应）：
+ * 第 17 章示例（TypeScript 版，与 17_skills_memory.py 对应）：
  * 技能（Skills）与记忆（Memory）。
  *
  * 演示四件事：
@@ -8,7 +8,7 @@
  *   3. 记忆文件的「信任与验证」问题（记忆是用户可写的 → 提示注入通道）
  *   4. 两者的时间尺度差异：技能 = 能力，记忆 = 经验
  *
- * 运行：pnpm run 12_skills_memory
+ * 运行：pnpm run 17_skills_memory
  */
 
 import { createDeepAgent, createSkillsMiddleware, createMemoryMiddleware, StateBackend } from "deepagents";

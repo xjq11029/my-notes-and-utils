@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
-"""第 18 章示例：多智能体协作与从旧版迁移。
+"""第 18 章示例：多智能体协作（supervisor / handoff）。
+
+同时服务第 19 章：脚本第 3 节打印从 LCEL / AgentExecutor 迁移到 v1 的写法对照。
 
 演示三件事：
   1. supervisor 拓扑：把 create_agent 建好的 agent 当节点塞进父图
   2. handoff 拓扑：用 Command 把控制权交给另一个 agent
   3. 从 LCEL / AgentExecutor 迁移到 v1 的写法对照
 
-运行：python 14_multiagent.py
+运行：python 18_multiagent.py
 """
 
 import sys

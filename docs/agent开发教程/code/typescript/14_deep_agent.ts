@@ -1,5 +1,5 @@
 /**
- * 第 13 章示例（TypeScript 版，与 13_deep_agent.py 对应）：
+ * 第 14 章示例（TypeScript 版，与 14_deep_agent.py 对应）：
  * Deep Agents 全景。
  *
  * 演示四件事：
@@ -8,7 +8,7 @@
  *   3. 预装中间件栈 —— 打印真实的图节点名
  *   4. HarnessProfile：声明式地裁掉不要的能力
  *
- * 运行：pnpm run 09_deep_agent
+ * 运行：pnpm run 14_deep_agent
  */
 
 import { createDeepAgent, createHarnessProfile, registerHarnessProfile, getHarnessProfile } from "deepagents";

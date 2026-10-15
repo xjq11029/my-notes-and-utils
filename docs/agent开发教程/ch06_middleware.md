@@ -70,14 +70,14 @@ wrap-style 的名字来源就是它的形态：`handler` 是「链条剩下的�
 | 上下文治理 | `SummarizationMiddleware`、`ContextEditingMiddleware`（配合 `ClearToolUsesEdit`） | `langchain.agents.middleware` | 第 9 章 |
 | 模型调用治理 | `PatchToolCallsMiddleware` | 默认装入 agent 图 | 本章 |
 | 工具执行治理 | `ToolErrorMiddleware` | `langchain.agents.middleware` | 第 7 章 |
-| 人在回路 | `HumanInTheLoopMiddleware` | `langchain.agents.middleware` | 第 12 章 |
-| 规划与委派 | `TodoListMiddleware` / `SubAgentMiddleware` | `langchain.agents.middleware` / **`deepagents`** | 第 15 章 |
-| 文件系统与记忆 | `FilesystemMiddleware`、`MemoryMiddleware`、`SkillsMiddleware` | **`deepagents`** | 第 10 / 12 章 |
+| 人在回路 | `HumanInTheLoopMiddleware` | `langchain.agents.middleware` | 第 13 章 |
+| 规划与委派 | `TodoListMiddleware` / `SubAgentMiddleware` | `langchain.agents.middleware` / **`deepagents`** | 第 16 章 |
+| 文件系统与记忆 | `FilesystemMiddleware`、`MemoryMiddleware`、`SkillsMiddleware` | **`deepagents`** | 第 15 / 17 章 |
 
 ![图 11　六大能力域 × 预置中间件](assets/11_middleware_domains.png)
 *图 11　六大能力域 × 预置中间件*
 
-「归属包」这一列是**差异清单第 3 条**的内容，务必记住：官方文档把 `FilesystemMiddleware`、`SubAgentMiddleware` 列在 LangChain 的 middleware 清单里，但实测 `langchain.agents.middleware`（1.4.2）**没有这两个类**，它们在 `deepagents` 里。同样，`SkillsMiddleware` 须从 `deepagents.middleware` 导入，`deepagents` 顶层不导出它（差异第 2 条）。
+「归属包」这一列是**本机实测**的结论，务必记住：官方文档把 `FilesystemMiddleware`、`SubAgentMiddleware` 列在 LangChain 的 middleware 清单里，但实测 `langchain.agents.middleware`（1.4.2）**没有这两个类**，它们在 `deepagents` 里。同样，`SkillsMiddleware` 须从 `deepagents.middleware` 导入，`deepagents` 顶层不导出它（实测）。
 
 另外提醒：本矩阵只列**本教程后续章节会真正用到**的预置件。实测该包在 1.4.2 有 64 个导出，完整清单以你所用版本的 `__all__` 为准——不要在教程里背清单，要在代码里查。
 
@@ -214,7 +214,7 @@ wrap_* 钩子能改写请求：动态切换模型
 
 **5. 改写请求不要直接改 `request` 对象。** Python 用 `request.override(...)`，JS 用 `handler({ ...request, model })`。直接改对象本身会污染链上其它中间件的语义。
 
-**6. 包归属与导入路径。** `FilesystemMiddleware`、`SubAgentMiddleware` 在 `deepagents` 而不是 `langchain.agents.middleware`；`SkillsMiddleware` 从 `deepagents.middleware` 导入（差异第 2、3 条）。
+**6. 包归属与导入路径。** `FilesystemMiddleware`、`SubAgentMiddleware` 在 `deepagents` 而不是 `langchain.agents.middleware`；`SkillsMiddleware` 从 `deepagents.middleware` 导入（均为实测结论）。
 
 **7. 上下文类中间件的参数形状两语言不同。** Python 是位置参数（`trigger=("messages", 8)`），JS 是对象（`trigger: { messages: 8 }`）——双语言清单第 7 条，第 9 章会用到。
 
