@@ -18,6 +18,7 @@ if hasattr(sys.stdout, "reconfigure"):
 from _fake_model import ScriptedChatModel, reply, tool_call
 from deepagents import SubAgent, create_deep_agent
 from langchain.agents.middleware import TodoListMiddleware
+from langchain.tools import tool
 from langchain_core.messages import HumanMessage
 
 
@@ -94,6 +95,29 @@ print("=" * 78)
 print("③ task 工具：主代理把活派出去")
 print("=" * 78)
 
+# 子代理自己的假模型：先调一次 lookup 工具、再给最终结论（两轮，中间过程留在子代理上下文里）
+m_sub = ScriptedChatModel(
+    script=[
+        tool_call("lookup", {"q": "langgraph checkpoint 机制"}, "s1"),
+        reply("结论：checkpointer 按超步存快照，支持时间旅行。"),
+    ]
+)
+
+
+@tool
+def lookup(q: str) -> str:
+    """查询内部资料库。"""
+    return "（一份 3000 字的 langgraph checkpoint 长文资料……）"
+
+
+researcher = SubAgent(
+    name="researcher",
+    description="负责查资料。当需要外部信息时派给它。",
+    system_prompt="你是调研员，只负责查资料并给出结论，不要改任何文件。",
+    model=m_sub,
+    tools=[lookup],
+)
+
 m_boss = ScriptedChatModel(
     script=[
         tool_call("task", {"description": "查一下 LangGraph 的检查点机制", "subagent_type": "researcher"}, "c1"),
@@ -107,9 +131,15 @@ out = boss.invoke(
     config={"configurable": {"thread_id": "delegate-1"}},
 )
 print(f"  主代理暴露的工具里有 task 吗：{'task' in m_boss.last_bound_tool_names()}")
+print()
+print("  上下文防火墙的实测证据（task 只把最终报告还给主代理）：")
 for msg in out["messages"]:
     if type(msg).__name__ == "ToolMessage":
-        print(f"  [task 返回] {str(msg.content)[:100]}")
+        print(f"  主代理收到的 task 返回（ToolMessage.content，全长 {len(str(msg.content))} 字符）：")
+        print(f"    {str(msg.content)[:80]}")
+print(f"    → 里面没有 lookup 的 3000 字资料，也没有子代理的中间轮次。")
+print(f"  子代理内部实际跑了几轮：{len(m_sub.seen)} 轮（lookup 一次 + 总结一次），")
+print(f"    这 {len(m_sub.seen)} 轮的完整对话只存在于子代理自己的上下文里。")
 print()
 print("  task 的返回是**一份最终报告**，不是子代理的完整对话——")
 print("  子代理的中间过程留在它自己的上下文里，主代理只拿到结论。")

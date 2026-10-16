@@ -11,8 +11,9 @@
  * 运行：pnpm run 16_delegation
  */
 
+import { z } from "zod";
 import { createDeepAgent } from "deepagents";
-import { todoListMiddleware } from "langchain";
+import { todoListMiddleware, tool } from "langchain";
 import { ScriptedChatModel, reply, toolCall } from "./_fakeModel";
 
 // ---------------------------------------------------------------------------
@@ -85,21 +86,48 @@ console.log("=".repeat(78));
 console.log("③ task 工具：主代理把活派出去");
 console.log("=".repeat(78));
 
+// 子代理自己的假模型：先调一次 lookup 工具、再给最终结论（两轮，中间过程留在子代理上下文里）
+const mSub = new ScriptedChatModel({
+  script: [
+    toolCall("lookup", { q: "langgraph checkpoint 机制" }, "s1"),
+    reply("结论：checkpointer 按超步存快照，支持时间旅行。"),
+  ],
+});
+const lookup = tool(
+  async (args: { q: string }) => "（一份 3000 字的 langgraph checkpoint 长文资料……）",
+  { name: "lookup", description: "查询内部资料库。", schema: z.object({ q: z.string() }) },
+);
+const researcher2 = {
+  name: "researcher",
+  description: "负责查资料。当需要外部信息时派给它。",
+  systemPrompt: "你是调研员，只负责查资料并给出结论，不要改任何文件。",
+  model: mSub as any,
+  tools: [lookup],
+};
+
 const mBoss = new ScriptedChatModel({
   script: [
     toolCall("task", { description: "查一下 LangGraph 的检查点机制", subagent_type: "researcher" }, "c1"),
     reply("调研完成，结论如下……"),
   ],
 });
-const boss = createDeepAgent({ model: mBoss as any, subagents: [researcher] as any });
+const boss = createDeepAgent({ model: mBoss as any, subagents: [researcher2] as any });
 const bossOut: any = await boss.invoke(
   { messages: [{ role: "user", content: "帮我调研一下检查点机制" }] },
   { configurable: { thread_id: "delegate-1" } },
 );
 console.log(`  主代理暴露的工具里有 task 吗：${mBoss.lastBoundToolNames().includes("task")}`);
+console.log();
+console.log("  上下文防火墙的实测证据（task 只把最终报告还给主代理）：");
 for (const m of bossOut.messages) {
-  if (m.constructor.name === "ToolMessage") console.log(`  [task 返回] ${String(m.content).slice(0, 100)}`);
+  if (m.constructor.name === "ToolMessage") {
+    console.log(`  主代理收到的 task 返回（ToolMessage.content，全长 ${String(m.content).length} 字符）：`);
+    console.log(`    ${String(m.content).slice(0, 80)}`);
+  }
 }
+console.log(`    → 里面没有 lookup 的 3000 字资料，也没有子代理的中间轮次。`);
+console.log(`  子代理内部实际跑了几轮：${(mSub as any).seen.length} 轮（lookup 一次 + 总结一次），`);
+console.log(`    这 ${(mSub as any).seen.length} 轮的完整对话只存在于子代理自己的上下文里。`);
 console.log();
 console.log("  task 的返回是**一份最终报告**，不是子代理的完整对话——");
 console.log("  子代理的中间过程留在它自己的上下文里，主代理只拿到结论。");

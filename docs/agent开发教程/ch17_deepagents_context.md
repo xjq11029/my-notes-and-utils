@@ -164,7 +164,7 @@ for line in skills_prompt.splitlines()[:16]:
     print("│", line)                                     # 含 Progressive Disclosure 段落
 ```
 
-TypeScript 侧的默认提示不便反射读取，改为把关键原文逐行列出并验证两个中间件可从顶层导入。
+TypeScript 侧的默认提示不便反射读取，改为**手工列出关键原文做对照阅读**（注意：下面循环打印的是手工抄写的英文原文，属**引用回显**而非机制验证——真正被验证的只有第一行的两个导入）。
 
 ```typescript
 import { createSkillsMiddleware, createMemoryMiddleware } from "deepagents";

@@ -12,7 +12,7 @@
 
 这三件事对应的三个典型症状是：「明明设了 `temperature=0`，输出还是飘」、「我就传了个字典，怎么就报错了」、「钱花哪儿了不知道」。
 
-本章只讲**单个模型对象**的创建与调用。它**不涉及**：Agent 循环（第 5 章 `create_agent` 与 Agent Loop）、消息类型与提示词模板的细节（第 3 章 Message 与提示词模板）、结构化输出（第 4 章 结构化输出）、工具与运行时上下文（第 7 章 工具与运行时上下文）。本章是它们共同的前置。
+本章只讲**单个模型对象**的创建与调用，2.1–2.6 六节围着同一个对象转：**创建**两站——2.1 模型初始化的三个角度，2.2 最常用的统一入口 `init_chat_model` 的参数展开；**调用**四站——2.3 `invoke` 的三种入参形态，2.4 返回的 `AIMessage` 结构，2.5 同步 / 异步 / 流式 / 批量四种调用形态，2.6 模型的 `profile` 属性与单次调用的 `config`。`init_chat_model` 与 `invoke` 同属一章，因为它们是同一个对象的两端：**前者把它造出来，后者是它身上最核心的方法**——先造出来，再调用它，就是本章的主线。它**不涉及**：Agent 循环（第 5 章 `create_agent` 与 Agent Loop）、消息类型与提示词模板的细节（第 3 章 Message 与提示词模板）、结构化输出（第 4 章 结构化输出）、工具与运行时上下文（第 7 章 工具与运行时上下文）。本章是它们共同的前置。
 
 ## 二、机制与原理
 
@@ -30,6 +30,8 @@
 *图 3　模型初始化的三个角度*
 
 ### 2.2 `init_chat_model` 的常用参数
+
+2.1 的三个角度里，角度 2（统一入口）是日常默认路径，本节把它展开。先明确一件事：**`init_chat_model()` 返回的是一个模型对象**（如 `ChatOpenAI` 实例）——2.3 起要讲的 `invoke` 等方法，都是这个对象上的方法。造它正是为了调它。
 
 下表回答的问题是：**这个函数到底能配哪些东西，哪些是它自己的参数、哪些只是转发？**
 
@@ -59,6 +61,8 @@ init_chat_model(model=None, *, model_provider=None,
   这份列表会随版本变，别背——拼错时框架会把当前版本的全表打给你。
 
 ### 2.3 `invoke` 的三种入参形态
+
+不管 2.1 走哪个角度、2.2 配了哪些参数，拿到的都是**同一个模型对象**：`init_chat_model()` 返回的，就是 2.1 角度 1 里直接选类的那个 `ChatXxx` 实例。从这里开始讲「用」——**`invoke` 是这个模型对象的核心方法**：给它输入，还你一个 `AIMessage`（字段结构见 2.4）。
 
 `invoke` 接受三种写法。下表回答的问题是：**这三种写法真的等价吗，为什么要有三种？**
 
@@ -98,7 +102,7 @@ response_metadata={'model_name': 'gpt-5.4-mini-2026-03-17',
 usage_metadata={'input_tokens': 16, 'output_tokens': 15, 'total_tokens': 31, ...}
 ```
 
-`finish_reason` 有两个常见取值：`stop`（正常结束）与 `length`（撞到 `max_tokens` 被截断）。看到「回答说到一半没了」，先查这个字段，再看 `max_tokens`。
+`finish_reason` 有两个常见取值：`stop`（正常结束）与 `length`（撞到 `max_tokens` 被截断）。看到「回答说到一半没了」，先查这个字段，再看 `max_tokens`。agent 语境下还有第三个关键取值 `tool_calls`（模型决定调工具、把话筒交给框架）——LangChain 会把它转成 `AIMessage` 的 `tool_calls` 字段，正是第 5 章 Agent Loop「继续转还是停」的判据。
 
 ### 2.5 四种调用形态
 
@@ -119,6 +123,8 @@ usage_metadata={'input_tokens': 16, 'output_tokens': 15, 'total_tokens': 31, ...
 
 ### 2.6 `profile` 属性与 `config` 参数
 
+调用方法看完，还有两样东西挂在同一个对象上：一样是它**自带**的（`profile`，造出来时就定了），一样是每次调用时**临时传**的（`config`）。
+
 **`profile` 是模型的「能力画像」**：上下文窗口多大、支不支持工具调用、支不支持结构化输出。实测（`langchain-openai` 1.6.5，**构造层实测，未联网**）：
 
 ```text
@@ -138,7 +144,7 @@ init_chat_model('openai:gpt-4o').profile（节选）
 | `metadata` | 任意键值对（`user_id`、`session_id`…） | 透传到回调 |
 | `callbacks` | 回调处理器 | 触发 `on_chat_model_start` |
 | `max_concurrency` | `batch` 的最大并发数 | 未实测 |
-| `recursion_limit` | 图执行的递归深度上限 | 未实测（第 11 章 LangGraph 图与状态用得上） |
+| `recursion_limit` | 图执行的递归深度上限 | 未实测（LangGraph 执行期生效：agent 编译成图后循环轮数超限会拦截执行，不绑定某一章） |
 | `configurable` | 运行时覆盖模型参数 | 未实测；需初始化时声明 `configurable_fields` |
 
 前四项的用途集中在**可观测**上：它们不进消息、不影响模型输出，只在追踪系统（如 LangSmith）里可见。第 10 章 可观测与评测会接着用它们。实测还发现框架会往 `metadata` 里**自动补**几个键：`ls_provider`、`ls_model_type`、`ls_integration`、`lc_versions`（JS 侧叫 `versions`）——这些不是你写的，是给追踪用的。

@@ -61,6 +61,20 @@
 
 wrap-style 的名字来源就是它的形态：`handler` 是「链条剩下的部分」，你不调它，后面的钩子和真正的模型调用就都不会发生——这是实现拦截、缓存、短路的地方。
 
+「洋葱模型」说的是多个 wrap-style 的**叠加形态**：请求像穿进洋葱，从最外层逐层穿到中心（真正的模型 / 工具调用）；响应再从中心逐层穿出来。每一层都能在**进**的路上改写请求、在**出**的路上加工响应。注册靠前的中间件裹在外层——先进后出，和函数调用栈的直觉一致。没写过 Express / Koa 的读者可以想象「层层套娃的快递包装：拆的时候从外到内，装回去从内到外」。
+
+「node-style 不能改 request，但能改变模型看到的输入」这半句容易读成空话，看一个 3 行的最小示意就明白了——`before_model` 钩子里**返回状态更新**，而不是碰 `request`：
+
+```python
+from langchain_core.messages import SystemMessage   # 与 3.4 节示例同一环境
+
+@before_model
+def inject_notice(state, runtime):
+    return {"messages": [SystemMessage("今日库存以临时表为准")]}  # 返回值经 reducer 并入状态
+```
+
+模型下一轮看到的 `messages` 里多了这条系统消息——请求没被「改」，但请求的**原料**（状态）变了。这就是「绕一层」的路径：node-style 改状态，wrap-style 改请求。（此段为写法示意；「返回状态更新可改变模型输入」这一行为的实测证据见第 9 章 `SummarizationMiddleware`——它正是走 `before_model` 写回状态实现的。）
+
 ### 3.3 六大能力域 × 预置中间件
 
 下表回答的问题是：**我想要的能力，官方是不是已经有现成的了？**
@@ -70,7 +84,7 @@ wrap-style 的名字来源就是它的形态：`handler` 是「链条剩下的�
 | 上下文治理 | `SummarizationMiddleware`、`ContextEditingMiddleware`（配合 `ClearToolUsesEdit`） | `langchain.agents.middleware` | 第 9 章 |
 | 模型调用治理 | `PatchToolCallsMiddleware` | 默认装入 agent 图 | 本章 |
 | 工具执行治理 | `ToolErrorMiddleware` | `langchain.agents.middleware` | 第 7 章 |
-| 人在回路 | `HumanInTheLoopMiddleware` | `langchain.agents.middleware` | 第 13 章 |
+| 人在回路 | `HumanInTheLoopMiddleware` | `langchain.agents.middleware` | 第 13 章（LangGraph `interrupt` 路线；该中间件本书不展开） |
 | 规划与委派 | `TodoListMiddleware` / `SubAgentMiddleware` | `langchain.agents.middleware` / **`deepagents`** | 第 16 章 |
 | 文件系统与记忆 | `FilesystemMiddleware`、`MemoryMiddleware`、`SkillsMiddleware` | **`deepagents`** | 第 15 / 17 章 |
 
@@ -89,7 +103,7 @@ wrap-style 的名字来源就是它的形态：`handler` 是「链条剩下的�
 | 类 / 对象 | 继承 `AgentMiddleware`，覆写同名方法 | 传一个对象字面量，字段名用 camelCase |
 | 改写模型请求 | `handler(request.override(model=...))` | `handler({ ...request, model })` |
 
-**改写请求的写法差异是双语言清单第 5 条**，也是最容易在两边复制粘贴时写错的一行：
+**改写请求的写法差异是最容易在两边复制粘贴时写错的一行**：
 
 - Python 侧是 `request.override(model=...)`——官方推荐写法。直接改 `request.model` 也能跑，但 `override` 会保留链上其它中间件的语义；
 - JS 侧**没有** `request.override()`，约定是**展开原请求、覆盖要改的字段**：`handler({ ...request, model })`。
@@ -216,7 +230,7 @@ wrap_* 钩子能改写请求：动态切换模型
 
 **6. 包归属与导入路径。** `FilesystemMiddleware`、`SubAgentMiddleware` 在 `deepagents` 而不是 `langchain.agents.middleware`；`SkillsMiddleware` 从 `deepagents.middleware` 导入（均为实测结论）。
 
-**7. 上下文类中间件的参数形状两语言不同。** Python 是位置参数（`trigger=("messages", 8)`），JS 是对象（`trigger: { messages: 8 }`）——双语言清单第 7 条，第 9 章会用到。
+**7. 上下文类中间件的参数形状两语言不同。** Python 是位置参数（`trigger=("messages", 8)`），JS 是对象（`trigger: { messages: 8 }`）——第 9 章会用到。
 
 **8. 未实测范围。** 本章实测只覆盖「六个钩子的顺序」与「`wrap_model_call` 换模型」两件事（脚本化假模型 + `langchain` 1.4.2 / JS 侧 `langchain` 1.5.11）。真实模型下的重试、超时、缓存行为，以及需要真实 provider 的中间件（如原生结构化输出）**未实测**。
 

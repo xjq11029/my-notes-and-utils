@@ -87,7 +87,7 @@ LangChain、LangGraph、Deep Agents 这三个名字在彼此的文档里反复�
 
 ### 2.4 Python / JavaScript 双 SDK 对照
 
-下表回答的问题是：**我在 Python 里学会的写法，换成 TypeScript 要改哪几个字？**
+下表回答的问题是：**我在 Python 里学会的写法，换成 TypeScript 要改哪几个字？** 初读时**只需看命名规律**（Python 的 snake_case → JS 的 camelCase、装饰器 → 对象字面量），表中术语（中间件、`HarnessProfile`、结构化输出策略）都是后续章节的主角，届时会逐一展开——现在不用懂。
 
 | # | 主题 | Python | TypeScript |
 |---|---|---|---|
@@ -120,7 +120,7 @@ pip install langchain langgraph deepagents
 pnpm add langchain @langchain/langgraph deepagents
 ```
 
-三处**可选**依赖需要单独装，官方文档常把它们当成默认就有（详见下一节）：
+两处**可选**依赖需要单独装，官方文档常把它们当成默认就有（详见下一节）：
 
 ```bash
 pip install "langchain[mcp]"        # MCP 接入，beta

@@ -54,7 +54,7 @@ handoff 不需要调度者节点反复介入，交棒动作发生在**节点内�
 
 ### 3.1 supervisor：把 agent 当节点
 
-Python 侧直接把两个编译好的 agent 当节点加进父图，用条件边做路由。
+Python 侧直接把两个编译好的 agent 当节点加进父图，用条件边做路由。注意 **db / mail 完成后的边不是指向 END，而是指回 `supervisor`**——「交出去还能收回来」正是 supervisor 区别于 handoff 的定义性特征（见 2.1 节三种拓扑）。
 
 ```python
 from langchain.agents import create_agent
@@ -71,6 +71,8 @@ class TopState(TypedDict):
 def supervisor(state: TopState) -> dict:
     """极简路由：真实项目里这里通常是一次模型调用。"""
     last = str(state["messages"][-1].content)
+    if "查到" in last or "已发" in last:      # 子代理干完活的标志 → 收回控制权并结束
+        return {"route": "end"}
     return {"route": "mail" if "邮件" in last else "db"}
 
 top = (
@@ -79,12 +81,21 @@ top = (
     .add_node("db", db_agent)      # ← 已编译的 agent 直接当节点
     .add_node("mail", mail_agent)
     .add_edge(START, "supervisor")
-    .add_conditional_edges("supervisor", lambda s: s["route"], {"db": "db", "mail": "mail"})
-    .add_edge("db", END).add_edge("mail", END)
+    .add_conditional_edges("supervisor", lambda s: s["route"],
+                           {"db": "db", "mail": "mail", "end": END})
+    .add_edge("db", "supervisor")  # ← 回边：干完活把控制权交还 supervisor
+    .add_edge("mail", "supervisor")
     .compile()
 )
 out = top.invoke({"messages": [{"role": "user", "content": "帮我查一下数据库"}]})
-print(out["route"], out["messages"][-1].content)     # db 查到 3 行。
+print(out["route"], out["messages"][-1].content)     # end 查到 3 行。
+```
+
+实测输出（supervisor 被调用两次，中间夹着 db 的一整轮 agent loop）：
+
+```text
+输入 '帮我查一下数据库' → route=end  最终回复='查到 3 行。'
+  supervisor 决策序列 = ['db', 'end']   ← 派出去 → 收回来 → 结束
 ```
 
 TypeScript 侧唯一的结构差异：**`createAgent` 返回的是包装对象，要当节点必须取 `.graph`**。
@@ -103,14 +114,18 @@ const TopState = Annotation.Root({
 
 const top = new StateGraph(TopState)
   .addNode("supervisor", (s: any) => ({
-    route: String(s.messages[s.messages.length - 1].content).includes("邮件") ? "mail" : "db",
+    route: String(s.messages[s.messages.length - 1].content).includes("查到")
+        || String(s.messages[s.messages.length - 1].content).includes("已发")
+      ? "end"
+      : String(s.messages[s.messages.length - 1].content).includes("邮件") ? "mail" : "db",
   }))
   // ⚠️ JS 侧要把 agent 的 .graph 拿出来当节点（Python 侧可直接传 agent）
   .addNode("db", (dbAgent as any).graph)
   .addNode("mail", (mailAgent as any).graph)
   .addEdge(START, "supervisor")
-  .addConditionalEdges("supervisor", (s: any) => s.route, { db: "db", mail: "mail" })
-  .addEdge("db", END).addEdge("mail", END)
+  .addConditionalEdges("supervisor", (s: any) => s.route, { db: "db", mail: "mail", end: END })
+  .addEdge("db", "supervisor")   // ← 回边：干完活把控制权交还 supervisor
+  .addEdge("mail", "supervisor")
   .compile();
 const out: any = await top.invoke({ messages: [new HumanMessage("帮我查一下数据库")] });
 console.log(out.route, out.messages.at(-1).content);

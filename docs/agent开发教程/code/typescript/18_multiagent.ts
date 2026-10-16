@@ -50,27 +50,36 @@ const TopState = Annotation.Root({
   route: Annotation<string>({ default: () => "" }),
 });
 
+const SUPERVISOR_LOG: string[] = [];   // 观测 supervisor 的决策序列
+const supervisor = (s: any) => {
+  const last = String(s.messages[s.messages.length - 1].content);
+  const route = last.includes("查到") || last.includes("已发") ? "end"   // 干完活 → 收回控制权并结束
+    : last.includes("邮件") ? "mail" : "db";
+  SUPERVISOR_LOG.push(route);
+  return { route };
+};
+
 const top = new StateGraph(TopState)
-  .addNode("supervisor", (s: any) => ({
-    route: String(s.messages[s.messages.length - 1].content).includes("邮件") ? "mail" : "db",
-  }))
+  .addNode("supervisor", supervisor)
   // ⚠️ JS 侧要把 agent 的 `.graph` 拿出来当节点（Python 侧可直接传 agent）
   .addNode("db", (dbAgent as any).graph)
   .addNode("mail", (mailAgent as any).graph)
   .addEdge(START, "supervisor")
-  .addConditionalEdges("supervisor", (s: any) => s.route, { db: "db", mail: "mail" })
-  .addEdge("db", END)
-  .addEdge("mail", END)
+  .addConditionalEdges("supervisor", (s: any) => s.route, { db: "db", mail: "mail", end: END })
+  .addEdge("db", "supervisor")   // ← 回边：子代理干完活，控制权交还 supervisor
+  .addEdge("mail", "supervisor") // ← 回边（supervisor 的定义性特征就是这两条）
   .compile();
 
 for (const text of ["帮我查一下数据库", "帮我发个邮件"]) {
+  SUPERVISOR_LOG.length = 0;
   const out: any = await top.invoke({ messages: [new HumanMessage(text)] });
   const last = out.messages[out.messages.length - 1];
   console.log(`  输入 ${JSON.stringify(text).padEnd(18)} → route=${out.route.padEnd(5)} 最终回复=${JSON.stringify(String(last.content))}`);
+  console.log(`    supervisor 决策序列 = [${SUPERVISOR_LOG.map((r) => `'${r}'`).join(", ")}]   ← 派出去 → 收回来 → 结束`);
 }
 console.log();
 console.log("  ⚠️ createAgent 返回的就是**已编译的图**，所以可以直接当节点用。");
-console.log("     副作用：它变成了子图，流式输出需要 subgraphs: true（见第 8 章示例）。");
+console.log("     副作用：它变成了子图，流式输出需要 subgraphs: true（见第 13 章示例）。");
 console.log("     记得给每个 agent 起 name，否则 trace 里分不清是谁在跑。");
 
 // ---------------------------------------------------------------------------

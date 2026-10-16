@@ -2,7 +2,7 @@
 
 ## 一、这一章要解决的问题
 
-第 5–9 章都在「自己拼」：循环要配、工具要写、上下文要管、子代理要自己搭。**Deep Agents** 走的是另一条路——它在 `create_agent` 之上**预装**一整套常用能力：虚拟文件系统、子代理委派、技能与记忆、待办规划。
+第 5–13 章都在「自己拼」：循环要配、工具要写、上下文要管，多智能体协作也要到第 18 章才自己搭。**Deep Agents** 走的是另一条路——它在 `create_agent` 之上**预装**一整套常用能力：虚拟文件系统、子代理委派、技能与记忆、待办规划。
 
 预装带来三个必须回答的问题：
 
@@ -97,7 +97,19 @@
 
 ### 2.5 HarnessProfile：声明式裁剪，而不是自己拼中间件
 
-预装能力的代价是「不想要的也塞进来了」。`HarnessProfile` 让你**声明式地**裁剪，而不是自己把中间件拆开重拼——好处是内置能力升级时，你的 profile 不用跟着改。
+预装能力的代价是「不想要的也塞进来了」。`HarnessProfile` 让你**声明式地**裁剪，而不是自己把中间件拆开重拼——好处是内置能力升级时，你的 profile 不用跟着改。两句对照就能看出差别：
+
+```python
+# 自己拆开重拼：deepagents 升级、默认栈加了新中间件时，这段不会自动享受到
+agent = create_agent(model, tools=[...],
+                     middleware=[FilesystemMiddleware(...), TodoListMiddleware()])  # 逐个拼，漏一个就丢一项能力
+
+# HarnessProfile 声明式裁剪：只说「不要什么」，其余跟着默认栈走
+agent = create_deep_agent(model, tools=[...],
+                          profile=HarnessProfile(excluded_tools=frozenset({"edit_file"})))
+```
+
+上面的差别是写法示意（不新增实测声明；两行 API 均为本章实测出现过的形态）。
 
 官方文档只提到了 `excluded_tools` 与 `excluded_middleware` 两个字段，**实测一共 7 个**（实测签名）：
 

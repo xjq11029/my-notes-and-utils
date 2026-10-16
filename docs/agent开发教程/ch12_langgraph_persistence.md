@@ -70,7 +70,7 @@
 | 历史快照 | `graph.get_state_history(cfg)` | `await graph.getStateHistory(cfg)` | **异步迭代器**，从新到旧 |
 | 改写历史 | `graph.update_state(cfg, values)` | `await graph.updateState(cfg, values)` | 返回**新分支**的 config |
 
-两个字段要会读：`values` 是这一份快照的完整状态；`next` 是**待执行节点**——跑完的线程 `next` 为空，这是判断「图是否停在半路」最可靠的信号。**时间旅行（time travel）** 就是「拿一个历史快照的 config，改掉几个字段，再从那里重放」。它**新建分支**，原线程的历史一条都不动。这使它成为调试 agent 最有力的一招：把 agent 走错的那一步改回正确状态，看它接下来会不会又走错。
+两个字段要会读：`values` 是这一份快照的完整状态；`next` 是**待执行节点**——跑完的线程 `next` 为空，这是判断「图是否停在半路」最可靠的信号。**时间旅行（time travel）** 就是「拿一个历史快照的 config，改掉几个字段，再从那里重放」。它**新建分支**，原线程的历史一条都不动——语义上和 **git 的 branch 完全同构**：历史是只读的，你只是在某个旧 commit 上开了条新分支往前走。这使它成为调试 agent 最有力的一招：把 agent 走错的那一步改回正确状态，看它接下来会不会又走错。
 
 ![图 23　时间旅行：选中历史检查点、改写状态、从改写点新建分支重放，原线程不受影响](assets/23_time_travel.png)
 
@@ -88,7 +88,7 @@ Store 的模型很简单：**命名空间是一个字符串元组，任意层数
 | 删除 | `delete(namespace, key)` | `await store.delete(ns, key)` | |
 | 列命名空间 | `list_namespaces(*, prefix=None, suffix=None, max_depth=None, limit=100, offset=0)` | `await store.listNamespaces({ prefix?, suffix?, maxDepth?, limit?, offset? })` | 返回命名空间路径列表 |
 
-> 上表中位置参数形式（`put` / `get` / `search(prefix)` / `list_namespaces(prefix=...)`）是本机实测跑过的；`query` / `filter` / `limit` 等关键字选项来自官方 Stores 页，未逐项实跑；`delete` 的签名取自 `BaseStore` 定义（JS 侧类型定义 `@langchain/langgraph-checkpoint` 1.1.5），示例中未单独调用。
+> 上表中位置参数形式（`put` / `get` / `search(prefix)` / `list_namespaces(prefix=...)`）是本机实测跑过的；`delete` 已在下面示例中调用过一次（删单个键）；`query` / `filter` / `limit` 等关键字选项来自官方 Stores 页（JS 侧类型定义 `@langchain/langgraph-checkpoint` 1.1.5），未逐项实跑。
 
 **`search` 是前缀匹配，这是最容易踩的一处**：数据写进 `("alice", "memories")` 和 `("alice", "notes")` 之后，`search(("alice",))` 会把两个命名空间下的条目**全都捞出来**（实测命中 3 条），而不是只返回 `("alice",)` 这一层。想要精确一层，就把命名空间写细：`search(("alice", "memories"))`。
 
@@ -146,6 +146,22 @@ forked = graph.update_state(target.config,             # 用历史快照的 conf
                             {"n": 100, "trail": ["人工改写：从 100 开始"]})
 print(graph.invoke(None, forked))                      # 从改写点往后重放 → n=101
 # 原线程 cfg 的历史一条都没动——时间旅行是「开分支」，不是「改历史」
+
+# ③-bis 三节点链：让「回到中间某步、重走后面多步」看得见（单节点图重放只有一步）
+def bump(st):   n = st["n"] + 1;  return {"n": n, "trail": [*st.get("trail", []), f"bump→{n}"]}
+def double(st): n = st["n"] * 2;  return {"n": n, "trail": [*st.get("trail", []), f"double→{n}"]}
+def tag(st):    return {"trail": [*st.get("trail", []), "tag✓"]}
+
+chain = (StateGraph(Counter).add_node("bump", bump).add_node("double", double).add_node("tag", tag)
+         .add_edge(START, "bump").add_edge("bump", "double").add_edge("double", "tag").add_edge("tag", END)
+         .compile(checkpointer=InMemorySaver()))
+cfg2 = {"configurable": {"thread_id": "chain-demo"}}
+chain.invoke({"n": 1, "trail": []}, cfg2)             # bump→2, double→4, tag✓
+
+mid = next(s for s in chain.get_state_history(cfg2)   # 选中 next=("double",) 的快照
+           if s.next == ("double",))                  # → bump 刚跑完、double 还没跑
+forked2 = chain.update_state(mid.config, {"n": 10, "trail": ["人工改写：n=10"]})
+chain.invoke(None, forked2)                           # 只重走 double、tag 两步
 ```
 
 TypeScript 侧一一对应，注意 `getStateHistory` 是**异步迭代器**，必须 `for await` 收下来再取下标。
@@ -182,6 +198,19 @@ console.log(await graph.invoke(null, forked));                  // 从改写点�
 ```
 
 **四个数字要记住**：第 1 次 `n=1`；第 2 次传 `{}` → `n=2`（从检查点状态**重新执行**了那个节点）；第 3 次传 `None` / `null` → `n=2`（**空操作**，已跑完的线程没有待执行任务，图一步都没跑）；第 4 次传 `{n: 100}` → 默认 reducer 覆盖掉检查点里的 2，再 +1 得 `101`。`trail` 一直在变长，因为四次输入里从没给过 `trail`——它始终沿用检查点里的值。这就是第 11 章那条结论的另一面：**输入里出现的字段按各自的 reducer 合并，没出现的保留检查点值**。
+
+**「从最早往回数第 2 个」怎么换算**：`get_state_history` 返回顺序是**新 → 旧**，所以 `snapshots[-2]` 取的是**倒数第二个**。上面四次 `invoke` 一共落了 9 个快照（含 START 那个 `step=-1` 的空快照），实际选中的是 `step=0, n=0`——即第一次 `invoke` 写入输入、但 `step` 节点还没跑的那个快照。**为什么不直接取 `[-1]`**：`[-1]` 是最早的 START 快照（`n=None`），没有可改写的状态；选「输入已写入、节点未执行」的这一格，改写后再 `invoke(None)` 恰好重放一遍 `step` 节点。
+
+三节点链的实测输出（两语言一致）把「时间旅行」真正演示出来了——**单节点图重放只有一步，看不出来「跳回中间」**：
+
+```text
+原始执行：n = 4, trail = ['bump→2', 'double→4', 'tag✓']
+选中中间快照（next=('double',)，即 bump 刚跑完）：n = 2
+从该点重放（重走 double、tag 两步）：n = 20, trail = ['人工改写：n=10', 'double→20', 'tag✓']
+→ 只重走了 double→tag 两步，bump 没有重跑；原线程 chain-demo 的历史不受影响。
+```
+
+读法：`mid` 选中了 `next=("double",)` 的快照——**`next` 字段就是「重放从哪继续」的落点**；`update_state` 改成 `n=10` 后重放，`bump` 一步都没有出现在新 `trail` 里，因为重放是从它**之后**开始的。
 
 ### 3.2 Store：跨线程记忆与前缀搜索
 

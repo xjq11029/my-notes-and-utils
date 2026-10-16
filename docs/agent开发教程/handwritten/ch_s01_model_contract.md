@@ -298,7 +298,7 @@ def _invoke_stream(self, session, **kwargs) -> InvokeResult:
 
 **坑 4：SDK 返回的不是 dict，是对象。** OpenAI SDK 用 pydantic 模型包装响应，`resp["choices"]` 会直接报 `TypeError`，`json.dumps(resp)` 也不行。要么按属性访问（`resp.choices[0].message`），要么先归一化——`agent/model.py` 的 `_to_plain` 用 `model_dump()` 递归转换， FakeClient 用 `SimpleNamespace` 模拟同样的属性访问形状。**在边界处归一化**，内层代码就只面对 dict。
 
-顺带一个前瞻：流式下的 `tool_calls` 更阴险——`arguments` 是跨 chunk 的分片，必须按 `index` 累积拼接，流结束后才是完整 JSON。细节在 S4 展开。
+顺带一个前瞻：流式下的 `tool_calls` 更阴险——`arguments` 是跨 chunk 的分片，必须按 `index` 累积拼接，流结束后才是完整 JSON。细节在 S6（ReAct 循环的流式分片一节）展开。
 
 ## 五、关键结论
 

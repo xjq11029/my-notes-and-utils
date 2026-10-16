@@ -338,26 +338,7 @@ TypeScript 侧：
 ```typescript
 import { z } from "zod";
 import { createAgent, HumanMessage, toolStrategy } from "langchain";
-import { AIMessageChunk } from "@langchain/core/messages";
 import { ScriptedChatModel, toolCall } from "./_fakeModel";   // 见 code/README.md
-
-// ⚠️ withStructuredOutput 的解析器要求 AIMessageChunk，而公共假模型返回 AIMessage；
-//    这里本地派生一个只改这一处的子类，不动公共假模型。
-class ChunkScriptedChatModel extends ScriptedChatModel {
-  async _generate(messages: any[]): Promise<any> {
-    (this as any).seen.push([...messages]);
-    const idx = Math.min((this as any).cursor, this.script.length - 1);
-    (this as any).cursor += 1;
-    const msg = this.script[idx];
-    const calls: any[] = (msg as any).tool_calls ?? [];
-    const chunk = new AIMessageChunk({
-      content: msg.content,
-      tool_calls: calls,
-      tool_call_chunks: calls.map((c) => ({ name: c.name, args: JSON.stringify(c.args), id: c.id, index: 0, type: "tool_call_chunk" })),
-    });
-    return { generations: [{ text: String(chunk.content), message: chunk }] };
-  }
-}
 
 const Person = z.object({
   name: z.string().describe("姓名"),
@@ -365,7 +346,9 @@ const Person = z.object({
   occupation: z.string().describe("职业"),
 }).meta({ title: "Person", description: "人物信息" });   // title 决定 agent 侧策略工具名
 
-// ① 默认工具名是 "extract"，与 Python 不同
+// ⚠️ withStructuredOutput 的解析器要求 AIMessageChunk，而公共假模型返回 AIMessage；
+//    这里本地派生 ChunkScriptedChatModel（只改返回类型这一处，15 行子类定义见
+//    code/typescript/04_structured_output.ts，坑 7 详述原因），正文不再展开。
 const m = new ChunkScriptedChatModel({ script: [toolCall("extract", { name: "张三", age: 30, occupation: "软件工程师" }, "c1")] }) as any;
 console.log(await m.withStructuredOutput(Person).invoke("张三是一名 30 岁的软件工程师"));
 

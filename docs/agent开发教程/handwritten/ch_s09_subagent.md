@@ -134,7 +134,7 @@ def make_create_agent_tool(agent_factory) -> object:
 - **`agent_factory` 闭包**：`create_agent` 不直接 `Agent()`，而是调用外部传入的工厂。这让子代理的模型客户端、监听器等配置完全由组装方决定，工具本身保持无状态——同一个工具，装配出测试环境或生产环境的子代理；
 - **`sub.invoke(...)`**：子代理内部跑的是**和主代理一模一样的 ReAct 循环**（见 `agent/agent.py` 的 `invoke`）。子代理不是新物种，只是又一个普通 Agent；
 - **报告拼装**：`turns` 是 ReAct 轮数，`len(sub.session.messages)` 是子代理会话的消息总数；`results[-1]` 取的是最后一次模型输出——也就是子代理自己的「最终回答」；
-- **参数 schema**：`@tool(agents=...)` 的描述字符串直接进入工具 schema，模型靠它理解「传一个数组、每项有 name 和 query」。工具描述质量就是子代理系统的 Prompt Engineering（下一章的五维之一）。
+- **参数 schema**：`@tool(agents=...)` 的描述字符串直接进入工具 schema，模型靠它理解「传一个数组、每项有 name 和 query」。工具描述质量就是子代理系统的 Prompt Engineering（S11 五维之一）。
 
 顺带回看子代理跑的循环本身（代码摘自 `agent/agent.py`，节选）：
 

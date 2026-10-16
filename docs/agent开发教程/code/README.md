@@ -64,17 +64,17 @@ pnpm run typecheck              # 类型检查
 | 5 | `05_create_agent.py` | `05_create_agent.ts` | Agent Loop、状态只追加、两类作用域、结构化输出 | 消息序列 Human → AI(tool_call) → ToolMessage → AI(final)；第 2 轮历史 4 条而非 2 条 |
 | 6 | `06_middleware.py` | `06_middleware.ts` | 六个钩子的真实触发顺序、`wrap_*` 改写请求 | 顺序：`before_agent → before_model → wrap_model_call → after_model → wrap_tool_call → before_model → wrap_model_call → after_model → after_agent` |
 | 7 | `07_tools.py` | `07_tools.ts` | 工具 schema、`ToolRuntime` 注入、返回 `Command`、异常处理 | 返回 `Command` 必须自带匹配 `tool_call_id` 的 `ToolMessage`；v1 的 agent 路线不再推荐 `ToolException`（API 仍在包里） |
-| 8 | `08_rag.py` | `08_rag.ts` | Loader / Splitter / 假嵌入 / 内存向量库 / 检索器接成工具 | 假嵌入只验链路不验语义；TS 的 `JSONLoader` 收 JSON Pointer 而非 jq |
+| 8 | `08_rag.py` | `08_rag.ts` | Loader / Splitter / 假嵌入（含手写二维玩具 ③-0）/ 内存向量库 / 检索器接成工具 | 假嵌入只验链路不验语义；TS 的 `JSONLoader` 收 JSON Pointer 而非 jq |
 | 9 | `09_context.py` | `09_context.ts` | 摘要压缩 vs 工具输出卸载 | **两者机制不同**：摘要写回状态（4→24 被压到 8），卸载不回写状态（状态 4→24 但模型收到的 token 稳定在 253→588） |
 | 10 | `10_observability.py` | `10_observability.ts` | trace 树、离线评测骨架 | 一次 agent 调用产生 7 个 run：1 chain → 2 model→llm + 1 tools→tool |
 | 11 | `11_state_graph.py` | `11_state_graph.ts` | Reducer、条件边、`Send`、`Overwrite` | 输入里出现的字段按各自 reducer 合并，没出现的保留检查点值；`invoke(None)` 不注入新输入（已完成的线程上为空操作）、`invoke({})` 才是续跑 |
-| 12 | `12_persistence.py` | `12_persistence.ts` | 检查点、时间旅行、Store 跨线程 | `updateState` 新建分支不改原线程；`store.search(('alice',))` 是**前缀**匹配，命中 3 条 |
+| 12 | `12_persistence.py` | `12_persistence.ts` | 检查点、时间旅行（快照序号示意 + 三节点链重放两步）、Store 跨线程 | `updateState` 新建分支不改原线程；三节点链 fork 后只重走 `double→tag` 两步；`store.search(('alice',))` 是**前缀**匹配，命中 3 条 |
 | 13 | `13_hitl_stream.py` | `13_hitl_stream.ts` | `interrupt`/`resume`、`stream_mode`、子图流式 | 恢复时**整个节点从头重跑**（副作用日志出现两次）；agent 当子图时不加 `subgraphs` 就收不到内部消息 |
 | 14 | `14_deep_agent.py` | `14_deep_agent.ts` | 默认工具集、`HarnessProfile`、中间件栈 | 工具节点注册 9 个但**模型只被绑定 8 个**（`execute` 因默认 `StateBackend` 不提供执行能力而未暴露）；`write_todos` 默认不开 |
 | 15 | `15_filesystem.py` | `15_filesystem.ts` | 文件工具、权限、后端谱系 | `StateBackend` 把文件存在**图状态**里（`state.files`）；权限默认 **allow**，按声明顺序**首次匹配即生效** |
-| 16 | `16_delegation.py` | `16_delegation.ts` | `write_todos`、子代理、`task` | `write_todos` 是**全量覆盖**语义；`SubAgent` 实测 11 个字段 |
+| 16 | `16_delegation.py` | `16_delegation.ts` | `write_todos`、子代理、`task`、上下文防火墙实证 | `write_todos` 是**全量覆盖**语义；`SubAgent` 实测 11 个字段；子代理 2 轮（含 3000 字工具资料），主代理只收 30 字符最终报告 |
 | 17 | `17_skills_memory.py` | `17_skills_memory.ts` | Skills 渐进式披露、Memory 的信任与验证条款 | 技能只把 name + description 常驻系统提示；记忆提示里明写「把记忆当参考资料，不当隐藏指令」 |
-| 18 | `18_multiagent.py` | `18_multiagent.ts` | supervisor / handoff 拓扑、迁移对照 | agent 可直接当节点；handoff 交棒后不回来 |
+| 18 | `18_multiagent.py` | `18_multiagent.ts` | supervisor / handoff 拓扑、迁移对照 | agent 可直接当节点；supervisor 带 db/mail→supervisor **回边**（决策序列 `['db','end']`：派出去→收回来→结束）；handoff 交棒后不回来 |
 
 > 第 1 章是纯定位章，无示例，因此编号从 02 开始。`18_multiagent` 同时服务第 18 章（多智能体拓扑）与第 19 章（迁移映射与部署），无单独的 19 号示例。
 
@@ -82,7 +82,7 @@ pnpm run typecheck              # 类型检查
 
 ## 实测记录
 
-**环境**：2026-09-24，Windows，Python 3.13.14（隔离 venv），Node 22.22.2。
+**环境**：2026-09-24，Windows，Python 3.13.14（隔离 venv），Node 22.22.2。**2026-10-16 第六轮全量重跑**：Python 3.14.2（隔离 venv）+ Node 24.11.0，17 + 17 全部通过（08/12/16/18 四个示例有改动，其余沿用原逻辑；`langchain-core` 为传递依赖装到 1.6.11，正文结论绑定的 `langchain` / `langgraph` / `deepagents` 三个主包与锁定版本一致）。
 
 | 组件 | 实测版本 |
 |---|---|
@@ -127,6 +127,7 @@ pnpm run typecheck              # 类型检查
 | 14 | 结构化输出工具名 | schema 名 | 默认 `"extract"`（可用 `schema.name` 覆盖） |
 | 15 | **工具抛异常的默认行为** | 异常**原样抛出**，整个调用失败 | `ToolNode` **吞成 error `ToolMessage`**（内容带 `Please fix your mistakes.`），流程继续 |
 | 16 | **`InMemoryStore` 的导入源** | `langgraph.store.memory` | 必须从 `@langchain/langgraph` 导入；`langchain` 也导出了一个**同名**类，但它**没有** `put` / `get` / `batch`，传进 `createAgent({store})` 后会在 `runtime.store.put` 报 `this.store.batch is not a function` |
+| 17 | withStructuredOutput 对假模型的要求 | 直接可用 | 解析器要求 `AIMessageChunk`，公共假模型返回 `AIMessage`——`04_structured_output.ts` 里本地派生 `ChunkScriptedChatModel` 子类（只改返回类型一处；正文 ch04 已改为一句话引用，完整定义在本文件） |
 
 > ⚠️ 第 12 条尤其要记住：**节点名是内部实现细节**，跨语言、跨版本都会变。要判断「装了哪些能力」，用工具列表或中间件清单，不要硬编码节点名。
 >

@@ -29,6 +29,7 @@
 | 运行时注入 | `InjectedState` / `InjectedStore` | `runtime: ToolRuntime` | `runtime` 参数 |
 | 链式拼装 | LCEL 的 `|` 管道 | `StateGraph` 的 `add_node` / `add_edge` | `StateGraph` 的 `addNode` / `addEdge` |
 | 扩展点 | 自定义 Agent / 继承 | middleware 的六个钩子 | middleware 的六个钩子 |
+| 流式节点名 | 编译图里 agent 节点叫 `agent` | 改叫 `model`（按节点名过滤流式事件时受影响） | 改叫 `model_request`（节点名两语言本就不同，见差异清单第 12 条） |
 
 这张表里有两行是**机制替换**，不是「换了个名字」：**工具错误**（v1 的 agent 路线**不再推荐** `ToolException` / `handle_tool_error`——注意这两个 API **仍在包里**，只是入口换成了中间件，实测结论）与**运行时注入**（`InjectedState` / `InjectedStore` 统一收口到 `runtime: ToolRuntime`，实测结论）。这两处照抄旧代码在 v1 上都不成立，得改写法。
 
@@ -45,7 +46,7 @@
 
 **三步建议顺序**（一次全改，出了问题分不清是哪一步引入的）：
 
-1. **先换 `AgentExecutor` → `create_agent`**。这一步**只动构造与调用形态，不动流程结构**——但**不是「行为等价」**：对照 2.1 的映射表，输入从 `input` 变成 `messages`、输出不再有 `output` 字段、hook 要搬进 middleware、state 必须改成 `TypedDict`。把它当成一次**接口迁移**来做，改完先确认功能没变，再往下走。
+1. **先换 `AgentExecutor` → `create_agent`**。这一步**只动构造与调用形态，不动流程结构**——但**不是「行为等价」**：对照 2.1 的映射表，输入从 `input` 变成 `messages`、输出不再有 `output` 字段、hook 要搬进 middleware、state 必须改成 `TypedDict`、流式节点名从 `agent` 变成 `model`（Python）/ `model_request`（JS）。把它当成一次**接口迁移**来做，改完先确认功能没变，再往下走。
 2. **再改 LCEL → `StateGraph`**。这一步才真正动结构，是风险最大的一步。
 3. **最后把自定义逻辑收进 middleware**。前两步稳定之后，再把横切逻辑（日志、限流、错误处理）从业务代码里抽出来。
 

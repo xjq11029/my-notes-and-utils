@@ -64,6 +64,8 @@ class TopState(TypedDict):
 def supervisor(state: TopState) -> dict:
     """极简路由：真实项目里这里通常是另一个模型调用。"""
     last = str(state["messages"][-1].content)
+    if "查到" in last or "已发" in last:      # 子代理干完活的标志 → 收回控制权并结束
+        return {"route": "end"}
     return {"route": "mail" if "邮件" in last else "db"}
 
 
@@ -71,25 +73,36 @@ def pick(state: TopState) -> str:
     return state["route"]
 
 
+SUPERVISOR_LOG: list[str] = []                # 观测 supervisor 的决策序列
+
+
+def supervisor_logged(state: TopState) -> dict:
+    out = supervisor(state)
+    SUPERVISOR_LOG.append(out["route"])
+    return out
+
+
 top = (
     StateGraph(TopState)
-    .add_node("supervisor", supervisor)
+    .add_node("supervisor", supervisor_logged)
     .add_node("db", db_agent)  # ← 直接把编译好的 agent 当节点
     .add_node("mail", mail_agent)
     .add_edge(START, "supervisor")
-    .add_conditional_edges("supervisor", pick, {"db": "db", "mail": "mail"})
-    .add_edge("db", END)
-    .add_edge("mail", END)
+    .add_conditional_edges("supervisor", pick, {"db": "db", "mail": "mail", "end": END})
+    .add_edge("db", "supervisor")   # ← 回边：子代理干完活，控制权交还 supervisor
+    .add_edge("mail", "supervisor") # ← 回边（supervisor 的定义性特征就是这两条）
     .compile()
 )
 
 for text in ("帮我查一下数据库", "帮我发个邮件"):
+    SUPERVISOR_LOG.clear()
     out = top.invoke({"messages": [{"role": "user", "content": text}]})
     print(f"  输入 {text!r:<16} → route={out['route']:<5} 最终回复={out['messages'][-1].content!r}")
+    print(f"    supervisor 决策序列 = {SUPERVISOR_LOG}   ← 派出去 → 收回来 → 结束")
 
 print()
 print("  ⚠️ create_agent 返回的就是**已编译的图**，所以可以直接 add_node。")
-print("     副作用：它变成了子图，流式输出需要 subgraphs=True（见第 8 章示例）。")
+print("     副作用：它变成了子图，流式输出需要 subgraphs=True（见第 13 章示例）。")
 print("     记得给每个 agent 起 name=，否则 trace 里分不清是谁在跑。")
 
 

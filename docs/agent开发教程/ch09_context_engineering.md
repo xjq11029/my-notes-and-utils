@@ -25,6 +25,8 @@ Agent 的上下文只增不减。`AgentState.messages` 的 reducer 是 `add_mess
 | ③ | 消息裁剪 | `trim_messages`（Python）/ `trimMessages`（JS）/ 自定义中间件 | 按条数或 token 砍掉最旧的消息 | 可能砍掉还没兑现的承诺 |
 | ④ | 外部存储 | 虚拟文件系统 / Store / Skills | 长内容写到上下文之外，只留一句「已保存到 /xxx」 | 要求模型「想得起来去读」 |
 
+> 表里先出现了 `checkpointer`（第 5 章 2.2 节参数表提过一嘴）：它给 agent 的每一步**存一份状态快照**，配了它，被摘要/裁剪掉的内容还能从更早的快照里翻回来——第 12 章系统讲。
+
 四种手段的共同目标只有一个：让模型在有限窗口里看到最有用的那部分。区别在于**信息损失发生在哪一层**——状态层、模型输入层，还是干脆挪出上下文。
 
 ③ 的裁剪器值得单独说一句，因为**双语言名字不一样**：Python 侧是函数 `trim_messages`（`langchain_core.messages` 导出），关键参数 `max_tokens` + `token_counter` + `strategy="last"`（默认保留最新的消息、从最旧的开砍）与 `include_system`（是否保住系统提示）；JS 侧是类 `trimMessages`（`@langchain/core/messages` 导出）。它是四种手段里最轻的一档——**本教程未单独实测它**：示例 `09_context.py` / `09_context.ts` 实测的是 ①② 两种手段，③④ 只给定位与代价。

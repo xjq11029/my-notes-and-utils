@@ -62,7 +62,7 @@ MCP 服务器的全部协议义务只有三步（握手 → 发现 → 调用）
 
 ![图 h10　MCP 三步协议（stdio 传输）时序](assets/h10_mcp_sequence.png)
 
-*图 h9　MCP 三步协议（stdio 传输）时序*
+*图 h10　MCP 三步协议（stdio 传输）时序*
 
 1. **initialize 握手**：客户端声明自己的 `protocolVersion`、`capabilities`、`clientInfo`；服务器回应自己支持的版本、能力与 `serverInfo`。双方由此确认「我们说的是同一种方言」。
 2. **notifications/initialized**：客户端发一条通知（无 id、无响应），宣告初始化完成。

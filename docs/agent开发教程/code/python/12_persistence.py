@@ -88,15 +88,52 @@ print("③ update_state：改写历史再重放（时间旅行）")
 print("=" * 78)
 
 snapshots = list(graph.get_state_history(cfg))
+print("  快照序号示意（get_state_history 返回顺序：新 → 旧，取下标要用负数）：")
+for i, s in enumerate(snapshots):
+    print(f"      snapshots[{i:>2}]（倒数第 {len(snapshots) - i}）  step={s.metadata.get('step'):>2}  n={s.values.get('n')}")
 # 挑一个中间检查点（从最早往回数第 2 个）
 target = snapshots[-2]
-print(f"  选中的历史检查点：step={target.metadata.get('step')}, n={target.values.get('n')}")
+print(f"  选中的历史检查点：snapshots[-2] → step={target.metadata.get('step')}, n={target.values.get('n')}")
 forked = graph.update_state(target.config, {"n": 100, "trail": ["人工改写：从 100 开始"]})
 print(f"  改写后的新分支 config：{forked['configurable']['checkpoint_id'][:20]}...")
 replayed = graph.invoke(None, forked)
 print(f"  重放结果：n = {replayed['n']}, trail = {replayed['trail']}")
 print("  → update_state 会**新建一个分支**，原线程的历史不受影响。")
 print("    这是调试 agent 的利器：把某一步的状态改一改，看后面会怎么走。")
+
+print()
+print("  ③-bis 三节点链（bump → double → tag）：回到中间某步、重走后面**两步**")
+print("  （单节点图重放只有一步，看不出来「时间旅行」——多节点才能看出「跳回中间」）")
+
+
+def bump(state: Counter) -> dict:
+    n = state["n"] + 1
+    return {"n": n, "trail": [*state.get("trail", []), f"bump→{n}"]}
+
+
+def double(state: Counter) -> dict:
+    n = state["n"] * 2
+    return {"n": n, "trail": [*state.get("trail", []), f"double→{n}"]}
+
+
+def tag(state: Counter) -> dict:
+    return {"trail": [*state.get("trail", []), "tag✓"]}
+
+
+chain = (StateGraph(Counter).add_node("bump", bump).add_node("double", double).add_node("tag", tag)
+         .add_edge(START, "bump").add_edge("bump", "double").add_edge("double", "tag").add_edge("tag", END)
+         .compile(checkpointer=InMemorySaver()))
+cfg2 = {"configurable": {"thread_id": "chain-demo"}}
+base = chain.invoke({"n": 1, "trail": []}, cfg2)
+print(f"    原始执行：n = {base['n']}, trail = {base['trail']}")
+
+chain_snaps = list(chain.get_state_history(cfg2))
+mid = next(s for s in chain_snaps if s.next == ("double",))   # bump 之后、double 之前的快照
+print(f"    选中中间快照（next={mid.next}，即 bump 刚跑完）：n = {mid.values.get('n')}")
+forked2 = chain.update_state(mid.config, {"n": 10, "trail": ["人工改写：n=10"]})
+re2 = chain.invoke(None, forked2)
+print(f"    从该点重放（重走 double、tag 两步）：n = {re2['n']}, trail = {re2['trail']}")
+print("    → 只重走了 double→tag 两步，bump 没有重跑；原线程 chain-demo 的历史不受影响。")
 
 
 # ---------------------------------------------------------------------------
@@ -128,6 +165,11 @@ print(f"  只想要 memories 这一层：store.search(('alice','memories')) → 
       f"{[i.key for i in store.search(USER)]}")
 print(f"  列出命名空间：store.list_namespaces(prefix=('alice',)) → {store.list_namespaces(prefix=('alice',))}")
 print("  → 一旦数据多了，把命名空间写细（('alice','memories') 而不是 ('alice',)）能省掉不少误命中。")
+
+print()
+store.delete(USER, "pref-city")                      # 删除单个键
+print(f"  store.delete(USER, 'pref-city') 后再 search → "
+      f"{[i.key for i in store.search(USER)]}   ← pref-city 没了")
 
 print()
 print("=" * 78)

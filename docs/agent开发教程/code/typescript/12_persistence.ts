@@ -85,8 +85,12 @@ console.log("=".repeat(78));
 console.log("③ updateState：改写历史再重放（时间旅行）");
 console.log("=".repeat(78));
 
+console.log("  快照序号示意（getStateHistory 返回顺序：新 → 旧，取下标要用负数）：");
+history.forEach((s: any, i: number) => {
+  console.log(`      history[${i}]（倒数第 ${history.length - i}）  step=${String(s.metadata?.step).padStart(2)}  n=${s.values?.n}`);
+});
 const target = history[history.length - 2];
-console.log(`  选中的历史检查点：step=${target.metadata?.step}, n=${target.values?.n}`);
+console.log(`  选中的历史检查点：history[len-2] → step=${target.metadata?.step}, n=${target.values?.n}`);
 const forked: any = await graph.updateState(target.config, {
   n: 100,
   trail: ["人工改写：从 100 开始"],
@@ -95,6 +99,37 @@ const replayed: any = await graph.invoke(null, forked);
 console.log(`  重放结果：n = ${replayed.n}, trail = ${JSON.stringify(replayed.trail)}`);
 console.log("  → updateState 会**新建一个分支**，原线程的历史不受影响。");
 console.log("    这是调试 agent 的利器：把某一步的状态改一改，看后面会怎么走。");
+
+console.log();
+console.log("  ③-bis 三节点链（bump → double → tag）：回到中间某步、重走后面**两步**");
+console.log("  （单节点图重放只有一步，看不出来「时间旅行」——多节点才能看出「跳回中间」）");
+
+const bump = (state: any) => {
+  const n = state.n + 1;
+  return { n, trail: [...(state.trail ?? []), `bump→${n}`] };
+};
+const double = (state: any) => {
+  const n = state.n * 2;
+  return { n, trail: [...(state.trail ?? []), `double→${n}`] };
+};
+const tag = (state: any) => ({ trail: [...(state.trail ?? []), "tag✓"] });
+
+const chain = new StateGraph(Counter)
+  .addNode("bump", bump).addNode("double", double).addNode("tag", tag)
+  .addEdge(START, "bump").addEdge("bump", "double").addEdge("double", "tag").addEdge("tag", END)
+  .compile({ checkpointer: new MemorySaver() });
+const cfg2 = { configurable: { thread_id: "chain-demo" } };
+const base: any = await chain.invoke({ n: 1, trail: [] }, cfg2);
+console.log(`    原始执行：n = ${base.n}, trail = ${JSON.stringify(base.trail)}`);
+
+const chainSnaps: any[] = [];
+for await (const s of await chain.getStateHistory(cfg2)) chainSnaps.push(s);
+const mid = chainSnaps.find((s: any) => JSON.stringify(s.next) === JSON.stringify(["double"]));
+console.log(`    选中中间快照（next=${JSON.stringify(mid.next)}，即 bump 刚跑完）：n = ${mid.values?.n}`);
+const forked2: any = await chain.updateState(mid.config, { n: 10, trail: ["人工改写：n=10"] });
+const re2: any = await chain.invoke(null, forked2);
+console.log(`    从该点重放（重走 double、tag 两步）：n = ${re2.n}, trail = ${JSON.stringify(re2.trail)}`);
+console.log("    → 只重走了 double→tag 两步，bump 没有重跑；原线程 chain-demo 的历史不受影响。");
 
 // ---------------------------------------------------------------------------
 console.log();
@@ -126,6 +161,11 @@ console.log(`  只想要 memories 这一层：store.search(['alice','memories'])
 const nsList: any[] = await store.listNamespaces({ prefix: ["alice"] });
 console.log(`  列出命名空间：store.listNamespaces({ prefix: ['alice'] }) → ${JSON.stringify(nsList)}`);
 console.log("  → 一旦数据多了，把命名空间写细（['alice','memories'] 而不是 ['alice']）能省掉不少误命中。");
+
+console.log();
+await store.delete(USER, "pref-city");   // 删除单个键
+const afterDel: any[] = await store.search(USER);
+console.log(`  store.delete(USER, 'pref-city') 后再 search → ${JSON.stringify(afterDel.map((i: any) => i.key))}   ← pref-city 没了`);
 
 console.log();
 console.log("=".repeat(78));

@@ -228,7 +228,19 @@ await boss.invoke({ messages: [{ role: "user", content: "帮我调研一下检�
                   { configurable: { thread_id: "delegate-1" } });
 ```
 
-> 完整可跑版本（含 `SubAgent` 11 个字段逐个打印、`task` 返回值截取、`mode` 两种取值的说明）：`code/python/16_delegation.py`、`code/typescript/16_delegation.ts`。
+**上下文防火墙的实测证据**（2.4 节那条「task 返回最终报告、不返回完整对话」，完整版示例给子代理配了独立假模型与一个 `lookup` 工具，子代理先查资料、再总结）：
+
+```text
+主代理收到的 task 返回（ToolMessage.content，全长 30 字符）：
+  结论：checkpointer 按超步存快照，支持时间旅行。
+→ 里面没有 lookup 的 3000 字资料，也没有子代理的中间轮次。
+子代理内部实际跑了几轮：2 轮（lookup 一次 + 总结一次），
+  这 2 轮的完整对话只存在于子代理自己的上下文里。
+```
+
+子代理自己消费了 2 轮模型调用（其中一轮的工具结果是 3000 字长文——3000 字是**示例设定值**，实际代码返回的是一句占位串；「2 轮」「30 字符」均为实测数字），而主代理的 `ToolMessage` 里只有 30 字符的最终结论——**差值就是被防火墙挡在主上下文之外的部分**，这就是委派省 token 的机制本身。
+
+> 完整可跑版本（含 `SubAgent` 11 个字段逐个打印、防火墙实证、`mode` 两种取值的说明）：`code/python/16_delegation.py`、`code/typescript/16_delegation.ts`。
 
 ## 四、常见坑与边界条件
 

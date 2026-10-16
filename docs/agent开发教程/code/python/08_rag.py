@@ -251,6 +251,24 @@ print("=" * 60)
 print("③ 嵌入模型：把文本映射成向量，两个方法分工不同")
 print("=" * 60)
 
+# ③-0 手写二维玩具：不依赖任何库，把「语义相近 = 距离近」变成肉眼可见的几何。
+# 坐标系是人工设计的：第 1 维 = 动物性，第 2 维 = 机械性（真实嵌入模型做的事，
+# 就是把这种「人工设计的语义坐标系」换成从海量语料里学出来的高维坐标系）。
+def _dist(p, q):
+    return sum((a - b) ** 2 for a, b in zip(p, q)) ** 0.5
+
+toy_texts = ["猫在晒太阳", "狗在打盹", "汽车在高速公路上飞驰"]
+toy_vecs = [(0.90, 0.10), (0.85, 0.15), (0.05, 0.95)]
+query_text, query_vec = "小狗在睡觉", (0.80, 0.20)
+print("  ③-0 手写二维玩具（人工坐标系：第 1 维=动物性，第 2 维=机械性）")
+for t, v in zip(toy_texts, toy_vecs):
+    print(f"      「{t}」 → ({v[0]:.2f}, {v[1]:.2f})")
+print(f"      查询「{query_text}」 → ({query_vec[0]:.2f}, {query_vec[1]:.2f})")
+ranked = sorted(zip(toy_texts, toy_vecs), key=lambda tv: _dist(tv[1], query_vec))
+for t, v in ranked:
+    print(f"      距离「{query_text}」 {_dist(v, query_vec):.2f} ← {t}")
+print("     → 狗最近、汽车最远：语义相近 = 距离近。真实嵌入模型 = 自动学出来的高维坐标系。")
+
 embedder = DeterministicFakeEmbedding(size=8)
 vec_docs = embedder.embed_documents(["机械键盘已发货", "显示器支架已签收"])
 vec_query = embedder.embed_query("键盘到哪了")

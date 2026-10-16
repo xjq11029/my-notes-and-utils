@@ -122,6 +122,22 @@ console.log("=".repeat(60));
 console.log("③ 嵌入 + 向量库：写入与检索");
 console.log("=".repeat(60));
 
+// ③-0 手写二维玩具：不依赖任何库，把「语义相近 = 距离近」变成肉眼可见的几何。
+// 坐标系是人工设计的：第 1 维 = 动物性，第 2 维 = 机械性（真实嵌入模型做的事，
+// 就是把这种「人工设计的语义坐标系」换成从海量语料里学出来的高维坐标系）。
+const dist = (p: [number, number], q: [number, number]) =>
+  Math.hypot(p[0] - q[0], p[1] - q[1]);
+const toyTexts = ["猫在晒太阳", "狗在打盹", "汽车在高速公路上飞驰"];
+const toyVecs: [number, number][] = [[0.9, 0.1], [0.85, 0.15], [0.05, 0.95]];
+const queryText = "小狗在睡觉", queryVec: [number, number] = [0.8, 0.2];
+console.log("  ③-0 手写二维玩具（人工坐标系：第 1 维=动物性，第 2 维=机械性）");
+toyTexts.forEach((t, i) => console.log(`      「${t}」 → (${toyVecs[i][0].toFixed(2)}, ${toyVecs[i][1].toFixed(2)})`));
+console.log(`      查询「${queryText}」 → (${queryVec[0].toFixed(2)}, ${queryVec[1].toFixed(2)})`);
+[...toyTexts.map((t, i) => ({ t, v: toyVecs[i] }))]
+  .sort((a, b) => dist(a.v, queryVec) - dist(b.v, queryVec))
+  .forEach(({ t, v }) => console.log(`      距离「${queryText}」 ${dist(v, queryVec).toFixed(2)} ← ${t}`));
+console.log("     → 狗最近、汽车最远：语义相近 = 距离近。真实嵌入模型 = 自动学出来的高维坐标系。");
+
 const embeddings = new FakeEmbeddings();
 const vec = await embeddings.embedQuery("退换货");
 const head = vec.slice(0, 4).map((x) => Number(x.toFixed(3)));
