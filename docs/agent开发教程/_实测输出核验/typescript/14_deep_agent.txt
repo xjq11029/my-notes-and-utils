@@ -1,0 +1,63 @@
+==============================================================================
+① createDeepAgent 默认给你哪些工具
+==============================================================================
+  构造完还没 invoke 时：[]   ← bindTools 还没触发
+  invoke 一次之后：共 8 个
+  ["delete","edit_file","glob","grep","ls","read_file","task","write_file"]
+
+  模型实际看到的这些，按用途分：
+    文件读写  ls / read_file / write_file / edit_file / delete
+    文件检索  glob / grep
+    委派      task（创建子代理）
+
+  ⚠️ 这里有个容易搞错的点：**「注册了工具」不等于「模型看得见」**。
+     Python 侧实测：工具节点里注册了 9 个（多一个 execute），
+     但默认后端 StateBackend 不提供执行能力，所以 execute **没有被绑定给模型**。
+     想看 agent 到底能干什么，要看模型被绑定了什么。
+
+  ⚠️ 与官方文档的差异：文档把 write_todos 列为「v0.7 起需主动开启」——
+     实测确认默认绑定给模型的工具里确实没有 write_todos。
+
+==============================================================================
+② 显式加 todoListMiddleware，write_todos 才出现
+==============================================================================
+  加中间件后共 9 个：["delete","edit_file","glob","grep","ls","read_file","task","write_file","write_todos"]
+  write_todos 出现了：true
+  运行后状态里多出的键：["files","todos"]
+  todos = [{"content":"调研","status":"in_progress"},{"content":"写稿","status":"pending"}]
+
+==============================================================================
+③ 预装中间件栈 —— 图里到底挂了哪些节点
+==============================================================================
+  裸的（只给 model）         → 节点 ["FilesystemMiddleware.before_agent","patchToolCallsMiddleware.before_agent","model_request","tools"]
+  + 记忆 + 技能            → 节点 ["SkillsMiddleware.before_model","FilesystemMiddleware.before_agent","patchToolCallsMiddleware.before_agent","MemoryMiddleware.before_agent","model_request","tools"]
+  + 子代理                → 节点 ["FilesystemMiddleware.before_agent","patchToolCallsMiddleware.before_agent","model_request","tools"]
+  + 人工审批               → 节点 ["FilesystemMiddleware.before_agent","patchToolCallsMiddleware.before_agent","HumanInTheLoopMiddleware.after_model","model_request","tools"]
+
+  读法：
+    · 固定节点 model / tools 是所有 agent 共有的骨架；
+    · 形如 `XxxMiddleware.before_agent` 的节点，是**中间件自己插进来的钩子节点**；
+    · 挂了 memory 才有 MemoryMiddleware 节点，挂了 skills 才有 SkillsMiddleware 节点——
+      所以「看节点名」是反查「这个 agent 到底装了哪些能力」最快的方式。
+
+==============================================================================
+④ HarnessProfile：声明式裁剪内置能力
+==============================================================================
+  profile.excludedTools = ["execute"]
+  profile.systemPromptSuffix = "回答一律用中文。"
+  已注册并回读 profile：excludedTools = ["execute"]
+
+  ⚠️ 与 Python 的三处差异（实测）：
+     ① JS 的工厂函数叫 createHarnessProfile，Python 直接 new HarnessProfile(...)；
+     ② JS 的字段是 camelCase（systemPromptSuffix / excludedTools），
+        Python 是 snake_case（system_prompt_suffix / excluded_tools）；
+     ③ JS 的 excludedTools 是 Set，Python 是 frozenset。
+
+  ⚠️ 图节点名两边也不同（实测，别照抄）：
+     JS     → model_request / tools / FilesystemMiddleware.before_agent /
+              patchToolCallsMiddleware.before_agent（P 小写）
+     Python → model / tools / PatchToolCallsMiddleware.before_agent（P 大写）
+     结论：**节点名是内部实现细节**，跨语言、跨版本都可能变；
+           要判断「装了哪些能力」，用工具列表或中间件清单，别硬编码节点名。
+
+  用 profile 而不是「自己拼中间件」的好处：内置能力升级时你不用跟着改。

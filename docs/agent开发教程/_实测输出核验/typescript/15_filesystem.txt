@@ -1,0 +1,68 @@
+==============================================================================
+① 文件工具跑起来是什么样（StateBackend，文件存在图状态里）
+==============================================================================
+  默认暴露给模型的工具（invoke 之后才取得到）：
+    ["delete","edit_file","glob","grep","ls","read_file","task","write_file"]
+
+  逐条工具调用的返回值：
+    [write_file] Successfully wrote to '/notes/todo.md'
+    [read_file] [object Object]
+    [edit_file] Successfully replaced 1 occurrence(s) in '/notes/todo.md'
+    [ls] /notes/todo.md (18 bytes)
+
+  状态里的键：["files","messages"]
+  state.files = {"/notes/todo.md":{"content":"# 待办\n- 写文档\n- 跑测试 ✅","mimeType":"text/markdown","created_at":"2026-10-16T09:19:16.400Z","modified_at":"2026-10-16T09:19:16.406Z"}
+
+  ⚠️ 关键点：StateBackend 把「文件」存在**图状态**里。
+     好处：跟着线程走，天然享受检查点（可回放、可时间旅行）；
+     代价：跨线程就没了——新 thread_id 打开是一张白纸。
+     要跨线程，得换 StoreBackend（见 ③）。
+
+==============================================================================
+② FilesystemPermission：声明式权限
+==============================================================================
+  权限规则形如：
+    { operations: ['read', 'write'], paths: ['/workspace/**'], mode: 'allow' }
+
+  三个字段：
+    operations  ['read', 'write'] 的数组
+    paths       路径 glob，如 '/workspace/**'
+    mode        'allow' | 'deny' | 'interrupt'
+
+  ⚠️ mode='interrupt' 这一档容易被忽略：它不是「拒绝」，
+     而是**暂停下来问人**——权限系统与人在回路是打通的。
+
+  规则按**声明顺序首次匹配即生效**（first match wins）：
+    1. 先声明「/secrets/** 禁止读写」
+    2. 再声明「/workspace/** 允许读写」
+    3. 没被任何规则命中的路径 → **默认 allow（放行）**
+
+  ⚠️ 顺序写反了（先 allow /workspace/**，再 deny /workspace/secrets/**）
+     后一条永远不会生效——因为第一条已经命中了。
+     这条规则和防火墙的 ACL 是同一个思路：**具体规则放前面，宽泛规则放后面**。
+     ⚠️ 两个例外：① 未命中任何规则时**默认放行**（只写一条 deny 得不到白名单）；
+                 ② 递归 delete 的 deny **不受顺序约束**，更靠后的 deny 照样拦得住。
+
+==============================================================================
+③ 后端谱系：文件到底存在哪
+==============================================================================
+  后端                   落点               特点
+  ----------------------------------------------------------------------
+  StateBackend         图状态（默认）          跟线程走、可回放；跨线程丢失
+  StoreBackend         LangGraph Store  跨线程持久；适合 /memories/ 这类长期记忆
+  FilesystemBackend    真实磁盘             直接读写本机文件；要小心权限
+  LocalShellBackend    本机 shell         提供 execute 能力；生产环境慎用
+  LangSmithSandbox     托管沙箱             隔离执行；适合不信任的代码
+  CompositeBackend     按路径分流            如 /memories/** 走 Store，其余走 State
+
+  实测确认：这几个类都能从 deepagents 顶层导入——
+    ["StateBackend","StoreBackend","FilesystemBackend","LocalShellBackend","CompositeBackend"]
+
+  CompositeBackend 的典型用法（把长期记忆单独分流）：
+    backend: (config) => new CompositeBackend(new StateBackend(config), {
+      '/memories/': new StoreBackend(config),
+    })
+  → agent 写 /memories/xxx 就跨线程持久，写别处仍走状态，各取所需。
+
+  ⚠️ 默认后端是 StateBackend。
+     官方文档提到「默认写入图状态中的本地文件系统」，与实测一致。

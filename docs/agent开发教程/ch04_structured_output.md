@@ -15,7 +15,9 @@
 
 而 agent 侧的 `response_format` / `responseFormat` 是**另一条路**（第 5 章 `create_agent` 与 Agent Loop 的主题），两者不是替代关系，是分工关系。本章 2.6 节专门讲清这条分界线，避免把两个 API 的默认值混为一谈。
 
-本章的实测环境：Python `langchain` 1.4.2 / `langchain-core` 1.6.4 / `pydantic` 2.13.5；JS `langchain` 1.5.11 / `@langchain/core` 1.2.12 / `zod` 4.6.5。示例仍用脚本化假模型，**不需要 API Key**。
+本章的实测环境：Python `langchain` 1.4.2 / `langchain-core` 1.6.11 / `pydantic` 2.14.1；JS `langchain` 1.5.11 / `@langchain/core` 1.2.12 / `zod` 4.6.5。示例仍用脚本化假模型，**跑示例不需要 API Key**。
+
+> 2026-10-16 起，本章原先标「未实测」的 provider 子类行为**已用智谱端点实测**（Python 与 JS 双侧抓取真实上线的 HTTP 请求体），结论见 2.4 节末与 `code/README.md` 的「真实模型实测」B。
 
 ## 二、机制与原理
 
@@ -108,6 +110,10 @@ LangChain 接受四种写法。下表回答的问题是：**描述一个结构�
 
 实测（`code/typescript/04_structured_output.ts` 第 ② 节）：把被擦除的类型（运行时是 `undefined`）传给 `withStructuredOutput`，直接报 `TypeError: Cannot use 'in' operator to search for 'description' in undefined`——「中译：**无法在 undefined 上使用 `in` 运算符查找 'description'**」。这就是「类型擦除」在运行时的样子。
 
+> ⚠️ 上面这条报错在示例输出里是**被截断的**——源码用 `.slice(0, 60)` 打印，实际止于
+> `... to search for 'description' in unde`。这里补全成完整文本便于阅读，但要知道
+> **补全部分不是实测原文**（同一节 ⑥ 的 `as a me` 也是同样情况）。
+
 还有一处细节差异：**Python 的工具名从 schema 来，JS 的工具名默认是 `"extract"`**。JS 侧无论传 zod 还是 JSON Schema dict，基类实现都会落到同一个工具名上，只能用 `{ name: "..." }` 覆盖（实测见 2.3 节）。
 
 ### 2.3 两种策略：`function_calling` 与 `json_schema`
@@ -125,7 +131,7 @@ schema 描述完了，接下来是「怎么交给模型」。下表回答的问�
 _ = kwargs.pop("method", None)     # 取出来直接丢掉，后面永远走 bind_tools
 ```
 
-——「中译：**把 `method` 参数取出来丢掉**」。也就是说，**基类实现会把 `method` 直接扔掉，永远走 `bind_tools` 那条路**。实测传 `method="json_schema"`、`method="bogus"` 都不报错、行为与默认完全一致：
+——「中译：**把 `method` 参数取出来丢掉**」。也就是说，**基类实现会把 `method` 直接扔掉，永远走 `bind_tools` 那条路**。实测传 `method="json_schema"` 不报错、行为与默认完全一致（示例只跑了默认 / `function_calling` / `json_schema` 三档）；`method="bogus"` 是本机另敲的一次，属**本机核对**：同样不报错。
 
 ```text
     bind_tools 收到：['Person']  额外参数：['ls_structured_output_format', 'tool_choice']
@@ -136,7 +142,22 @@ _ = kwargs.pop("method", None)     # 取出来直接丢掉，后面永远走 bin
   method="json_schema"   → Person(name='张三', age=30, occupation='软件工程师')
 ```
 
-真正实现 `json_schema` 的是 **provider 子类**（`ChatOpenAI` 等覆写了 `with_structured_output`）。所以「`method="json_schema"` 到底有没有生效」这个问题，**必须看你用的是哪个模型类**——用假模型或纯 `BaseChatModel` 子类时，它是个被忽略的参数。**本教程没有真实 provider，`json_schema` 的真实行为未实测。**
+真正实现 `json_schema` 的是 **provider 子类**（`ChatOpenAI` 等覆写了 `with_structured_output`）。所以「`method="json_schema"` 到底有没有生效」这个问题，**必须看你用的是哪个模型类**——用假模型或纯 `BaseChatModel` 子类时，它是个被忽略的参数。
+
+**2026-10-16 已用智谱 OpenAI 兼容端点实测**（抓的是真正上线的 JSON 请求体，不是 `bind_tools` 入参）：
+
+| `method` | provider 子类实际发出的请求体 | 结果 |
+|---|---|---|
+| 不传（缺省） | `response_format={type:"json_schema", json_schema:{name:"Person", strict:true, ...}}`，**不带 `tools`** | 走原生 JSON schema |
+| `"function_calling"` | `tools=["Person"]` + `tool_choice="Person"`，**不带 `response_format`** | 走工具调用 |
+| `"json_schema"` | 同缺省 | 走原生 JSON schema |
+| `"json_mode"` | `response_format={type:"json_object"}` | 只保证是 JSON，**不保证符合 schema** |
+
+三点要记住：
+
+1. **缺省值就是 `json_schema`，不是工具策略。** 这与基类恰好相反，也最容易抄错。
+2. **`strict: true` 是请求，不是保证。** 实测 `glm-4-plus` 收到 `json_schema strict:true` 后照样返回散文，客户端侧抛 `ValidationError`；`json_mode` 下模型还把字段名 `occupation` 自作主张改成了 `profession`。
+3. **`function_calling` 会静默返回 `None`。** 模型没发 `tool_call` 时解析器不报错、直接给 `None`（在 `glm-4-plus` 上实测复现）——比抛异常难查得多。
 
 TypeScript 侧的基类实现同样只认工具调用，而且把这条限制写进了代码：
 
@@ -156,7 +177,9 @@ let functionName = name ?? "extract";   // 默认工具名，Python 侧没有这
 - **provider 子类**（如 JS 版 `ChatOpenAI`）确实可能默认走 provider 原生 JSON schema——那是子类覆写的行为；
 - **纯 `BaseChatModel` 子类**（含本教程的假模型）**默认就是工具调用**，和 Python 一样。
 
-换句话说，「默认策略不同」不是 Python 与 JS 的语言差异，而是**基类与 provider 子类**的差异。本教程的假模型属于基类，所以两边默认一致。**真实 provider 的默认值本教程未实测，以你所用 provider 包的文档为准。**
+换句话说，「默认策略不同」不是 Python 与 JS 的语言差异，而是**基类与 provider 子类**的差异。本教程的假模型属于基类，所以两边默认一致。
+
+**真实 provider 的默认值已实测（2026-10-16）**，而且**两语言行为一致**：JS 侧 `new ChatOpenAI().withStructuredOutput(schema)` 不传 `method` 时，上线的同样是 `response_format: json_schema strict:true`、不带 `tools`；`jsonMode` 在子类上也不再抛错，发的是 `response_format: {type:"json_object"}`。**「基类只支持 functionCalling、传 jsonMode 直接抛错」这条限制，仅适用于基类**，别外推到 provider 子类。
 
 ### 2.4 类型校验：什么时候抛错、抛什么
 
@@ -166,9 +189,9 @@ let functionName = name ?? "extract";   // 默认工具名，Python 侧没有这
 |---|---|---|
 | `age` 传 `"三十"` | 抛 `ValidationError`，`loc=('age',) type=int_parsing` | **原样返回** `{..., "age": "三十"}` |
 | 漏填字段 | 抛 `ValidationError`，`type=missing` | **原样返回**，缺的字段就是不出现 |
-| `age` 传 `"30"` | 强转成 `30`（Pydantic 默认宽松模式） | 原样返回字符串 `"30"` |
+| `age` 传 `"30"` | 强转成 `30`（Pydantic 默认宽松模式，示例实测） | **未实测**（示例只测了 `"三十"` 与漏填）；按「基类不校验」的机制推断为原样返回字符串 |
 | `TypedDict` 字段名全错 | 原样透传，不报错 | 不适用（无 `TypedDict`） |
-| 工具名对不上 | **静默返回 `None`** | **抛错** `No tool call found with name extract.` |
+| 工具名对不上 | **静默返回 `None`**（示例实测） | **未实测**——`04_structured_output.ts` 里没有这一档测试。按基类源码走 `JsonOutputKeyToolsParser`，取不到该工具名时同样应返回 `null` / 抛错取决于解析器配置，**别照抄「抛错」这个结论** |
 
 实测输出（Python 第 ④ 节）：
 
@@ -200,7 +223,11 @@ let functionName = name ?? "extract";   // 默认工具名，Python 侧没有这
 | `parsed` | 校验后的对象，失败时为 `None` | 解析结果，失败时为 `null` |
 | `parsing_error` | 异常对象，正常时为 `None` | **没有这个键** |
 
-实测：Python 侧 keys 是 `['parsed', 'parsing_error', 'raw']`，JS 侧只有 `['raw', 'parsed']`——**JS 把错误吞掉了**，只留一个 `null`。
+实测：Python 侧 keys 是 `['parsed', 'parsing_error', 'raw']`，JS 侧只有 `['raw', 'parsed']`——**JS 把错误吞掉了**，只留一个 `null`。（JS 侧示例只跑了**成功态**，「失败时 `parsed` 为 `null`」是按源码推断，未实测。）
+
+> ⚠️ **`include_raw` 的兜底能力有硬边界（2026-10-16 真实模型实测）**：它只兜得住 **LangChain 解析步骤**的失败。
+> 走 `response_format` 路径（即 provider 子类的缺省策略）时，JSON 解析发生在 **OpenAI SDK 的 `raw_response.parse()`** 里，**早于**这一步，`include_raw=True` 照样抛 `ValidationError`。
+> 只有 `function_calling` 路径能被它兜住——而兜住的返回值是 `{parsed: None, parsing_error: None, raw: …}`，**连 `parsing_error` 都是 `None`**，错误被彻底吞掉。批量抽取时这比抛错更危险：你以为在收集错误，其实在收集 `None`。
 
 ### 2.5 输出解析器：不推荐，但 API 仍在
 
@@ -235,15 +262,14 @@ const ready = await prompt.partial({ format_instructions: parser.getFormatInstru
 const chain = ready.pipe(model).pipe(parser);
 ```
 
-实测两边都能跑通，但**整条链的成败压在「模型听话」上**：
+**Python 侧实测跑通**，但**整条链的成败压在「模型听话」上**：
 
 ```text
   Python  正常 JSON → Movie(title='盗梦空间', year=2010)
   Python  非 JSON 文本 → OutputParserException: Invalid json output: 《盗梦空间》2010 年上映
-  JS      正常 JSON → {"title":"盗梦空间","year":2010}   （type = object）
-  JS      非 JSON 文本 → OutputParserException | Failed to parse. Text: "《盗梦空间》2010 年上映".
-                        Error: SyntaxError: Unexpected token '《', ... is not valid JSON
 ```
+
+> ⚠️ 上面这段**只有 Python 侧是实测**。`04_structured_output.ts` 里**根本没有 `StructuredOutputParser`**（第 ⑤ 节跑的是 `includeRaw`），所以原先附在块里的两行 JS 输出属于**未实测**，已删除。JS 解析器的报错形态与 Python 同构（`OutputParserException`），但要用时请自己跑一遍。
 
 **为什么 v1 不再走这条路？** 三点：
 
@@ -265,7 +291,7 @@ const chain = ready.pipe(model).pipe(parser);
 | 策略参数 | `method="function_calling"` / `"json_schema"` | Python：`ToolStrategy` / `ProviderStrategy` / `AutoStrategy`；JS：`toolStrategy()` / `providerStrategy()` |
 | 本章示例 | ①②③④⑤ 节 | ⑥ 节 |
 
-Python 侧的三个策略类是 `with_structured_output` 的 `method` 在 agent 层的对应物：`ToolStrategy` 对应工具策略，`ProviderStrategy` 对应 provider 原生策略，`AutoStrategy` 由框架自动选。实测：`create_agent(model=..., tools=[], response_format=Person)` 传一个裸 schema 时会被包成 `AutoStrategy`，再由 `_supports_provider_strategy()` 读**模型的 `profile["structured_output"]` 标记**来决定——假模型没有这个标记，于是**落到 `ToolStrategy`**（工具名 `Person`，实测能跑通）。JS 侧是同一个判断思路，只是字段名不同（`model.profile.structuredOutput === true`）。
+Python 侧的三个策略类是 `with_structured_output` 的 `method` 在 agent 层的对应物：`ToolStrategy` 对应工具策略，`ProviderStrategy` 对应 provider 原生策略，`AutoStrategy` 由框架自动选。本机核对（读 `langchain` 1.4.2 源码，**不在示例输出里**）：`create_agent(model=..., tools=[], response_format=Person)` 传一个裸 schema 时会被包成 `AutoStrategy`，再由 `_supports_provider_strategy()` 读**模型的 `profile["structured_output"]` 标记**来决定——假模型没有这个标记，于是**落到 `ToolStrategy`**（工具名 `Person`，示例实测能跑通）。JS 侧是同一个判断思路，只是字段名不同（`model.profile.structuredOutput === true`）。
 
 **工具策略最有价值的一点是「校验失败自动重试」**，这是 `with_structured_output` 没有的。实测（Python 第 ⑥ 节，模型第一次把 `age` 写成 `"三十"`）：
 
@@ -291,7 +317,11 @@ TypeScript 侧的行为一致。`responseFormat` 接受裸 schema（自动选策
   6. [AIMessage] "Returning structured response: {\"name\":\"张三\",\"age\":30,\"occ..."
 ```
 
-三处 JS 侧细节：`toolStrategy(schema)` 返回的是一个**策略数组**（取 `[0].name` 拿工具名）；工具名默认是 `extract-1` 这样的**自增名字**（`zod` schema 没有 `title` 时），用 `.meta({ title: "Person" })` 才能固定；而 `providerStrategy()` 走的是「模型直接吐 JSON 文本」那条路，**校验失败不会重试，直接抛 `StructuredOutputParsingError`**。
+三处 JS 侧细节，**可信度分两档**：
+
+- `toolStrategy(schema)` 返回的是一个**策略数组**（取 `[0].name` 拿工具名）——示例实测（`05_create_agent.ts` ④ 打印的就是 `["Person"]`）。
+- 工具名默认是 `extract-1` 这样的**自增名字**（`zod` schema 没有 `title` 时），用 `.meta({ title: "Person" })` 才能固定——**源码核对**。示例只打印过不带序号的 `extract`，`extract-N` 的自增未实测。
+- `providerStrategy()` 走「模型直接吐 JSON 文本」那条路，**校验失败不重试、直接抛 `StructuredOutputParsingError`**——**源码核对**。假模型没有 provider 原生结构化输出能力，这条从未跑通过。
 
 ## 三、代码：Python 与 TypeScript
 

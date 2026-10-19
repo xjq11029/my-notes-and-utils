@@ -1,0 +1,80 @@
+========================================================================
+① 手动链路 vs with_structured_output
+========================================================================
+  json.loads 成功，拿到 dict：{'name': '张三', 'age': '三十', 'occupation': '软件工程师'}
+  手动校验 isinstance(data['age'], int) → False
+  → 少写一个 if，这个「三十」就会一路流到下游数据库里。
+  with_structured_output(Person) → Person 实例：Person(name='张三', age=30, occupation='软件工程师')
+  直接点属性：person.name='张三' person.age=30
+  → 字段的 description 会被转成 JSON Schema 交给模型，模型侧的约束 + 客户端的校验一次配好。
+
+  schema 交给模型时长这样（convert_to_openai_tool 的产物）：
+    {"type": "function", "function": {"name": "Person", "description": "人物信息", "parameters": {"properties": {"name": {"description": "姓名", "type": "string ...
+
+========================================================================
+② 四种 schema 模式：各自的返回类型
+========================================================================
+  Pydantic     工具名=Person       返回 Person   Person(name='张三', age=30, occupation='软件工程师')
+  TypedDict    工具名=PersonDict   返回 dict     {'name': '张三', 'age': 30, 'occupation': '软件工程师'}
+  JSON Schema  工具名=PersonJson   返回 dict     {'name': '张三', 'age': 30, 'occupation': '软件工程师'}
+  @dataclass   工具名=PersonDC     返回 dict     {'name': '张三', 'age': 30, 'occupation': '软件工程师'}
+  → 工具名不是随便取的：Pydantic/TypedDict/dataclass 取类名，JSON Schema 取 title；
+     名字对不上，解析器找不到这条 tool_call，结果就是 None（见第 4 节）。
+
+========================================================================
+③ 两种策略：method 参数
+========================================================================
+    bind_tools 收到：['Person']  额外参数：['ls_structured_output_format', 'tool_choice']
+  默认（不传 method）          → Person(name='张三', age=30, occupation='软件工程师')
+    bind_tools 收到：['Person']  额外参数：['ls_structured_output_format', 'tool_choice']
+  method="function_calling" → Person(name='张三', age=30, occupation='软件工程师')
+    bind_tools 收到：['Person']  额外参数：['ls_structured_output_format', 'tool_choice']
+  method="json_schema"   → Person(name='张三', age=30, occupation='软件工程师')
+  → 实测（langchain 1.4.2）：在**基类**实现里 method 被直接丢掉，
+     三条路径都走 bind_tools + tool_choice；假模型上三者输出完全一致。
+     method="json_schema" 的真实差别由 provider 子类实现（如 ChatOpenAI 会改用
+     response_format 的 json_schema 模式）——**需真实模型，本教程未实测**。
+
+========================================================================
+④ 类型校验：什么时候抛错、抛什么
+========================================================================
+  age 传中文 → ValidationError：loc=('age',) type=int_parsing
+             msg=Input should be a valid integer, unable to parse string as an integer
+  漏填 age  → ValidationError：loc=('age',) type=missing
+  age 传 '30' → Person(name='张三', age=30, occupation='工程师')  （宽松模式，强转成功）
+  TypedDict 字段名全错 → {'title1': '盗梦空间', 'year2': 2010}  （不校验）
+  include_raw=True → keys=['parsed', 'parsing_error', 'raw']
+    parsed=None
+    parsing_error=ValidationError
+  → include_raw 把「抛错」变成「返回值」：批量跑抽取任务时不会一条坏数据打断整批。
+  脚本回吐 Person，但 schema 是 PersonDict → None
+  → 不报错、不告警，只是 None。换 schema 时先确认工具名。
+
+========================================================================
+⑤ 输出解析器（PydanticOutputParser）：不推荐，但 API 仍在
+========================================================================
+  正常 JSON → Movie(title='盗梦空间', year=2010)
+  非 JSON 文本 → OutputParserException: Invalid json output: 《盗梦空间》2010 年上映
+  → 老链路把 schema 拼成一段提示词塞进 system（format_instructions），再靠文本解析回来；
+     模型不听话就整条链断掉。v1 的路线是 with_structured_output，解析器只保留兼容。
+
+========================================================================
+⑥ 与 agent 侧 response_format 的关系
+========================================================================
+  result['structured_response'] = Person(name='张三', age=30, occupation='软件工程师')
+  1. [HumanMessage] '张三是一名 30 岁的软件工程师'
+  2. [AIMessage] ''  tool_calls=[('Person', {'name': '张三', 'age': '三十', 'occupation': '工程师'})]
+  3. [ToolMessage] "Error: Failed to parse structured output for tool 'Person..."
+  4. [AIMessage] ''  tool_calls=[('Person', {'name': '张三', 'age': 30, 'occupation': '软件工程师'})]
+  5. [ToolMessage] "Returning structured response: name='张三' age=30 occupatio..."
+  模型被调用 2 次：第一次参数非法，框架把错误写回 ToolMessage，模型自己改对了。
+  handle_errors=False → StructuredOutputValidationError
+  → 这就是与 with_structured_output 的分工：模型侧用哪个方法绑定，agent 侧由
+     ToolStrategy / ProviderStrategy 决定，还多了「校验失败自动重试」这一步。
+
+========================================================================
+附：枚举与 Optional —— 约束字段的取值范围
+========================================================================
+  Ticket(title='订单未发货', urgency=<Priority.HIGH: '高'>, assignee=None)
+  ticket.urgency=<Priority.HIGH: '高'>（枚举成员） ticket.urgency.value='高'
+  ticket.assignee=None（模型没给 → 落到默认值 None）

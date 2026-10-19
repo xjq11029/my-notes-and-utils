@@ -1,0 +1,13 @@
+======================================================================
+① 连通性探测（逐个模型发一条最小请求）
+======================================================================
+  glm-4.5-air    OK   content=''
+                      usage={'completion_tokens': 8, 'prompt_tokens': 10, 'prompt_tokens_details': {'cached_tokens': 9}, 'total_tokens': 18}
+  glm-4.6v       OK   content=''
+                      usage={'completion_tokens': 8, 'completion_tokens_details': {'reasoning_tokens': 7}, 'prompt_tokens': 11, 'prompt_tokens_details': {'cached_tokens': 4}, 'total_tokens': 19}
+  glm-4-plus     OK   content='收到'
+                      usage={'completion_tokens': 2, 'prompt_tokens': 14, 'total_tokens': 16}
+  glm-4.5        OK   content=''
+                      usage={'completion_tokens': 8, 'completion_tokens_details': {'reasoning_tokens': 8}, 'prompt_tokens': 10, 'prompt_tokens_details': {'cached_tokens': 0}, 'total_tokens': 18}
+  glm-4.6        OK   content=''
+                      usage={'completion_tokens': 8, 'completion_tokens_details': {'reasoning_tokens': 8}, 'prompt_tokens': 10, 'prompt_tokens_details': {'cached_tokens': 0}, 'total_tokens': 18}

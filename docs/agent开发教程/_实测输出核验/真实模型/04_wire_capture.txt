@@ -1,0 +1,36 @@
+==============================================================================
+真实请求体抓取：with_structured_output 的 method 在 provider 子类上改了什么
+==============================================================================
+
+  ── model=glm-4-plus  method=None
+     抛 ValidationError: 1 validation error for Person
+     上线 tools           = None
+     上线 response_format = {'type': 'json_schema', 'json_schema': {'schema': {'description': '人物信息', 'properties': {'name': {'description': '姓名', 'title': 'Name', 'type': 'string'}, 'age': {'description': '年龄', 'title': 'Age', 'type': 'integer'}, 'occupation': {'description': '职业', 'title': 'Occupation', 'type': 'string'}}, 'required': ['name', 'age', 'occupation'], 'title': 'Person', 'type': 'object', 'additionalProperties': False}, 'name': 'Person', 'strict': True}}
+
+  ── model=glm-4-plus  method=function_calling
+     返回 NoneType: None
+     上线 tools           = ['Person']
+     上线 tool_choice     = Person
+     上线 tool 的 strict  = (字段缺失)
+     上线 response_format = None
+
+  ── model=glm-4-plus  method=json_schema
+     抛 ValidationError: 1 validation error for Person
+     上线 tools           = None
+     上线 response_format = {'type': 'json_schema', 'json_schema': {'schema': {'description': '人物信息', 'properties': {'name': {'description': '姓名', 'title': 'Name', 'type': 'string'}, 'age': {'description': '年龄', 'title': 'Age', 'type': 'integer'}, 'occupation': {'description': '职业', 'title': 'Occupation', 'type': 'string'}}, 'required': ['name', 'age', 'occupation'], 'title': 'Person', 'type': 'object', 'additionalProperties': False}, 'name': 'Person', 'strict': True}}
+
+  ── model=glm-4-plus  method=json_mode
+     抛 OutputParserException: Failed to parse Person from completion {"name": "张三", "age": 30, "profession": "软件工程师"}. Got: 1 validation error for Person
+     上线 tools           = None
+     上线 response_format = {'type': 'json_object'}
+
+==============================================================================
+对照组：同一个 method 参数在**假模型基类**上是否被丢掉
+（ch04 ③ / 差异清单 #13 的实测口径。用子类覆盖 bind_tools 来记录入参，
+  因为 ScriptedChatModel 是 pydantic 模型，不能在实例上直接赋值。）
+==============================================================================
+  method=None              → bind_tools 工具名=[<class '__main__.Person'>] 额外参数=['ls_structured_output_format', 'tool_choice']
+  method=function_calling  → bind_tools 工具名=[<class '__main__.Person'>] 额外参数=['ls_structured_output_format', 'tool_choice']
+  method=json_schema       → bind_tools 工具名=[<class '__main__.Person'>] 额外参数=['ls_structured_output_format', 'tool_choice']
+  → 若三行的「额外参数」都不含 response_format，且三者一致，
+    说明基类确实把 method 丢掉了（与 ch04 ③ 的说法吻合）。

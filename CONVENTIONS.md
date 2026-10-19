@@ -111,7 +111,9 @@
 
 ## 四、统计口径
 
-**排除**：`.git/`、`.workbuddy/`、`.workbuddy-ai/`、`node_modules/`。
+**排除**：`.git/`、`.workbuddy/`、`.workbuddy-ai/`、`node_modules/`、**`.venv/`**。
+
+> ⚠️ `.venv/` 是 2026-10-16 补进排除列表的：本仓库 `docs/agent开发教程/code/python/.venv/` 有 **2.2 万个文件**，不排除时「总文件数」会报成 23149（真实值 922），「MD 篇数」会多算 35 篇（依赖包自带的 README）。旧版口径漏了它，所以历史统计数字都不可信。
 
 ```bash
 # 总文件数

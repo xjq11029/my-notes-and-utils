@@ -71,17 +71,36 @@ LangChain、LangGraph、Deep Agents 这三个名字在彼此的文档里反复�
 
 关键锚点只有一个：**LangChain v1 与 LangGraph v1 于 2025-10-22 同步 GA**（官方公告）。在此之前，两者的 0.x 版本 API 与 v1 差异很大——这是绝大多数「教程跑不起来」的根因。Deep Agents 不在同一条发布线上，它以 `deepagents` 包独立演进：**Python 包还在 0.x（实测 0.7.18），JS 包已到 1.x（实测 1.14.0）**，两边版本号不同步。
 
-本教程所有结论的实测版本如下（2026-09-24，Windows，Python 3.13.14 / Node 22.22.2）：
+本教程所有结论的实测版本如下（2026-09-24 首轮：Windows，Python 3.13.14 / Node 22.22.2；
+2026-10-16 复核轮：Python 3.14.2 / Node 24.11.0，34 个示例仍全部 `exit=0`）：
+
+> **口径分级（本教程统一，务必先读）**——「实测」这个词太容易被混用，本教程分四档：
+>
+> | 标记 | 含义 | 你能指望它什么 |
+> |---|---|---|
+> | **示例实测** | 结论直接来自 `code/` 示例打印出来的输出 | 复跑示例即可复现，原始输出存档在 `_实测输出核验/` |
+> | **本机核对** | 在本机环境里确认过，但**不在示例输出里**（多半是交互式试出来的） | 同版本可复现，但要自己敲一遍才知道 |
+> | **源码核对** | 读包源码 / 类型定义得出的 | 描述的是该版本的实现，不是跑出来的行为 |
+> | **未实测** | 需要 API Key、账号或额外安装才能验证 | 别当结论用 |
+>
+> 2026-10-16 之前，前三档在正文里统统写作「实测」——这是本教程最大的一处口径含糊，
+> 已在各章逐条改写。凡只在一门语言上测过的，也一律标明单边，不再当双语言一致结论用。
 
 | 语言 | 组件 | 实测版本 |
 |---|---|---|
-| Python | `langchain` / `langchain-core` | 1.4.2 / 1.6.4 |
+| Python | `langchain` / `langchain-core` | 1.4.2 / 1.6.11（1.6.4 为首轮，正文锚点曾长期未同步） |
 | Python | `langgraph` | 1.2.12 |
 | Python | `deepagents` | 0.7.18 |
-| Python | `langchain-openai` / `langchain-anthropic` | 1.6.5 / 1.7.4 |
+| Python | `langchain-openai` / `langchain-anthropic` | 1.7.2 / 1.7.6（1.6.5 / 1.7.4 为首轮） |
 | JS | `langchain` / `@langchain/core` | 1.5.11 / 1.2.12 |
 | JS | `@langchain/langgraph` | 1.4.17 |
 | JS | `deepagents` | 1.14.0 |
+| 真实模型（2026-10-16 补测） | 智谱 OpenAI 兼容端点 | `glm-4.5-air` / `glm-4-plus`；Python `langchain-openai` 1.7.2、JS `@langchain/openai` 1.6.2 |
+
+> ⚠️ 真实模型那一行的 JS 版本（`@langchain/openai` 1.6.2 / `langchain` 1.5.18 /
+> `@langchain/core` 1.2.18）**高于**本目录锁定的 1.5.11 / 1.2.12——它装在一个独立小包里，
+> 没动 `code/typescript/package.json`。所以 JS 侧的真实模型结论算「同生态实测补充」，
+> 不能直接替换本表的版本锚点。
 
 注意最后两行：**Python 的 `deepagents` 是 0.7.18，JS 的 `deepagents` 是 1.14.0**。两边的版本号**不同步**，不要按版本号对齐功能——判断某个能力在不在，去查该语言自己的包。
 

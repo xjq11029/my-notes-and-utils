@@ -8,7 +8,9 @@
 
 *图 12　工具调用往返与 ToolRuntime 注入*
 
-本章要回答八个问题：① 一次工具调用怎么往返（2.1）；② 工具本身怎么定义、描述怎么写、调不调用谁说了算（2.2）；③ schema 三要素从哪来（2.3）；④ 工具怎么读到图状态、单次运行配置、长期记忆（2.4）；⑤ 老代码里的注入写法怎么改（2.5）；⑥ 工具怎么反过来改图状态、返回值有几类（2.6）；⑦ 工具执行失败怎么办（2.7）；⑧ 工具由别人提供（MCP）时怎么接（2.8）。前七个靠 `code/` 里的示例实测，最后一个是规模化之后必然遇到的新问题。至于「知识在外部」——也就是检索增强（RAG）——已独立成第 8 章。
+本章要回答八个问题：① 一次工具调用怎么往返（2.1）；② 工具本身怎么定义、描述怎么写、调不调用谁说了算（2.2）；③ schema 三要素从哪来（2.3）；④ 工具怎么读到图状态、单次运行配置、长期记忆（2.4）；⑤ 老代码里的注入写法怎么改（2.5）；⑥ 工具怎么反过来改图状态、返回值有几类（2.6）；⑦ 工具执行失败怎么办（2.7）；⑧ 工具由别人提供（MCP）时怎么接（2.8）。
+
+前七个**由 `code/` 示例覆盖**，最后一个是规模化之后必然遇到的新问题。但「覆盖」不等于「每条都是实测」——本节里 `@tool` 参数校验的报错文案、`tool_choice` 的请求载荷、`runtime` 保留参数名的报错、`execution_info` 五字段、迁移对照表等都属**源码核对 / 本机核对**，2.7 的「默认行为两语言相反」更是**没做过对照实验**（见该节标注）。读的时候按第 1 章的四级口径区分。至于「知识在外部」——也就是检索增强（RAG）——已独立成第 8 章。
 
 ## 二、机制与原理
 
@@ -67,7 +69,7 @@
 | `"required"` | 必须调，数量不限 | 原样透传 `"required"`；`"any"` 与布尔 `True` 都翻译成 `"required"` |
 | `"<工具名>"` | 强制只调这一个 | 翻译成 `{"type": "function", "function": {"name": "<工具名>"}}` |
 
-实测方法离线、不联网：构造 `ChatOpenAI(api_key="sk-fake-offline", model="gpt-4o-mini")`（`langchain-openai` 1.6.5）后调 `bind_tools(...)`，读 `.kwargs["tool_choice"]`——这一步只是拼请求载荷，不发请求。两个结论：**`tool_choice=None` 与 `False` 根本不会写进载荷**（源码是 `if tool_choice:` 的真值判断），所以「不传」和「传 `False`」都等于不设，**不是** `"none"`；传一个**不在工具列表里的名字**不会被拦，载荷里就是一个裸字符串——校验交给服务端，框架不做。
+实测方法离线、不联网：构造 `ChatOpenAI(api_key="sk-fake-offline", model="gpt-4o-mini")`（`langchain-openai` 1.7.2）后调 `bind_tools(...)`，读 `.kwargs["tool_choice"]`——这一步只是拼请求载荷，不发请求。两个结论：**`tool_choice=None` 与 `False` 根本不会写进载荷**（源码是 `if tool_choice:` 的真值判断），所以「不传」和「传 `False`」都等于不设，**不是** `"none"`；传一个**不在工具列表里的名字**不会被拦，载荷里就是一个裸字符串——校验交给服务端，框架不做。
 
 **agent 路径上怎么用**：`create_agent` 的签名里**没有** `tool_choice` 参数（实测签名只有 `model` / `tools` / `system_prompt` / `middleware` / `response_format` / `state_schema` / `context_schema` / `checkpointer` / `store` / `interrupt_before` / `interrupt_after` / `debug` / `name` / `cache` / `transformers`）。默认路径下 agent 每次调模型前会用 `tool_choice=None` 重新绑一次工具，**所以在模型上预先 `bind_tools(..., tool_choice="required")` 是无效的，会被 agent 自己的绑定覆盖**（实测：先手工绑 `"required"`，agent 跑完后最后两次绑定都是 `None`）。要改，得在 `wrap_model_call` 中间件里覆写：
 
@@ -83,7 +85,7 @@ def force_tools(request, handler):
 
 实测（用记录 `bind_tools` 入参的假模型子类）：不挂中间件时，agent 内部收到的 `tool_choice` 是 `[None, None]`（构造与调用各一次）；挂上后是 `["required", "required"]`；覆写成具体工具名时是 `["get_news", "get_news"]`。**值确实传到了 `bind_tools`。**
 
-> ⚠️ **未实测**：以上只验证到「`tool_choice` 被正确拼进绑定与载荷」。**真实模型下这四个取值是否真的生效**——`"none"` 是否真的一次都不调、`"required"` 是否真的无视用户意图硬调、指定工具名是否真的只调那一个——本机无 API Key，**未实测**。语义以 OpenAI / DeepSeek 官方文档为准（两家对 `tool_choice` 的取值规定一致）。
+> ⚠️ **未实测**：以上只验证到「`tool_choice` 被正确拼进绑定与载荷」。**真实模型下这四个取值是否真的生效**——`"none"` 是否真的一次都不调、`"required"` 是否真的无视用户意图硬调、指定工具名是否真的只调那一个——**本轮没有测**（2026-10-16 已接入真实模型，但只测了流式分块、结构化输出载荷与 token 字段，没做 `tool_choice` 语义验证）。语义以 OpenAI / DeepSeek 官方文档为准（两家对 `tool_choice` 的取值规定一致）。要自己验：拿 `ChatOpenAI(base_url=...)` 接任一兼容端点，四种取值各跑一遍看 `tool_calls` 是否出现。
 
 **工具描述的写法要点**
 
@@ -153,14 +155,16 @@ v1 之前，往工具里注入东西靠一组「魔法类型」；下表回答**
 
 本机实测口径：**v1 的 agent 中间件路线已不再推荐 `ToolException` / `handle_tool_error` 这套旧 API**。注意措辞——它们**没有从包里删掉**：`langchain.tools` 仍导出 `ToolException`，`StructuredTool` 仍有 `handle_tool_error` 字段，`langchain` 自己的 MCP 适配器（`langchain/mcp/tools.py`）就还在用它。变的是**错误处理的入口**，不是 API 的存在。现在有两条路：**① 自己写 `@wrap_tool_call` 中间件**，捕获异常后返回一条内容可读的 `ToolMessage`（`tool_call_id` 从 `request.tool_call["id"]` 取）；**② 用内置中间件**——Python 侧为 `ToolErrorMiddleware`（本机示例未实测其构造参数，按官方文档），JS 侧为 `toolErrorMiddleware`，本机实测签名 `{ onError, tools? }`，`onError(error, request)` 返回内容则转成错误 `ToolMessage`，**什么都不返回就原样抛出**；它**不重试**，要重试得再叠一个 `toolRetryMiddleware({ onFailure: "error" })`。
 
-**不加任何中间件时的默认行为，两个语言不一样**（本机实测，这一点很容易踩）：
+**不加任何中间件时的默认行为，两个语言不一样**（⚠️ **本机未做无中间件对照实验**——下表是读 `ToolNode` 源码 + 官方文档得出的，属**源码核对**，别当实测结论抄）：
 
 | 语言 | 工具抛异常时 | 后果 |
 |---|---|---|
 | Python | 异常**原样抛出**，整个 agent 调用失败 | 用户看到 500；调试时能直接拿到 traceback |
-| JS | `ToolNode` **捕获**它，生成一条 error `ToolMessage`（内容形如 `Error: <消息>\n Please fix your mistakes.`）继续跑 | agent 不崩，但**真正的 bug 被掩盖成一次「模型自己会纠错」** |
+| JS | `ToolNode` **捕获**它，生成一条 error `ToolMessage`（内容形如 `<异常类名>: <消息>\n Please fix your mistakes.`）继续跑 | agent 不崩，但**真正的 bug 被掩盖成一次「模型自己会纠错」** |
 
-实测证据：同一个 `divide(1, 0)` 工具，Python 侧抛 `ZeroDivisionError` 并终止；JS 侧产出 `ToolMessage`、流程继续走到最终答复。
+实测的是**加了中间件之后**的行为，而且**两侧一致**：`07_tools.py` 与 `07_tools.ts` 都挂了捕获中间件，两边都打印「[中间件] 捕获到异常…转成 ToolMessage」并继续走到最终答复。
+
+> 原先这里写「Python 侧抛 `ZeroDivisionError` 并终止；JS 侧产出 `ToolMessage`」——**Python 抛异常那半边从未跑过**，那句是脚本自己打印的假设性解说。JS 侧无中间件时的真实报错前缀是 `TypeError:`（示例里 `this.store.batch is not a function` 那条就是），不是 `Error:`。
 
 所以在 Python 侧，`@wrap_tool_call` 的价值是**让 agent 不崩**；在 JS 侧，它的价值是**控制这条失败消息的措辞与分类**——让模型知道该换参数、还是该放弃。两边都建议：**调试期在 `@wrap_tool_call` 里加日志**，否则失败会被静默吞掉。
 
@@ -312,10 +316,10 @@ const handleToolErrors = createMiddleware({
 
 ## 四、常见坑与边界条件
 
-- **JS 侧 `InMemoryStore` 的导入源**（实测）：`langchain` 也导出了一个同名 `InMemoryStore`，但它**没有** `batch` / `put`；传给 `createAgent({store})` 后，`runtime.store.put` 报 `TypeError: this.store.batch is not a function`。改从 `@langchain/langgraph` 导入即恢复正常（已实测回读成功）。Python 侧从 `langgraph.store.memory` 导入。
+- **JS 侧 `InMemoryStore` 的导入源**（实测）：`langchain` 也导出了一个同名 `InMemoryStore`，但它**没有** `batch` / `put`；传给 `createAgent({store})` 后，`runtime.store.put` 报 `TypeError: this.store.batch is not a function`。**修复办法是改从 `@langchain/langgraph` 导入**——但要注意：**示例代码至今仍是 `from "langchain"` 导入，所以「改完就回读成功」这一步在本机没有跑过**（属源码核对 + 推断）。要验就自己把 import 改掉再跑一遍 `07_tools.ts`。Python 侧从 `langgraph.store.memory` 导入。
 - **不传 `store` 就没有 `runtime.store`**：JS 侧为 `undefined`，Python 侧为 `None`。工具里先判空，或构造 agent 时一定传入。
 - **返回 `Command` 忘了 `ToolMessage`**：`ToolNode` 抛 `ValueError`，两种语言都一样。
-- **工具异常的默认行为两语言不同**（实测）：**Python 直接抛出**、整个调用失败（好处是 bug 藏不住，坏处是用户看到 500）；**JS 被 `ToolNode` 吞成一条 error `ToolMessage`**、流程继续（好处是不崩，坏处是**真正的 bug 被掩盖成一次「模型自己会纠错」**）。两边都建议在 `@wrap_tool_call` 里加日志。
+- **工具异常的默认行为两语言不同**（**源码核对，未做对照实验**）：**Python 直接抛出**、整个调用失败（好处是 bug 藏不住，坏处是用户看到 500）；**JS 被 `ToolNode` 吞成一条 error `ToolMessage`**、流程继续（好处是不崩，坏处是**真正的 bug 被掩盖成一次「模型自己会纠错」**）。示例实测的部分是「**加了中间件后两侧行为一致**」。两边都建议在 `@wrap_tool_call` 里加日志。
 - **`runtime` 不是安全边界**：模型看不到 `runtime`，不等于用户影响不到它。`context` 由调用方传入，`state` 由消息驱动，敏感数据不要仅靠「模型看不见」来保护。
 - **工具描述含糊 → 选错工具**：真实模型才暴露的行为（本教程用脚本模型，**未实测**），但机制上很直接——描述是模型唯一的判断依据；同理，工具 schema 每个都占上下文，MCP 是**全量下发**，接三台服务器可能一下多出几十个工具。
 - **`return_direct` 只在整批都设置时才短路**；`Command` 的 `graph` 指向父图时才免除 `ToolMessage` 要求。
@@ -333,7 +337,7 @@ const handleToolErrors = createMiddleware({
 ## 本章要点回顾
 
 - 模型只「说」，框架才「做」——`tool_calls` 与 `ToolMessage` 靠 `id` / `tool_call_id` 缝合；工具对模型可见的只有 **名称 + 描述 + 参数 schema**，`config` / `runtime` 是保留参数名。
-- **`ToolRuntime` 一个参数管全部注入**：`state` / `context` / `store` / `stream_writer` / `execution_info` / `tool_call_id`（JS 侧 camelCase，`stream_writer` 在 JS 叫 `writer`）；迁移对照见 2.5 节。
+- **`ToolRuntime` 一个参数管全部注入**：`state` / `context` / `store` / `stream_writer` / `execution_info` / `tool_call_id`（JS 侧 camelCase，`stream_writer` 在 JS 叫 `writer`）；迁移对照见 2.5 节。**其中只有 `state` / `context` / `tool_call_id` 是示例实测过的**，`store` 在 JS 侧实测到的是**失败**，`stream_writer` / `execution_info` 属源码核对。
 - 返回值四类：字符串 / 对象 / 多模态 / `Command`；**返回 `Command` 必须自带匹配 `tool_call_id` 的 `ToolMessage`**，否则 `ValueError`；`return_direct` 只在**整批工具**都设置时才短路循环。
 - 错误处理：v1 不再推荐 `ToolException` / `handle_tool_error`（**未删除**，只是换了入口），改用 `@wrap_tool_call` 或 `ToolErrorMiddleware`；**默认行为两语言相反**——Python 异常**原样抛出**、JS 才被 `ToolNode` 吞成 error `ToolMessage`（见 2.7 节对照表）。
 - JS 侧 `InMemoryStore` 要从 `@langchain/langgraph` 导入，否则 `runtime.store.put` 报 `this.store.batch is not a function`（实测）。

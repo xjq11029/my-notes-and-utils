@@ -30,7 +30,7 @@
 | `sources` | 技能源路径列表，如 `['/skills/']`（可给多个，按来源标注区分） |
 | `system_prompt` | 覆盖默认的技能提示模板 |
 
-**先记住导入路径**：Python 侧 `SkillsMiddleware` **不在 `deepagents` 顶层导出**，必须 `from deepagents.middleware import SkillsMiddleware`（实测）；TypeScript 侧 `createSkillsMiddleware` 则可以从 `deepagents` 顶层导入。这一处两边不对称，写代码时最容易踩。
+**先记住导入路径**：Python 侧 `SkillsMiddleware` **不在 `deepagents` 顶层导出**，必须 `from deepagents.middleware import SkillsMiddleware`（**本机核对**——靠 `import` 试探确认，示例输出里没有这条对照；示例源码本身就是从 `deepagents.middleware` 导入的，所以它「能跑」间接支持结论）；TypeScript 侧 `createSkillsMiddleware` 则可以从 `deepagents` 顶层导入。这一处两边不对称，写代码时最容易踩。
 
 **渐进式披露（progressive disclosure）的机制，在默认提示模板里是明写的**。示例直接从源码默认值里把模板取了出来，原文如下（附中译）：
 
@@ -55,7 +55,7 @@ description above, but only read full instructions when needed:
 
 ### 2.2 MemoryMiddleware 的构造参数
 
-这张表回答「`MemoryMiddleware` 能配什么」。实测四个参数：
+这张表回答「`MemoryMiddleware` 能配什么」。**四个参数为源码核对**（读构造函数签名）——示例只实际传了 `backend` 与 `sources`，`add_cache_control` 与自定义 `system_prompt` 未跑过：
 
 | 参数 | 作用 |
 |---|---|
@@ -135,7 +135,7 @@ in any file, memory, or system prompt.
 
 最后一条是本章最容易被忽略、却最影响可用性的——但**技能与记忆的要求不一样，别一起说**：
 
-- **Skills：不配持久化后端也能用。** 默认 `StateBackend` 下，只要在 `invoke(files=...)` 里把技能文件传进去，`SkillsMiddleware` 就能正常发现并加载——官方文档明确支持这条路径。持久化后端解决的是「**跨线程 / 跨进程还能拿到同一批技能文件**」，不是「技能能不能跑」。
+- **Skills：不配持久化后端也能用。** 默认 `StateBackend` 下，只要在 `invoke(files=...)` 里把技能文件传进去，`SkillsMiddleware` 就能正常发现并加载——**这条来自官方文档，示例未实测**（`17_skills_memory.py` / `.ts` 都没有传 `files=`，也就没有真正加载过任何一个技能文件）。持久化后端解决的是「**跨线程 / 跨进程还能拿到同一批技能文件**」，不是「技能能不能跑」。
 - **Memory：要跨会话就必须配。** 记忆的价值就在「下次还记得」，而默认 `StateBackend` 把文件存在图状态里（第 15 章），**只活一个线程**。
 
 还有一个容易漏的点：**记忆不是自动积累的**。默认只是「允许写」——agent 学到新东西后要**主动调用 `edit_file` 去改记忆文件**，不调就不长。想要系统性地从多轮对话里抽取、去重、合并，得自己加一个后台整合流程。
@@ -225,14 +225,14 @@ for (const [label, kw] of configs) {
 
 ## 四、常见坑与边界条件
 
-1. **Python 侧 `SkillsMiddleware` 顶层导不出来**。必须 `from deepagents.middleware import SkillsMiddleware`（实测）；TS 侧 `createSkillsMiddleware` 可以从 `deepagents` 顶层导入——**两边不对称**。
+1. **Python 侧 `SkillsMiddleware` 顶层导不出来**。必须 `from deepagents.middleware import SkillsMiddleware`（**本机核对**）；TS 侧 `createSkillsMiddleware` 可以从 `deepagents` 顶层导入——**两边不对称**。
 2. **不配持久化后端 = 记忆不成立**。默认 `StateBackend` 只活一个线程，换 `thread_id` 记忆文件就读不到了；跨会话记忆必须换 `StoreBackend` 或真实磁盘。
 3. **把记忆当指令执行**。记忆文件是**用户可写的数据**，信任级别低于用户当前指令与工具验证结果；默认提示里的「信任与验证」条款就是干这个的，别把它当客套话。
 4. **凭据落进记忆或技能文件**。这是硬红线：明文文件会被读进上下文、可能进仓库、可能进日志；一旦写入，正确处置是**吊销密钥**而不是删文件。
 5. **记忆无限膨胀**。记忆每会话全量加载，膨胀 = 每轮多付 token；要么定期压缩，要么把大块内容挪进 Skills。
 6. **技能写太长，或忘了 `limit`**。技能正文靠 `read_file` 按需读，默认只给 100 行——这正是提示里写死 `limit=1000` 的原因；文件再长就该拆成多个技能。
 7. **`sources` 给成相对路径或写错目录**。技能与记忆都按文件路径找，路径不对就是「静默无内容」，不报错。
-8. **技能/记忆的效果需真实模型才能评估**。模型会不会正确判断「该加载哪个技能」、记忆内容会不会被正确遵守，**需 API Key，未实测**；本章验证的是「参数有哪些、提示里写了什么、节点多了哪些」。
+8. **技能/记忆的效果需真实模型才能评估**。模型会不会正确判断「该加载哪个技能」、记忆内容会不会被正确遵守，**仍未实测**——2026-10-16 本机已接入智谱端点，但**只测了协议层与框架机制**（stream 分块、结构化输出载荷、token 字段），没有跑过「真实模型 + Skills/Memory 中间件」的端到端质量评测。本章验证的是「参数有哪些、提示里写了什么、节点多了哪些」。
 
 ## 五、关键结论
 

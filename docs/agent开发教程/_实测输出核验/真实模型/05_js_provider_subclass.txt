@@ -1,0 +1,48 @@
+==============================================================================
+JS 真实模型：withStructuredOutput 的 method 在 provider 子类上改了什么
+==============================================================================
+
+  ── method=(缺省)
+     抛 SyntaxError: Unexpected token '好', "好的，从“张三是一名"... is not valid JSON
+     上线 tools           = None
+     上线 response_format = {"type":"json_schema","json_schema":{"name":"Person","strict":true,"schema":{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"object","properties":{"name":{"type":"string","description":"姓名","title":"Pers
+     上线 tools           = None
+     上线 response_format = {"type":"json_schema","json_schema":{"name":"Person","strict":true,"schema":{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"object","properties":{"name":{"type":"string","description":"姓名","title":"Pers
+     上线 tools           = None
+     上线 response_format = {"type":"json_schema","json_schema":{"name":"Person","strict":true,"schema":{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"object","properties":{"name":{"type":"string","description":"姓名","title":"Pers
+     上线 tools           = None
+     上线 response_format = {"type":"json_schema","json_schema":{"name":"Person","strict":true,"schema":{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"object","properties":{"name":{"type":"string","description":"姓名","title":"Pers
+     上线 tools           = None
+     上线 response_format = {"type":"json_schema","json_schema":{"name":"Person","strict":true,"schema":{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"object","properties":{"name":{"type":"string","description":"姓名","title":"Pers
+     上线 tools           = None
+     上线 response_format = {"type":"json_schema","json_schema":{"name":"Person","strict":true,"schema":{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"object","properties":{"name":{"type":"string","description":"姓名","title":"Pers
+     上线 tools           = None
+     上线 response_format = {"type":"json_schema","json_schema":{"name":"Person","strict":true,"schema":{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"object","properties":{"name":{"type":"string","description":"姓名","title":"Pers
+
+  ── method=functionCalling
+     返回 = undefined
+     上线 tools           = ["Person"]
+     上线 tool_choice     = {"type":"function","function":{"name":"Person"}}
+     上线 response_format = None
+
+  ── method=jsonSchema
+     抛 SyntaxError: Unexpected token '好', "好的，从“张三是一名"... is not valid JSON
+     上线 tools           = None
+     上线 response_format = {"type":"json_schema","json_schema":{"name":"Person","strict":true,"schema":{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"object","properties":{"name":{"type":"string","description":"姓名","title":"Pers
+     上线 tools           = None
+     上线 response_format = {"type":"json_schema","json_schema":{"name":"Person","strict":true,"schema":{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"object","properties":{"name":{"type":"string","description":"姓名","title":"Pers
+     上线 tools           = None
+     上线 response_format = {"type":"json_schema","json_schema":{"name":"Person","strict":true,"schema":{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"object","properties":{"name":{"type":"string","description":"姓名","title":"Pers
+     上线 tools           = None
+     上线 response_format = {"type":"json_schema","json_schema":{"name":"Person","strict":true,"schema":{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"object","properties":{"name":{"type":"string","description":"姓名","title":"Pers
+     上线 tools           = None
+     上线 response_format = {"type":"json_schema","json_schema":{"name":"Person","strict":true,"schema":{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"object","properties":{"name":{"type":"string","description":"姓名","title":"Pers
+     上线 tools           = None
+     上线 response_format = {"type":"json_schema","json_schema":{"name":"Person","strict":true,"schema":{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"object","properties":{"name":{"type":"string","description":"姓名","title":"Pers
+     上线 tools           = None
+     上线 response_format = {"type":"json_schema","json_schema":{"name":"Person","strict":true,"schema":{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"object","properties":{"name":{"type":"string","description":"姓名","title":"Pers
+
+  ── method=jsonMode
+     抛 OutputParserException: Failed to parse. Text: "{"name":"张三","age":30,"profession":"软件工程师"}". Error: [
+     上线 tools           = None
+     上线 response_format = {"type":"json_object"}

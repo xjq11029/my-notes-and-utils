@@ -1,0 +1,130 @@
+========================================================================
+① 四种消息类型：字段与用途
+========================================================================
+  1. [SystemMessage] '你是一个严谨的技术助教。'
+  2. [HumanMessage] '上海天气怎么样？'
+  3. [AIMessage] ''  tool_calls=[('get_weather', {'city': '上海'})]
+  4. [ToolMessage] '上海：22°C，晴'
+  5. [AIMessage] '上海今天 22°C，晴。'
+
+  → System 定规则、Human 是输入、AI 是输出、Tool 回灌工具结果——四者用途不同，
+    所以框架用四个类而不是一个带 role 字符串的通用对象来区分。
+  → AIMessage.tool_calls 是「模型的意图」：get_weather({'city': '上海'})
+  → ToolMessage.tool_call_id='call_1' 必须与上一条 AI 消息的 id 对上，
+    框架靠这个 id 把「工具结果」配回「是哪次调用」。
+  → HumanMessage 的 name='alice' 是元数据，用于多人对话里区分发言者；
+    是否透传给模型由供应商决定（见「四、常见坑」第 5 条）。
+
+========================================================================
+② 两种构造方式：JSON dict 与消息对象
+========================================================================
+  传 dict     → 模型侧收到: ['SystemMessage', 'HumanMessage', 'AIMessage', 'ToolMessage']
+  传消息对象  → 模型侧收到: ['SystemMessage', 'HumanMessage', 'AIMessage', 'ToolMessage']
+  两者是否一致: True
+
+  → dict 在进入模型之前就被框架转成了消息对象，模型侧看到的完全一样。
+    所以「用哪种写法」只是你这一侧的偏好：写库/收报文用 dict 省事，
+    在代码里拼逻辑用消息对象更直观（有类型、能挂 tool_calls）。
+  → 但 dict 的键名是框架约定死的：assistant 的工具调用放 tool_calls，
+    tool 消息必须带 tool_call_id，写错就是校验报错，而不是静默忽略。
+
+========================================================================
+③ content 与 content_blocks：多模态内容块
+========================================================================
+  纯文本 content       : '你好'
+  纯文本 content_blocks: [{'type': 'text', 'text': '你好'}]
+  多模态 content       : [{'type': 'text', 'text': '这张图里有什么？'}, {'type': 'image', 'base64': 'iVBORw0KGgoAAAANSUhEUg...(略)', 'mime_type': 'image/png'}]
+  多模态 content_blocks: [{'type': 'text', 'text': '这张图里有什么？'}, {'type': 'image', 'base64': 'iVBORw0KGgoAAAANSUhEUg...(略)', 'mime_type': 'image/png'}]
+  从 content 反读 blocks: [{'type': 'text', 'text': '图里是一瓶香水。'}]
+
+  → content 是弱类型：纯文本时是 str，多模态时是 list[dict]；
+    content_blocks 是统一后的 list[TypedDict]，每个块都有 type 字段
+    （text / image / audio / video / tool_call / reasoning）。
+  → 写多模态用 content_blocks，读「思维链」「引用」也优先读 content_blocks。
+  ⚠️ 以上只验证了「构造与解析」。真实多模态调用（把图片发给模型）需要 API Key，未实测。
+
+========================================================================
+④ 多轮对话历史的管理与裁剪：只保留最近 N 轮
+========================================================================
+  原始历史: 7 条
+  裁剪之后: 5 条（system + 最近 2 轮）
+  1. [SystemMessage] '你是 Python 导师。'
+  2. [HumanMessage] '列表和元组有什么区别？用一句解释'
+  3. [AIMessage] '列表可变，元组不可变。'
+  4. [HumanMessage] '什么是字典？用一句解释'
+  5. [AIMessage] '字典是键值对集合。'
+  → 模型实际收到 6 条消息（裁剪后的 5 条 + 新问题 1 条）
+  → 模型没有记忆：你给多少，它就看多少。裁剪是客户端的事，不是模型的事。
+  ⚠️ 按「条数」硬切有风险：如果被切掉的正好是 AI(tool_calls) 而留下它的
+     ToolMessage，就会出现「找不到对应调用的工具结果」，模型会报错或胡猜。
+
+========================================================================
+⑤ ChatPromptTemplate 的三种调用方式
+========================================================================
+  invoke()          → langchain_core.prompt_values.ChatPromptValue，含 4 条消息
+  format()          → str（纯字符串）
+  format_messages() → list，含 4 条消息
+
+  format() 的结果（角色名被拼成了 'System:' / 'Human:' / 'AI:' 三行）：
+    System: 你是一个 AI 开发工程师。你的名字是 小谷AI。
+    Human: 你能开发哪些 AI 应用?
+    AI: 我能开发很多 AI 应用。
+    Human: 你能帮我做什么?
+
+  → 三者同源：都先把变量填进模板，再决定输出成什么形态。
+    invoke() 给的是 ChatPromptValue，可以直接喂给模型；
+    format_messages() 给的是 list[BaseMessage]，适合再拼别的东西；
+    format() 给的是字符串，只适合打印、日志、或喂给「只吃字符串」的旧接口。
+
+========================================================================
+⑥ ChatPromptTemplate 初始化的六种参数类型
+========================================================================
+  类型1 str → ['HumanMessage']
+    默认角色是 human，写死不了 system
+  类型2 tuple → ['SystemMessage', 'HumanMessage']
+    最常用的写法：角色字符串 + 模板字符串
+  类型3 dict → ['SystemMessage', 'HumanMessage']
+    键必须恰好是 role 和 content 两个
+  类型4 BaseMessage → ['SystemMessage', 'HumanMessage']
+    已实例化的消息，内部花括号不会被当变量
+  类型5 MessagePromptTemplate → ['SystemMessage', 'HumanMessage']
+    先声明角色、再挂模板，可跨文件复用
+  类型6 嵌套 ChatPromptTemplate → ['SystemMessage', 'HumanMessage']
+    模板拼模板，适合把提示词拆成多个文件维护
+
+  → 为什么会有这么多种？因为它们各自解决一个来源问题：
+    str / tuple / dict 面向「手写提示词」，BaseMessage 面向「已有消息对象」，
+    MessagePromptTemplate 面向「跨文件复用的模板」，嵌套模板面向「提示词分段维护」。
+  → 类型4 的坑：BaseMessage 里的花括号不会被当变量（实测 {word} 原样保留）。
+
+  ⚠️ 实测纠正：官方源码里 MessageLikeRepresentation 只认六类
+     （BaseMessagePromptTemplate | BaseMessage | BaseChatPromptTemplate | tuple | str | dict），
+     把「可调用对象」（函数）放进列表会直接报错：
+     NotImplementedError: Unsupported message type: <class 'function'>
+
+========================================================================
+⑦ MessagesPlaceholder（消息占位符）与 partial()（部分变量预填充）
+========================================================================
+  带历史的渲染结果：
+  1. [SystemMessage] '你是一个客服专员，目标用户是普通用户。'
+  2. [HumanMessage] '我买的东西坏了'
+  3. [AIMessage] '很抱歉，我帮您处理。'
+  4. [HumanMessage] '解释退款政策'
+  → MessagesPlaceholder 解决的是「不知道历史里有几条、什么角色」的问题：
+    它把一整个消息列表原样插到指定位置，而不是把历史拼成一段文本。
+    多轮对话、Agent 中间步骤回灌都靠它。
+
+  partial() 之后，模板还需要的变量: ['history', 'task']
+  role / audience 已被钉死，渲染结果 → ['你是一个客服专员，目标用户是普通用户。', '解释退款政策']
+  → partial() 把「每次都一样」的变量提前钉死，留下真正会变的。
+    同一套模板派生出客服版 / 销售版，靠的就是它。
+
+========================================================================
+⑧ 验证：模板渲染出的消息，就是模型实际收到的消息
+========================================================================
+  直接 model.invoke(prompt_value)，模型侧收到：
+  1. [SystemMessage] '你是一个数学老师，回答要简短。'
+  2. [HumanMessage] '1 + 1 = ?'
+
+  → ChatPromptValue 可以直接当模型的输入，不需要再 .messages 拆一层。
+  → 这是本教程反复用的观测手段：从模型这一侧看，才知道它究竟收到了什么。

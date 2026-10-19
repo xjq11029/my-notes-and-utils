@@ -47,7 +47,9 @@
 
 为什么会这样？因为**检查点只落在超步边界**（第 11 章 2.5 节：一轮节点执行完、状态结算后才落盘）——它存得住「这一轮开始前的状态」，存不住**节点内部执行到了哪一行**。`interrupt()` 的工作方式是：恢复时从上一个检查点把节点**重跑一遍**，跑到 `interrupt()` 那一行时发现「这里之前断过、且带了 resume 值」，于是把值交还给你，继续往下走。重跑就是它定位断点的手段——不是缺陷，是检查点粒度决定的必然设计。
 
-本机实测的副作用日志说明了这一点：在 `interrupt()` 之前往列表里 append 一行「节点开始，读到 amount=199」，跑完一轮之后，**这行出现了两次**——第一次是原始执行，第二次是恢复时的重跑。
+本机实测的副作用日志说明了这一点：在 `interrupt()` 之前往列表里 append 一行「节点开始，读到 amount=199」，跑完一轮之后，**这行出现了两次**——第一次是原始执行，第二次是恢复时的重跑。**两语言都复现了「两次」**，这是本章最硬的一条双语言一致结论。
+
+> 但**完整日志的条数不一致**：Python 侧 3 行（第 3 行是「调用扣款接口：199 元」），**JS 侧只有 2 行**——`13_hitl_stream.ts` 的 charge 节点根本没写日志。所以「真副作用要拆成独立节点、且只执行一次」这半条**只有 Python 证据**。
 
 由此推出**四条铁律**：
 
@@ -69,7 +71,7 @@
 
 它的问题是**只会在节点边界停**，停不到节点中间，也拿不到结构化的人工输入（恢复时是再 `invoke(None)` 续跑，人工决定得另外写进状态）。所以它适合**调试时观察中间状态**，**不推荐用来做审批流**——审批流请用节点内的 `interrupt()`。
 
-### 2.4 stream_mode：同一张图，七种投影
+### 2.4 stream_mode：同一张图，最多七种投影（**示例实跑 4 档 / 3 档**）
 
 这张表回答「我该用哪个 `stream_mode`」。注意它不是七个功能，而是**同一次执行的七种看法**。
 
@@ -83,11 +85,16 @@
 | `tasks` | 任务开始 / 结束（含结果与错误） | 需要 checkpointer |
 | `debug` | `checkpoints` + `tasks` 及额外元数据 | 排障；信息最多也最杂 |
 
+> ⚠️ **示例实跑的档数远少于七档**：Python 侧跑了 `values` / `updates` / `custom` / `debug` **4 档**，**JS 侧只跑了 3 档、没有 `debug`**。`messages` / `checkpoints` / `tasks` **两语言都没跑过**（后两档还需配 checkpointer）。
+> Python 侧 `debug` 的实际输出是 `['checkpoint', 'checkpoint', 'task', 'task_result', 'checkpoint']`——注意里面有 `task_result`，不是「checkpoints + tasks」两个词能概括的。
+
 ![图 25　stream_mode 各档投影分别给你什么，以及 agent 当子图时最容易踩的坑](assets/25_stream_modes.png)
 
 *图 25　stream_mode 各档投影分别给你什么，以及 agent 当子图时最容易踩的坑*
 
 **可以同时要多种**：传一个列表即可（Python `stream_mode=["updates","custom"]`，JS `streamMode: ["updates","custom"]`）。此时每个分块要自己分辨来源——Python 侧是 `(mode, payload)` 二元组，JS 侧是 `[mode, payload]` 数组；加了 `subgraphs=True` 之后，前面还会再多一层 namespace。
+
+> ⚠️ 这段是**源码核对 / 官方文档**：`13_hitl_stream.py` 与 `.ts` 的 ② 节都是**单档循环**跑的，从未传过列表，两份输出里没有 list-mode 的分块记录。
 
 `custom` 档需要节点里主动推：Python 用 `get_stream_writer()`，JS 用 `getWriter()`。
 
@@ -237,7 +244,7 @@ const c = await collect(await parent.stream(inp, { streamMode: "messages", subgr
 6. **`Command(resume=...)` 是唯一能当输入用的 `Command` 形态**；`Command(goto=...)` 只能在节点里返回。
 7. **`subgraphs=True` 忘了加**，表现是「后端日志正常、前端打字机不动」。判断方法：看流出来的分块里有没有 `langgraph_node` 是子图内部节点。
 8. **`stream_mode` 传列表后分块形状变了**。Python 变成 `(mode, payload)`、JS 变成 `[mode, payload]`，再加 `subgraphs=True` 则前面多一层 namespace——升级或改配置后要同步改解析代码。
-9. **JS 类型定义里 `StreamMode` 还多一个 `"tools"`**（`@langchain/langgraph` 1.4.17 实测），示例未使用、本章不展开；Python 侧未见对应取值。
+9. **JS 类型定义里 `StreamMode` 还多一个 `"tools"`**（**源码核对**——读 `@langchain/langgraph` 1.4.17 的 `dist/pregel/types.d.ts`；示例未使用、本章不展开），Python 侧 `types.py` 的七值里没有 `tools`。**这是读类型定义读出来的，不是跑出来的。**
 
 ## 五、关键结论
 
@@ -245,7 +252,7 @@ const c = await collect(await parent.stream(inp, { streamMode: "messages", subgr
 2. **`interrupt()` 靠抛异常挂起**，因此不能被 `try/except` 吞掉；`Command(resume=...)` 是唯一能当 `invoke` 输入的 `Command` 形态。
 3. **恢复时整个节点从头重跑**（副作用日志实测出现两次）——由此推出四条铁律：不包 `try/except`、不重排、不传复杂值、之前的副作用必须幂等。**真正的副作用要拆成独立节点**放在 `interrupt()` 之后，而不是想办法让副作用幂等。
 4. **静态中断只适合调试**：它只能在节点边界停，且恢复时拿不到结构化的人工输入。
-5. **`stream_mode` 是同一执行的七种投影**，可组合成列表；`custom` 需要节点里主动推。
+5. **`stream_mode` 最多七种投影**，可组合成列表；`custom` 需要节点里主动推。**示例实跑：Python 4 档、JS 3 档**，`messages` / `checkpoints` / `tasks` 未跑过。
 6. **`subgraphs=True` 是子图流式的开关**：不加，agent 内部消息默认不透传。
 
 ## 本章要点回顾

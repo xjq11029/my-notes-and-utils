@@ -1,0 +1,137 @@
+==============================================================================
+B. ChatOpenAI(provider 子类) 上四种 method 实际发出的 HTTP 参数
+==============================================================================
+
+  method=None
+    抛 ValidationError: 1 validation error for Person
+  Invalid JSON: expected value at line 1 column 1 [type=json_invalid, input_value='张三是一名30岁的...供实用建议！ 😊', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+
+  method=function_calling
+    返回 Person: name='张三' age=30 occupation='软件工程师'
+    带 tools 参数?         True  → 工具名=['Person']
+    带 response_format?    False
+    tool_choice = Person
+
+  method=json_schema
+    抛 ValidationError: 1 validation error for Person
+  Invalid JSON: expected value at line 1 column 1 [type=json_invalid, input_value='明白了！张三是一...供更多帮助！😊', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+
+  method=json_mode
+    抛 OutputParserException: Failed to parse Person from completion {"answer": "张三是一名30岁的软件工程师。"}. Got: 3 validation errors for Person
+name
+  Field required [type=missing, input_value={'answer': '张三是一...的软件工程师。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.14/v/missing
+age
+  Field required 
+
+==============================================================================
+B-附. include_raw=True 时坏数据怎么办（ch04 ④ 的机制，真实模型版）
+==============================================================================
+Traceback (most recent call last):
+  File "D:\ProjectCode\my-notes-and-utils\docs\agent开发教程\_实测输出核验\真实模型\02_structured_output_methods.py", line 87, in <module>
+    r = chain.invoke([HumanMessage(content="随便说点别的，不含任何人物信息。")])
+        ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\ProjectCode\my-notes-and-utils\docs\agent开发教程\code\python\.venv\Lib\site-packages\langchain_core\runnables\base.py", line 3458, in invoke
+    input_ = context.run(step.invoke, input_, config, **kwargs)
+  File "D:\ProjectCode\my-notes-and-utils\docs\agent开发教程\code\python\.venv\Lib\site-packages\langchain_core\runnables\base.py", line 4191, in invoke
+    key: future.result()
+         ~~~~~~~~~~~~~^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\concurrent\futures\_base.py", line 450, in result
+    return self.__get_result()
+           ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\concurrent\futures\_base.py", line 395, in __get_result
+    raise self._exception
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\concurrent\futures\thread.py", line 86, in run
+    result = ctx.run(self.task)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\concurrent\futures\thread.py", line 73, in run
+    return fn(*args, **kwargs)
+  File "D:\ProjectCode\my-notes-and-utils\docs\agent开发教程\code\python\.venv\Lib\site-packages\langchain_core\runnables\base.py", line 4174, in _invoke_step
+    return context.run(
+           ~~~~~~~~~~~^
+        step.invoke,
+        ^^^^^^^^^^^^
+        input_,
+        ^^^^^^^
+        child_config,
+        ^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\ProjectCode\my-notes-and-utils\docs\agent开发教程\code\python\.venv\Lib\site-packages\langchain_core\runnables\base.py", line 6018, in invoke
+    return self.bound.invoke(
+           ~~~~~~~~~~~~~~~~~^
+        input,
+        ^^^^^^
+        self._merge_configs(config),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        **{**self.kwargs, **kwargs},
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\ProjectCode\my-notes-and-utils\docs\agent开发教程\code\python\.venv\Lib\site-packages\langchain_core\language_models\chat_models.py", line 488, in invoke
+    self.generate_prompt(
+    ~~~~~~~~~~~~~~~~~~~~^
+        [self._convert_input(input)],
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+        **kwargs,
+        ^^^^^^^^^
+    ).generations[0][0],
+    ^
+  File "D:\ProjectCode\my-notes-and-utils\docs\agent开发教程\code\python\.venv\Lib\site-packages\langchain_core\language_models\chat_models.py", line 1877, in generate_prompt
+    return self.generate(prompt_messages, stop=stop, callbacks=callbacks, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\ProjectCode\my-notes-and-utils\docs\agent开发教程\code\python\.venv\Lib\site-packages\langchain_core\language_models\chat_models.py", line 1684, in generate
+    self._generate_with_cache(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        m,
+        ^^
+    ...<2 lines>...
+        **kwargs,
+        ^^^^^^^^^
+    )
+    ^
+  File "D:\ProjectCode\my-notes-and-utils\docs\agent开发教程\code\python\.venv\Lib\site-packages\langchain_core\language_models\chat_models.py", line 2022, in _generate_with_cache
+    result = self._generate(
+        messages, stop=stop, run_manager=run_manager, **kwargs
+    )
+  File "D:\ProjectCode\my-notes-and-utils\docs\agent开发教程\code\python\.venv\Lib\site-packages\langchain_openai\chat_models\base.py", line 2001, in _generate
+    raise e
+  File "D:\ProjectCode\my-notes-and-utils\docs\agent开发教程\code\python\.venv\Lib\site-packages\langchain_openai\chat_models\base.py", line 1957, in _generate
+    response = raw_response.parse()
+  File "D:\ProjectCode\my-notes-and-utils\docs\agent开发教程\code\python\.venv\Lib\site-packages\openai\_legacy_response.py", line 140, in parse
+    parsed = self._options.post_parser(parsed)
+  File "D:\ProjectCode\my-notes-and-utils\docs\agent开发教程\code\python\.venv\Lib\site-packages\openai\resources\chat\completions\completions.py", line 188, in parser
+    return _parse_chat_completion(
+        response_format=response_format,
+        chat_completion=raw_completion,
+        input_tools=chat_completion_tools,
+    )
+  File "D:\ProjectCode\my-notes-and-utils\docs\agent开发教程\code\python\.venv\Lib\site-packages\openai\lib\_parsing\_completions.py", line 156, in parse_chat_completion
+    "parsed": maybe_parse_content(
+              ~~~~~~~~~~~~~~~~~~~^
+        response_format=response_format,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        message=message,
+        ^^^^^^^^^^^^^^^^
+    ),
+    ^
+  File "D:\ProjectCode\my-notes-and-utils\docs\agent开发教程\code\python\.venv\Lib\site-packages\openai\lib\_parsing\_completions.py", line 206, in maybe_parse_content
+    return _parse_content(response_format, message.content)
+  File "D:\ProjectCode\my-notes-and-utils\docs\agent开发教程\code\python\.venv\Lib\site-packages\openai\lib\_parsing\_completions.py", line 255, in _parse_content
+    return cast(ResponseFormatT, model_parse_json(response_format, content))
+                                 ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\ProjectCode\my-notes-and-utils\docs\agent开发教程\code\python\.venv\Lib\site-packages\openai\_compat.py", line 178, in model_parse_json
+    return model.model_validate_json(data)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "D:\ProjectCode\my-notes-and-utils\docs\agent开发教程\code\python\.venv\Lib\site-packages\pydantic\main.py", line 845, in model_validate_json
+    return cls.__pydantic_validator__.validate_json(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        json_data, strict=strict, extra=extra, context=context, by_alias=by_alias, by_name=by_name
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+pydantic_core._pydantic_core.ValidationError: 1 validation error for Person
+  Invalid JSON: expected value at line 1 column 1 [type=json_invalid, input_value='好的！这里有一些...开讲讲细节！ 😊', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid

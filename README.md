@@ -2,7 +2,7 @@
 
 个人知识库与工具仓库：把**体系化学习指南**、**技术专题深度笔记**、**可复用工具函数**统一归档，便于检索与复用。
 
-仓库以 Markdown 为主要载体（919 个文件，其中 579 篇 Markdown、约 27.4 万行），内容分两条主线：
+仓库以 Markdown 为主要载体（922 个文件，其中 552 篇 Markdown、约 27.0 万行），内容分两条主线：
 
 - **知识线**：`guides/` 的笔面试学习资料库（后端 + 前端）与 `docs/` 的技术专题深度笔记；
 - **工具线**：`src/` 的通用工具函数与 `examples/` 用法示例。
@@ -84,8 +84,8 @@ my-notes-and-utils/
 
 | 项目 | 数值 |
 |------|------|
-| 文件总数 | 919（含内部目录 `.workbuddy/`、`.workbuddy-ai/`；不含 `.git/` 与依赖目录 `node_modules/`） |
-| Markdown 文档 | 579 篇 / 约 27.4 万行 |
+| 文件总数 | 922（不含 `.git/`、`.workbuddy*/`，以及依赖目录 `node_modules/` 与 `.venv/`） |
+| Markdown 文档 | 552 篇 / 270,008 行（约 27.0 万） |
 | `guides/backend/` | 259 个文件 / 258 篇 Markdown |
 | `guides/frontend/` | 201 个文件 / 200 篇 Markdown |
 | `articles/` | 49 个文件 / 5 篇 Markdown（2 个类别 / 2 篇文章） |

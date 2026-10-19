@@ -104,7 +104,11 @@ Store 的模型很简单：**命名空间是一个字符串元组，任意层数
 
 > ⚠️ **需 API Key，未实测**：`index` 需要真实嵌入模型（OpenAI / Cohere 等）才能产生向量。本章示例用的是不带 `index` 的 `InMemoryStore`，纯键值语义——**语义检索只给写法、不给运行结果**。另注意 Python 用 `embed`、JS 用 `embeddings`，字段名不同。
 
-**节点里怎么拿到 store**：图挂上 store 之后，节点通过运行时对象访问——Python 是节点第二个参数 `runtime: Runtime`（来自 `langgraph.runtime`）上的 `runtime.store`；JS 节点的第二个参数就是运行时对象，`runtime.store` 直接用，也可以用 `getStore()` 从当前配置取。工具侧则统一走 `ToolRuntime.store`（见第 7 章，那条路径本机实测跑过）。
+**节点里怎么拿到 store**：图挂上 store 之后，节点通过运行时对象访问——Python 是节点第二个参数 `runtime: Runtime`（来自 `langgraph.runtime`）上的 `runtime.store`；JS 节点的第二个参数就是运行时对象，`runtime.store` 直接用，也可以用 `getStore()` 从当前配置取。
+
+> ⚠️ 口径订正：**本章示例从未把 store 挂到图上、也没有任何节点访问过 `runtime.store`**——`12_persistence.py` / `.ts` 的 ④ 节只是**直接调 store 的 API**（`put` / `get` / `search` / `list_namespaces` / `delete`），表格里的「节点里用 `runtime.store`」是被 print 出来的字符串。所以「节点里怎么拿 store」整段是**源码核对 / 官方文档**，不是实测。
+>
+> 工具侧的 `ToolRuntime.store` 也**不是「统一跑过」**：Python 侧实测成功（`07_tools.py` 回读到 `{'tenant': 't-7'}`），**JS 侧实测到的是失败**（`this.store.batch is not a function`，即差异清单 #16）。
 
 ## 三、代码：Python 与 TypeScript
 
@@ -262,7 +266,7 @@ await store.delete(USER, "pref-city");
 
 1. **`invoke({})` 与 `invoke(None)` 不是「相反」，而是「注入空输入」与「不注入输入」的区别**。空字典把「空输入」按各字段的 reducer 合并进检查点状态并重跑节点——想「续跑」用它；`None` 不注入任何输入，线程已跑完时就是空操作（图一步不跑），但若 config 指向一个还有待执行任务的状态（例如 `update_state` 刚改写出的分叉点），图会从那里继续往下执行——想「从历史快照重放」，用 `update_state` 返回的新分支 config 配 `invoke(None, cfg)`（3.1 节实测：从改写点重放到 `n=101`）。
 2. **生产环境别用 `InMemorySaver` / `MemorySaver` / `InMemoryStore`**。进程一退出全没，表现为「用户的会话随机丢失」。
-3. **`SqliteSaver` 要另装包**（`pip install langgraph-checkpoint-sqlite`），否则 import 就失败（实测）。**中途换后端，历史搬不过去**——持久化方案要在项目早期定。
+3. **`SqliteSaver` 要另装包**（`pip install langgraph-checkpoint-sqlite`），否则 import 就失败（**本机核对**：venv 里确实只有 `langgraph-checkpoint` 4.3.0、没有 sqlite 后端包；但示例从未真的去 import 它并捕获报错）。**中途换后端，历史搬不过去**——持久化方案要在项目早期定。
 4. **`search` 是前缀匹配**。命名空间写粗了会误命中；数据一多就把命名空间写细。
 5. **时间旅行不是改历史**。`update_state` 返回的是新分支的 config，原线程不受影响；要接着新分支跑，必须用返回的那个 config。
 6. **两边挂 store 的位置不同**。Python 是 `compile(checkpointer=..., store=...)`，JS 是把 store 放进运行配置一起传（`invoke(input, { ...cfg, store })`）——这是双语言差异里容易漏的一处。**另外 `get_state_history` 在 JS 侧是异步迭代器**，直接 `console.log` 只会得到迭代器对象，必须先 `for await` 收进数组。

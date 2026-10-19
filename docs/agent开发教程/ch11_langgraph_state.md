@@ -59,11 +59,15 @@ new_value = reducer(left = 当前状态值, right = 节点返回的更新)
 
 ### 2.3 `add_messages`
 
-消息不是普通列表，它需要按 ID 去重更新：同一条消息（同一个 `id`）再次出现应该是**替换**，而不是重复追加。`add_messages` 就是内置的消息专用 reducer——第 5 章 2.3 节「`AgentState.messages` 只追加」就是它在 agent 状态上的样子，那里给了实测证据，这里给出形式化定义。JS 侧对应的是 `messagesStateReducer`（另有预置 schema `MessagesAnnotation`）——注意本章 JS 示例为了与 Python 对照，`messages` 用的是普通 `concat`，所以行为上只追加、不去重。
+消息不是普通列表，它需要按 ID 去重更新：同一条消息（同一个 `id`）再次出现应该是**替换**，而不是重复追加。`add_messages` 就是内置的消息专用 reducer——第 5 章 2.3 节「`AgentState.messages` 只追加」就是它在 agent 状态上的样子，那里给了实测证据，这里给出形式化定义。
+
+> ⚠️ 口径：**「追加」是示例实测的，「按 ID 去重 / 替换」不是**。`11_state_graph.py` 与第 5 章示例里每条消息的 `id` 各不相同，从未构造过「同 ID 再来一次」的用例，所以去重行为属**源码核对**。要自己验：手工传两条 `id` 相同、`content` 不同的消息，看状态里剩几条。JS 侧对应的是 `messagesStateReducer`（另有预置 schema `MessagesAnnotation`）——注意本章 JS 示例为了与 Python 对照，`messages` 用的是普通 `concat`，所以行为上只追加、不去重。
 
 ### 2.4 `Overwrite`：合并型 reducer 的逃生舱
 
 如果一个字段有合并型 reducer（例如 `operator.add`），那「返回空列表」是**清不掉**它的：空列表会被拼上去，旧值还在。要强制覆盖，得包一层显式指令 `Overwrite([])`。
+
+> 示例实测的是**包了 `Overwrite` 之后清空成功**（`log = []`）那一半；「不包就清不掉、旧值还在」这一半在 `11_state_graph.py` 里是**直接 print 的字面量**，不包 `Overwrite` 的分支从未真正执行过（JS 侧更是完全没有这一节）。结论本身按 reducer 语义成立，但别当成两边都跑过的实测。
 
 ### 2.5 节点、边、条件边、入口点
 
@@ -87,8 +91,8 @@ new_value = reducer(left = 当前状态值, right = 节点返回的更新)
 ### 2.7 `Command` 与子图
 
 - **`Command`**：在节点里返回它，可以**同时**做两件事——`update` 更新状态、`goto` 跳转到指定节点。它是「动态路由 + 状态更新」的合一。第 13 章会讲它的另一种形态 `Command(resume=...)`。
-  - **JS 侧返回 `Command` 的节点必须显式声明去向** `addNode(name, fn, { ends: [...] })`，否则编译时报 `UnreachableNodeError`；Python 靠类型注解 `Command[Literal[...]]`。
-- **子图**：编译好的图可以直接当节点用。Python 直接 `add_node("x", agent)`；JS 要取 `agent.graph`——`ReactAgent` 包装对象本身不是 Runnable（实测）。
+  - **JS 侧返回 `Command` 的节点建议显式声明去向** `addNode(name, fn, { ends: [...] })`；Python 靠类型注解 `Command[Literal[...]]`。「不写就报 `UnreachableNodeError`」是**源码核对**——本机 `tsc --noEmit` 的 45 条报错里没有一条是该错误名。
+- **子图**：编译好的图可以直接当节点用。Python 直接 `add_node("x", agent)`；JS 侧 `11_state_graph.ts` 取的是 `agent.graph`——「`ReactAgent` 包装对象本身不是 Runnable」属**源码核对**。**注意这与第 18 章的 JS 示例矛盾**：`18_multiagent.ts` 里直接把 agent 当节点用也能跑通，说明至少在该版本上不必一律取 `.graph`。两处口径以能跑通的 18 号为准，别照抄「必须取 `.graph`」。
 
 ### 2.8 同一线程再次 `invoke` 的语义
 
@@ -235,17 +239,17 @@ new StateGraph(State)
 
 ## 四、常见坑与边界条件
 
-- **默认 reducer 是覆盖，不是合并**：**顺序执行**的两个节点都写同一个标量字段时，留下的是**最后执行的那个**。但**同一 super-step 的并行分支写同一个无 reducer 字段会直接报错**——实测抛 `InvalidUpdateError: At key 'x': Can receive only one value per step.`。不是「不确定地覆盖」，而是**编译能过、跑起来抛异常**。凡可能被并发写入的字段，必须给 reducer。
+- **默认 reducer 是覆盖，不是合并**：**顺序执行**的两个节点都写同一个标量字段时，留下的是**最后执行的那个**。但**同一 super-step 的并行分支写同一个无 reducer 字段会直接报错**——**源码核对**抛 `InvalidUpdateError: At key 'x': Can receive only one value per step.`（示例未构造过这个用例：④ 的 `Send` 写的是带 `operator.add` 的字段）。不是「不确定地覆盖」，而是**编译能过、跑起来抛异常**。凡可能被并发写入的字段，必须给 reducer。
 - **`invoke(None)` 与 `invoke({})` 完全不同**：前者不注入输入，线程已跑完时什么都不做、直接返回当前状态；后者注入空字典，才是「从检查点续跑」。实测第 2、3 次调用就是这两个。
 - **输入字典里的字段会被自己的 reducer 处理**：标量字段传了值就覆盖检查点里的值（实测第 4 次 `n=100` → `101`）。想「续跑但不动状态」就传 `{}`。
 - **`Overwrite` 只对合并型字段有意义**：无 reducer 的字段本来就是覆盖，包不包都一样。
 - **`Send` 的 payload 是目标节点的输入**：worker 里读的是 `state["item"]`（当次那一项），不是完整的 `state["items"]`。
 - **`Send` 的汇总靠 reducer**：`results` 必须是 `Annotated[list, operator.add]` 这类合并型字段，否则并行分支互相覆盖。
-- **JS 返回 `Command` 的节点必须声明 `ends`**（实测），否则编译报 `UnreachableNodeError`。
+- **JS 返回 `Command` 的节点应声明 `ends`**（**源码核对**），否则类型层报错；本机 `tsc` 未复现出 `UnreachableNodeError` 这个具体错误名。
 - **JS 把 agent 当节点要取 `agent.graph`**（实测）；Python 可以直接 `add_node("x", agent)`。
 - **没有 checkpointer 就没有跨 `invoke` 的记忆**：2.8 节的所有结论都建立在 `compile(checkpointer=...)` 之上。Python 用 `InMemorySaver`，JS 用 `MemorySaver`（实测）。
 - **JS 示例的 `messages` 用的是普通 `concat`**：与 Python 的 `add_messages` 不完全等价（少了按 ID 去重更新）。要消息语义就用 `messagesStateReducer` 或 `MessagesAnnotation`。
-- **节点名是内部实现细节**：跨语言、跨版本都会变（实测），别硬编码。
+- **节点名是内部实现细节**：**跨语言会变（实测**，见第 13 章 `model` vs `model_request`）；「跨版本也会变」是合理推断，本机只跑过 `langgraph` 1.2.12 / `@langchain/langgraph` 1.4.17 一个版本，**未实测**。别硬编码。
 
 ## 五、关键结论
 

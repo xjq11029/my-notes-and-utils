@@ -1,0 +1,85 @@
+==============================================================================
+① checkpointer：同一线程接着上次跑
+==============================================================================
+  第 1 次，输入 {n:0, trail:[]}      → n=1, trail=["step→1"]
+  第 2 次，输入 {}（从检查点续跑）  → n=2, trail=["step→1","step→2"]
+  第 3 次，输入 null（空操作）      → n=2, trail=["step→1","step→2"]
+  第 4 次，输入 {n:100}（覆盖 n）    → n=101, trail=["step→1","step→2","step→101"]
+
+  读法（与 Python 侧实测一致）：
+  · `invoke({}, cfg)` —— 空对象：图从检查点状态**重新执行**，n 从 1 变 2；
+  · `invoke(null, cfg)` —— null：**空操作**。已跑完的线程没有待执行任务，
+    直接返回当前状态，图一步都没跑；
+  · 第 4 次输入里给了 n=100，按默认 reducer 覆盖掉检查点里的 2，再 +1 得 101；
+  · trail 一直在长，因为输入里从没给过 trail，它一直沿用检查点里的值。
+
+  状态快照（getState）：
+    values = {"n":101,"trail":["step→1","step→2","step→101"]}
+    next   = []    ← 空数组表示已跑完
+    config = {"thread_id":"order-2026","checkpoint_id":"1f1c942a-62df-6411-8007-6fe82a337996","checkpoint_ns":""}
+
+  检查点历史（getStateHistory）：
+    共 9 个检查点：
+      [0] step=-1  n=undefined  next=["__start__"]
+      [1] step= 0  n=0  next=["step"]
+      [2] step= 1  n=1  next=[]
+      [3] step= 2  n=1  next=["__start__"]
+      [4] step= 3  n=1  next=["step"]
+      [5] step= 4  n=2  next=[]
+      [6] step= 5  n=2  next=["__start__"]
+      [7] step= 6  n=100  next=["step"]
+      [8] step= 7  n=101  next=[]
+
+==============================================================================
+③ updateState：改写历史再重放（时间旅行）
+==============================================================================
+  快照序号示意（getStateHistory 返回顺序：新 → 旧，取下标要用负数）：
+      history[0]（倒数第 9）  step= 7  n=101
+      history[1]（倒数第 8）  step= 6  n=100
+      history[2]（倒数第 7）  step= 5  n=2
+      history[3]（倒数第 6）  step= 4  n=2
+      history[4]（倒数第 5）  step= 3  n=1
+      history[5]（倒数第 4）  step= 2  n=1
+      history[6]（倒数第 3）  step= 1  n=1
+      history[7]（倒数第 2）  step= 0  n=0
+      history[8]（倒数第 1）  step=-1  n=undefined
+  选中的历史检查点：history[len-2] → step=0, n=0
+  重放结果：n = 101, trail = ["人工改写：从 100 开始","step→101"]
+  → updateState 会**新建一个分支**，原线程的历史不受影响。
+    这是调试 agent 的利器：把某一步的状态改一改，看后面会怎么走。
+
+  ③-bis 三节点链（bump → double → tag）：回到中间某步、重走后面**两步**
+  （单节点图重放只有一步，看不出来「时间旅行」——多节点才能看出「跳回中间」）
+    原始执行：n = 4, trail = ["bump→2","double→4","tag✓"]
+    选中中间快照（next=["double"]，即 bump 刚跑完）：n = 2
+    从该点重放（重走 double、tag 两步）：n = 20, trail = ["人工改写：n=10","double→20","tag✓"]
+    → 只重走了 double→tag 两步，bump 没有重跑；原线程 chain-demo 的历史不受影响。
+
+==============================================================================
+④ Store：跨线程的长期记忆（与 checkpointer 的分工）
+==============================================================================
+  store.get(['alice','memories'], 'pref-food') → {"text":"喜欢川菜"}
+
+  前缀搜索的坑（namespacePrefix 是**前缀**匹配，不是精确匹配）：
+    store.search(['alice']) 命中 3 条：
+      namespace=["alice","memories"]  key=pref-food  value={"text":"喜欢川菜"}
+      namespace=["alice","memories"]  key=pref-city  value={"text":"住在杭州"}
+      namespace=["alice","notes"]  key=note-1  value={"text":"上周开会提到 Q3 目标"}
+
+  只想要 memories 这一层：store.search(['alice','memories']) → ["pref-food","pref-city"]
+  列出命名空间：store.listNamespaces({ prefix: ['alice'] }) → [["alice","memories"],["alice","notes"]]
+  → 一旦数据多了，把命名空间写细（['alice','memories'] 而不是 ['alice']）能省掉不少误命中。
+
+  store.delete(USER, 'pref-city') 后再 search → ["pref-food"]   ← pref-city 没了
+
+==============================================================================
+checkpointer 与 store 的分工
+==============================================================================
+  作用范围   checkpointer = 单个线程（thread） / store = 跨线程
+  存什么     checkpointer = 图状态的完整快照 / store = 应用自定义键值数据
+  怎么取     checkpointer = 传 thread_id      / store = 节点里用 runtime.store
+  典型用途   对话延续 / 人在回路 / 时间旅行 / 故障恢复
+             用户偏好 / 长期事实 / 共享知识
+
+  ⚠️ 生产环境别用 MemorySaver / InMemoryStore —— 进程一重启就全没了。
+     持久化检查点要用 @langchain/langgraph-checkpoint-* 系列包。

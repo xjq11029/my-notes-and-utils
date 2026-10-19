@@ -97,7 +97,7 @@ state['files'] = {
 - `deny` —— 拒绝。
 - **`interrupt` —— 暂停下来问人**，不是拒绝。这一档把**权限系统与人在回路（第 13 章）打通**了：agent 想动敏感路径时，图会 `interrupt` 等人审批，人放行才继续。
 
-**规则按声明顺序「首次匹配即生效」（first match wins）**。这跟防火墙 ACL 是同一个思路，所以写法有讲究：
+**规则按声明顺序「首次匹配即生效」（first match wins）**（⚠️ **源码核对，非实测**：`15_filesystem.py` / `.ts` 从未 invoke 过带 `permissions` 的 agent，示例里那些「首次匹配即生效 / 未命中默认 allow」的句子是**直接 print 出来的结论文字**，没有任何一次真实的拦截或放行观测。判定逻辑读 `_check_fs_permission` 源码可确认其收尾是 `return "allow"`，但**要当真请自己跑一遍**）。这跟防火墙 ACL 是同一个思路，所以写法有讲究：
 
 ```text
 1. 先声明「/secrets/** 禁止读写」     ← 具体规则放前面
@@ -117,7 +117,7 @@ state['files'] = {
 
 ### 2.5 后端谱系：文件到底存在哪
 
-这张表回答「不同后端把文件放哪、各自适合什么场景」。按实测签名给出。
+这张表回答「不同后端把文件放哪、各自适合什么场景」。按**本机核对 / 源码核对**签名给出——Python 侧示例只 print 了类名字面量，JS 侧只验证了 5 个类能从顶层导入，且 `StoreBackend` 在 JS 里的实际用法是 `new StoreBackend(config)`，与表内签名不同。
 
 | 后端 | 落点 | 特点 | 实测签名 |
 |---|---|---|---|
@@ -176,7 +176,12 @@ print(sorted(k for k in out if not k.startswith("_")))   # ['files', 'messages',
 print(out["files"])                                      # 文件就在图状态里
 ```
 
-TypeScript 侧语义完全一致，只有 `createDeepAgent` 与 `lastBoundToolNames` 的拼写差别。
+> ⚠️ **订正：TypeScript 侧语义并不「完全一致」**（示例实测，`_实测输出核验/typescript/15_filesystem.txt`）。同一个 write → read → grep → ls 序列，JS 的四条返回值**各不相同且与 Python 不同**：
+> · `write_file` → `Successfully wrote to ...`（Python 是 `Updated file /notes/todo.md`）
+> · `read_file` → **`[object Object]`**，**没有 Python 那个分页头**
+> · `grep` → `1 occurrence(s)`（Python 是 `1 instance(s)`）
+> · `ls` → 带 `(18 bytes)` 后缀
+> 所以本章前面所有以「实测返回值的原样」名义给出的字符串，**都是 Python 单边**；跨语言时只能当机制参考，别照抄返回文本。真正的拼写差别只是 `createDeepAgent` / `lastBoundToolNames` 这层 API 名。
 
 ```typescript
 import { createDeepAgent } from "deepagents";

@@ -63,7 +63,9 @@ state['todos'] = [
 
 ### 2.3 SubAgent 的全部 11 个字段
 
-这张表回答「定义一个子代理能配什么」。官方文档只列了 `name` / `description` / `system_prompt` / `tools`（可选 `model` / `middleware`），**本机实测一共 11 个字段**（实测签名）。
+这张表回答「定义一个子代理能配什么」。官方文档只列了 `name` / `description` / `system_prompt` / `tools`（可选 `model` / `middleware`），**本机核对一共 11 个字段**。
+
+> ⚠️ 口径：这 11 个名字是 `16_delegation.py` 里**逐行 print 的字面量**（源码硬编码），不是从 `SubAgent` 类型上探测出来的；JS 输出里也自己写明「Python 侧实测 11 个，JS 侧为同名 camelCase」。所以**「11 个」是 Python 单边的读源码结论**，JS 侧的 `interruptOn` / `responseFormat` 等并未独立验证过。
 
 | 字段（Python） | TypeScript | 作用 |
 |---|---|---|
@@ -256,7 +258,7 @@ await boss.invoke({ messages: [{ role: "user", content: "帮我调研一下检�
 
 1. **`write_todos` 是全量覆盖语义**：模型每次重写整张表，状态里的 `todos` 永远是最新快照，**规划列表不是 append-only**，漏写即丢失。
 2. **规划默认不开**：必须显式加 `TodoListMiddleware()` / `todoListMiddleware()`；加上后 `write_todos` 才绑定给模型，状态里多出 `todos` 键（每条含 `content` / `status`）。
-3. **`SubAgent` 实测 11 个字段**：`name` / `description` / `system_prompt` / `tools` / `model` / `middleware` / `interrupt_on` / `skills` / `permissions` / `response_format` / `mode`——文档只列了前 6 个。
+3. **`SubAgent` 本机核对 11 个字段**（Python 单边，见 2.3 节口径说明）：`name` / `description` / `system_prompt` / `tools` / `model` / `middleware` / `interrupt_on` / `skills` / `permissions` / `response_format` / `mode`——文档只列了前 6 个。
 4. **`description` 是子代理被用上的唯一依据**：主代理只看 `name` + `description`，写清「何时该派给我」而不是「我是谁」。
 5. **`task` 返回一份最终报告**，不是子代理的完整对话；中间过程留在子代理自己的上下文里。
 6. **`mode` 两档**：`isolated`（默认，干净上下文，省 token 但要写全背景）与 `fork`（继承主代理历史，省交接但一开始上下文就长）。

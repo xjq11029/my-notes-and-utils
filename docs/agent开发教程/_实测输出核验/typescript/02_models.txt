@@ -1,0 +1,105 @@
+========================================================================
+① 模型初始化的三个角度：提供商库 / initChatModel / 本地 Ollama
+========================================================================
+  ⚠️ 本节只走到「构造出对象」，不发请求——真实调用需 API Key，未实测。
+
+  角度 1｜提供商库：直接 new 一个 ChatXxx 类
+    （未安装 @langchain/openai，跳过：Cannot find package '@langchain/openai'）
+    → 一个提供商一个包、一套参数名；换一家就得改 import 和参数名。
+
+  角度 2｜统一入口：await initChatModel("provider:model")
+    initChatModel("openai:gpt-4o") → ConfigurableModel（前缀 openai 自动选中了 ChatOpenAI）
+    实测：initChatModel 返回的是 Promise —— 少一个 await，拿到的是 Promise 而不是模型。
+
+    「provider 前缀 → 需要装哪个包」从报错里就能读出来（实测）：
+      initChatModel("deepseek:deepseek-chat") → Unable to import @langchain/deepseek. Please install with `npm install @langchain/deepseek` or `pnpm install @langchain/deepseek`
+      initChatModel("ollama:llama3") → Unable to import @langchain/ollama. Please install with `npm install @langchain/ollama` or `pnpm install @langchain/ollama`
+      initChatModel("anthropic:claude-sonnet-4-5") → Unable to import @langchain/anthropic. Please install with `npm install @langchain/anthropic` or `pnpm install @langchain/anthropic`
+      ↑ 前缀名和包名不是一一对应的字符串（deepseek 的包是 @langchain/deepseek，
+        anthropic 的是 @langchain/anthropic），拼错时看到的就是这类报错。
+
+    不写前缀时，框架得自己猜出提供商：
+      initChatModel("qwen-plus") → Error: Unable to infer model provider for { model: qwen-plus }, please specify modelProvider directly.
+
+  角度 3｜本地模型：ChatOllama（需本机先起 Ollama 服务）
+    （未安装 @langchain/ollama，跳过：Cannot find package '@langchain/ollama'）
+    → 也可以走统一入口：await initChatModel("deepseek-r1:1.5b", { modelProvider: "ollama" })。
+    ⚠️ Ollama 必须先在本机跑起来（默认 http://localhost:11434）。
+       服务没起、模型没 pull，构造能过，一 invoke 就连接失败——本机无 Ollama，未实测。
+
+========================================================================
+② invoke 的三种入参形态，与模型实际收到的消息（seen 观测）
+========================================================================
+  [字符串] 模型收到 1 条：["HumanMessage"]
+      [["HumanMessage","翻译成英文：你好世界"]]
+  [dict 列表] 模型收到 2 条：["SystemMessage","HumanMessage"]
+      [["SystemMessage","你是翻译助手。"],["HumanMessage","翻译成英文：你好世界"]]
+  [消息对象列表] 模型收到 2 条：["SystemMessage","HumanMessage"]
+      [["SystemMessage","你是翻译助手。"],["HumanMessage","翻译成英文：你好世界"]]
+
+  → 三种写法归一化成同一件事：一条 system + 一条 human。
+    模型侧永远只认消息对象：字符串被包成一条 HumanMessage，dict 被逐条转换。
+
+  单条 dict → TypeError: promptValue.toChatMessages is not a function
+  → 「dict 形态」指的是 dict 的**列表**；传单条 dict 会被当成非法输入直接拒绝。
+
+========================================================================
+③ 返回值 AIMessage 的字段结构
+========================================================================
+  一条「正常回答」的 AIMessage：
+    content            = "2 + 3 * 2 = 8"   ← 最终文本，最常读的就是它
+    tool_calls         = []   ← 模型请求调用的工具（这里没有）
+    invalid_tool_calls = []   ← 格式错误的调用尝试
+    response_metadata  = {}   ← 假模型是空对象
+    usage_metadata     = undefined   ← 假模型是 undefined
+    additional_kwargs  = {}
+    id                 = undefined   ← 假模型不填；真实 provider 会给一个运行 ID
+
+  一条「请求调用工具」的 AIMessage：
+    content    = ""   ← 要调工具时，文本通常为空
+    tool_calls = [{"name":"get_weather","args":{"city":"上海"},"id":"call_1","type":"tool_call"}]
+
+  → content / tool_calls 说的是「模型说了什么」；
+    response_metadata / usage_metadata 说的是「这次调用花了什么代价」——
+    模型版本、结束原因、token 数，都由真实 provider 填。
+    假模型不产生这两项，所以这里是空的，不是 bug。
+
+========================================================================
+④ 三种调用形态：invoke / stream / batch（JS 没有 ainvoke）
+========================================================================
+  invoke  → "一次性返回。"
+            阻塞：等模型全部生成完，再一次性返回一个 AIMessage。
+  stream  → 1 个 chunk：["流式输出。"]
+            ⚠️ 假模型只吐 1 个 chunk（一次给整条消息）；
+               真实模型逐 token 分多个 chunk，靠 for await 边收边显示。
+  batch   → ["第一","第二","第三"]
+            一批输入，按原顺序返回数组；真实场景下框架会并发发请求。
+
+  → 与 Python 的差异：JS 侧没有 ainvoke / astream / abatch——
+    invoke / stream / batch 本来就返回 Promise，await 一下就是「异步版」。
+
+========================================================================
+⑤ profile 属性与 config 参数（tags / metadata / callbacks）
+========================================================================
+  profile：LangChain 给模型做的「能力画像」，声明过才有——
+    假模型 profile = {}（空对象；Python 侧同一位置是 None）
+    真实模型下这样读（⚠️ 需 API Key，未实测）：
+      const m = await initChatModel("openai:gpt-4o", { apiKey: "..." });
+      m.profile.maxInputTokens / m.profile.toolCalling
+    → 用途：运行时判断这个模型支不支持工具调用、上下文窗口有多大。
+
+  config：不改模型，只改「这一次调用」的记账方式
+    [回调] tags     = ["ch02","demo"]
+    [回调] metadata = {"user_id":"u-42","ls_model_type":"chat","ls_provider":"ScriptedChatModel","ls_integration":"langchain_chat_model","versions":{"@langchain/core":"1.2.12"}}
+    [回调] runName  = "my_run"
+    → tags / metadata / runName 都不进消息、不改模型行为，
+      它们是给追踪系统（如 LangSmith）用的记账信息。
+      metadata 里多出的 ls_provider / ls_model_type / versions 是框架自动补的。
+
+  withConfig：把 tags / metadata 钉在模型对象上
+    返回对象类型 = RunnableBinding（不再是 ScriptedChatModel，这是个容易踩的点）
+    [回调] tags     = ["pinned"]
+    [回调] metadata = {"src":"withConfig","ls_model_type":"chat","ls_provider":"ScriptedChatModel","ls_integration":"langchain_chat_model","versions":{"@langchain/core":"1.2.12"}}
+    [回调] runName  = undefined
+    → 返回的是包装后的 Runnable，照样能 invoke，但 instanceof 判断会失败；
+      要取回原对象用 .bound。

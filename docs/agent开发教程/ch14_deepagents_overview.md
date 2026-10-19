@@ -91,7 +91,17 @@
 
 ### 2.4 预装中间件栈与图节点名
 
-打开编译后的图，能看到第 6 章的中间件各自插进来的钩子节点——**Deep Agents 没有发明新机制，它只是把一整套预置中间件替你装好**。为什么要知道节点名？因为排查「某个能力怎么没生效」时，节点清单是最快的定位入口。但**节点名是内部实现细节，跨语言、跨版本都可能变**：Python 侧模型节点叫 `model`、JS 侧叫 `model_request`；文件系统钩子叫 `FilesystemMiddleware.before_agent`（Python，P 大写）对 `patchToolCallsMiddleware.before_agent`（JS，p 小写）；挂了 memory / skills / `interrupt_on` 后会再多出 `MemoryMiddleware.before_agent`、`SkillsMiddleware.before_agent`、`HumanInTheLoopMiddleware.after_model` 对应的节点。
+打开编译后的图，能看到第 6 章的中间件各自插进来的钩子节点——**Deep Agents 没有发明新机制，它只是把一整套预置中间件替你装好**。为什么要知道节点名？因为排查「某个能力怎么没生效」时，节点清单是最快的定位入口。但**节点名是内部实现细节，跨语言会变（实测）**；「跨版本也会变」是合理推断，本机只跑过一个版本、**未实测**。逐语言对照（示例实测）：
+
+| 节点 | Python（`14_deep_agent.py`） | TypeScript（`14_deep_agent.ts`） |
+|---|---|---|
+| 模型节点 | `model` | `model_request` |
+| 补丁钩子 | `PatchToolCallsMiddleware.before_agent`（**P 大写**） | `patchToolCallsMiddleware.before_agent`（**p 小写**） |
+| 文件系统钩子 | **不出现** | `FilesystemMiddleware.before_agent` |
+| 技能钩子 | `SkillsMiddleware.before_agent` | `SkillsMiddleware.`**`before_model`** |
+| 记忆 / 审批 | `MemoryMiddleware.before_agent` / `HumanInTheLoopMiddleware.after_model` | 同名 |
+
+> ⚠️ 原先这里把 `FilesystemMiddleware.before_agent` 归给了 Python、「P 大写」也错标在它身上——**它只在 JS 侧出现**，「P 大写」指的是 `PatchToolCalls`。另外 JS 的 skills 节点挂在 **`before_model`** 而不是 `before_agent`。这正是「别硬编码节点名」的活教材。
 
 **结论：要判断「这个 agent 到底装了哪些能力」，看工具列表或中间件清单，不要硬编码节点名**——这是全书特意标红的一条。
 
@@ -227,18 +237,19 @@ console.log(Array.from(profile.excludedTools));        // ⚠️ 直接 JSON.str
 5. **`tools=` 是追加不是替换**。想移除内置文件工具，得走 `HarnessProfile.excluded_tools` 或 `FilesystemMiddleware` 的白名单，不能靠 `tools=` 覆盖。
 6. **`excluded_middleware` 排不掉必需项**（`FilesystemMiddleware` / `SubAgentMiddleware`）。
 7. **JS 的 `excludedTools` 是 `Set`**，序列化前先 `Array.from()`；Python 侧是 `frozenset`，两边都不是普通列表。
-8. **预装能力的效果需要真实模型才能评估**（子代理产出质量、技能是否被正确加载等）——本机无 API Key，**未实测**；本章只验证「装了什么、暴露了什么」。
+8. **预装能力的效果需要真实模型才能评估**（子代理产出质量、技能是否被正确加载等）——**本轮未测**：2026-10-16 虽已接入智谱端点，但只测了协议层与框架机制（流式分块、结构化输出载荷、token 字段），没有跑「真实模型 + Deep Agents」的端到端质量评测；本章只验证「装了什么、暴露了什么」。
 
 ## 五、关键结论
 
 1. **Deep Agents 没有发明新机制，它只是把一整套预置中间件替你装好**——`create_agent` + 预装中间件栈，文件系统、子代理、技能、记忆、规划开箱即得；第 6 章的钩子体系就是读懂它的钥匙。
 2. **判断一个 Deep Agent 到底能干什么，看「模型被绑定了什么」，而不是看工具节点里挂了什么**——注册 9 个、模型可见 8 个，差的那个 `execute` 就是因为默认后端不提供执行能力；`write_todos` 同理，默认不开。
-3. **裁剪要用声明式，不要拆开重拼**：`HarnessProfile` 实测 7 个字段（文档只提 2 个），且 `excluded_middleware` 排不掉必需项——内置能力升级时你的 profile 不用跟着改，这是它比自己拼中间件强的根本原因。
+3. **裁剪要用声明式，不要拆开重拼**：`HarnessProfile` **Python 侧打印出 7 个字段**（文档只提 2 个）；`excluded_middleware` 排不掉必需项属**源码核对**。内置能力升级时你的 profile 不用跟着改，这是它比自己拼中间件强的根本原因。
+   > ⚠️ 口径：**那 7 个字段名是 `14_deep_agent.py` 里逐行 print 的字面量**，不是从类上反射出来的；**JS 侧从未打印字段数**，只回读了 `excludedTools` 与 `systemPromptSuffix` 两个。所以「7 个字段」是 Python 单边，`baseSystemPrompt` / `excludedMiddleware` / `extraMiddleware` / `generalPurposeSubagent` 在 JS 输出里零出现。
 4. **包归属与节点名都别看文档猜，以实测为准**：`FilesystemMiddleware` / `SubAgentMiddleware` 在 `deepagents` 而不在 `langchain.agents.middleware`；图节点名跨语言不同且随时可变（`model` vs `model_request`），硬编码它不如看工具清单。
 
 ## 本章要点回顾
 
-- **入口**：`create_deep_agent` / `createDeepAgent`，18 个参数按实测签名给全（JS 侧无 `debug` / `cache`，多 `streamTransformers`）。
+- **入口**：`create_deep_agent` / `createDeepAgent`，18 个参数按**本机核对签名**给全（读 `inspect.signature` / 类型定义，**不在示例输出里**；JS 侧无 `debug` / `cache`，多 `streamTransformers`）。
 - **默认工具集两个口径**：工具节点注册 **9** 个，模型可见 **8** 个——差的是 `execute`（默认 `StateBackend` 不给执行能力）。
 - **规划要自己开**：`TodoListMiddleware()` / `todoListMiddleware()`，加上后状态多出 `todos` 键。
 - **四类内置能力**：执行环境（`FilesystemMiddleware`）、上下文管理（卸载 / 摘要 / 修补）、委派（`SubAgentMiddleware` + `task`）、引导（技能 / 记忆 / 待办）。

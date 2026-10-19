@@ -1,0 +1,68 @@
+==============================================================================
+① create_deep_agent 默认给你哪些工具
+==============================================================================
+  构造完还没 invoke 时：[]   ← bindTools 还没触发
+  invoke 一次之后：共 8 个
+  ['delete', 'edit_file', 'glob', 'grep', 'ls', 'read_file', 'task', 'write_file']
+
+  但工具节点里其实有 9 个：['delete', 'edit_file', 'execute', 'glob', 'grep', 'ls', 'read_file', 'task', 'write_file']
+  差集：['execute']
+
+  ⚠️ 这里有个容易搞错的点：**「注册了工具」不等于「模型看得见」**。
+     `execute` 挂在工具节点上，但默认后端是 StateBackend（不提供执行能力），
+     所以它**没有被绑定给模型**——模型根本不知道有这个工具。
+     换句话说：想看 agent 到底能干什么，要看模型被绑定了什么，
+     而不是看工具节点里挂了什么。
+
+  模型实际看到的 8 个，按用途分：
+    文件读写  ls / read_file / write_file / edit_file / delete
+    文件检索  glob / grep
+    委派      task（创建子代理）
+
+  ⚠️ 与官方文档的差异（本机实测 deepagents 0.7.18）：
+     文档把 write_todos 列为「可选能力，v0.7 起需主动开启」——
+     实测确认**默认绑定给模型的工具里确实没有 write_todos**。
+     想要规划能力，得自己加中间件（见 ②）。
+
+==============================================================================
+② 显式加 TodoListMiddleware，write_todos 才出现
+==============================================================================
+  加中间件后共 9 个：['delete', 'edit_file', 'glob', 'grep', 'ls', 'read_file', 'task', 'write_file', 'write_todos']
+  write_todos 出现了：True
+  运行后状态里多出的键：['files', 'todos']
+  todos = [{'content': '调研', 'status': 'in_progress'}, {'content': '写稿', 'status': 'pending'}]
+
+==============================================================================
+③ 预装中间件栈 —— 图里到底挂了哪些节点
+==============================================================================
+  裸的（只给 model）         → 节点 ['model', 'tools', 'PatchToolCallsMiddleware.before_agent']
+  + 记忆 + 技能            → 节点 ['model', 'tools', 'SkillsMiddleware.before_agent', 'PatchToolCallsMiddleware.before_agent', 'MemoryMiddleware.before_agent']
+  + 子代理                → 节点 ['model', 'tools', 'PatchToolCallsMiddleware.before_agent']
+  + 人工审批               → 节点 ['model', 'tools', 'PatchToolCallsMiddleware.before_agent', 'HumanInTheLoopMiddleware.after_model']
+
+  读法：
+    · 固定节点 model / tools 是所有 agent 共有的骨架；
+    · 形如 `XxxMiddleware.before_agent` 的节点，是**中间件自己插进来的钩子节点**；
+    · 挂了 memory 才有 MemoryMiddleware 节点，挂了 skills 才有 SkillsMiddleware 节点——
+      所以「看节点名」是反查「这个 agent 到底装了哪些能力」最快的方式。
+
+==============================================================================
+④ HarnessProfile：声明式裁剪内置能力
+==============================================================================
+  profile.excluded_tools = frozenset({'execute'})
+  profile.system_prompt_suffix = '回答一律用中文。'
+  profile.tool_description_overrides = {'grep': '在本项目源码里搜索。'}
+  已注册 profile：'my-openai-profile'
+
+  HarnessProfile 的全部字段（实测签名）：
+    · base_system_prompt
+    · system_prompt_suffix
+    · tool_description_overrides
+    · excluded_tools
+    · excluded_middleware
+    · extra_middleware
+    · general_purpose_subagent
+
+  ⚠️ 官方文档只提到了 excluded_tools 与 excluded_middleware 两个字段，
+     实测 HarnessProfile 一共 7 个——按实测为准。
+     用 profile 而不是「自己拼中间件」的好处：内置能力升级时你不用跟着改。

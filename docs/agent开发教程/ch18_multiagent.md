@@ -46,7 +46,7 @@ handoff 不需要调度者节点反复介入，交棒动作发生在**节点内�
 - Python：`from langgraph.types import Command`，节点返回 `Command(goto=target, update={...})`。
 - TypeScript：`import { Command } from "@langchain/langgraph"`，返回 `new Command({ goto: target, update: {...} })`。
 
-这里有一条 JS 侧特有的硬约束：**返回 `Command` 的节点必须在 `addNode` 的第三个参数里用 `ends` 声明可能的去向**，否则**编译期**就报 `UnreachableNodeError`。Python 侧靠类型注解 `Command[Literal[...]]` 表达同一件事（实测）。
+这里有一条 JS 侧的约束：**返回 `Command` 的节点应在 `addNode` 的第三个参数里用 `ends` 声明可能的去向**，否则**编译期**报错。但要说清口径：「报的就是 `UnreachableNodeError`」是**源码核对**——本机 `tsc --noEmit` 跑出的 45 条错误里**没有一条**是该错误名（`18_multiagent.ts` 实际报的是 TS2345 / TS2769 类型的返回值不匹配）。Python 侧靠类型注解 `Command[Literal[...]]` 表达同一件事（示例实测可跑通）。
 
 还有一个容易混的点：**`Command(goto=...)` 只能在节点内部返回，不能当 `invoke` 的输入**；能当输入用的只有 `Command(resume=...)`（第 13 章）。handoff 属于前者。
 
@@ -184,7 +184,7 @@ console.log(out.owner);        // billing
 1. **agent 当节点后就是子图**，流式要加 `subgraphs=True`，否则「图能跑、结果也对，但打字机不动」（第 13 章的坑在这里重演）。
 2. **忘了给 agent 起 `name=`**，trace 里分不清谁在跑——多智能体下这个问题比单 agent 严重得多。
 3. **JS 侧 agent 不能直接当节点**，必须取 `.graph`；Python 侧可以直接传。
-4. **JS 侧返回 `Command` 的节点必须声明 `ends`**，否则是**编译期**报 `UnreachableNodeError`，不是运行期。
+4. **JS 侧返回 `Command` 的节点应声明 `ends`**，否则是**编译期**报错、不是运行期（错误名 `UnreachableNodeError` 为**源码核对**，本机 `tsc` 未复现该名称）。
 5. **`Command(goto=...)` 不能当 `invoke` 输入**，只有 `Command(resume=...)` 可以——handoff 属于节点内部行为。
 6. **swarm 最容易失控**：没有中心就没人保证收尾。要用就先把「终止条件」和「最大转移次数」设计死。
 

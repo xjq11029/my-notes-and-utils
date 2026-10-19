@@ -1,0 +1,80 @@
+== 1. create_params_model 生成的 JSON Schema ==
+{
+  "properties": {
+    "filepath": {
+      "description": "文件的绝对路径或相对于cwd的路径",
+      "title": "Filepath",
+      "type": "string"
+    },
+    "content": {
+      "description": "待写入的文件内容",
+      "title": "Content",
+      "type": "string"
+    },
+    "encoding": {
+      "default": "utf-8",
+      "description": "文件编码",
+      "title": "Encoding",
+      "type": "string"
+    }
+  },
+  "required": [
+    "filepath",
+    "content"
+  ],
+  "title": "write_file_params",
+  "type": "object"
+}
+
+== 2. Tool.schema()（OpenAI function calling 格式）==
+{
+  "type": "function",
+  "function": {
+    "name": "write_file",
+    "description": "将内容写入文件",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "filepath": {
+          "type": "string",
+          "description": "文件的绝对路径或相对于cwd的路径"
+        },
+        "content": {
+          "type": "string",
+          "description": "待写入的文件内容"
+        },
+        "encoding": {
+          "type": "string",
+          "description": "文件编码"
+        }
+      },
+      "required": [
+        "filepath",
+        "content"
+      ]
+    }
+  }
+}
+
+== 3. 参数校验：类型错误会得到可读的堆栈文本（而不是炸掉程序）==
+    For further information visit https://errors.pydantic.dev/2.14/v/string_type
+
+== 4. 注册表：schemas() 交给 session.tools，invoke() 替你执行 ==
+已注册工具: ['read_file', 'write_file']
+registry.invoke 返回: [
+  {
+    "role": "tool",
+    "tool_call_id": "call_1",
+    "name": "read_file",
+    "content": "# 角色\n你是运行在用户终端里的编码助手，通过工具完成实际操作。\n\n## 运行环境\n- 工作目录：{{ cwd }}\n- 操作系统：{{ os }}\n- Git 仓库：{{ \"是\" if is_git else \"否\" }}\n\n## 行为规则\n1. 需要读写文件或执行命令时，直接调用工具完成，不要只描述做法。\n2. 回答精简；信息不足时明确说明，禁止编造。\n3. 执行写操作前，与用户确认目标路径。\n{% if skills %}\n\n## 可用技能\n以下技能提供特定领域的完整工作指引。当用户需求与某个技能相关时：\n先调用 load_skill 工具读取该技能的完整说明，再按说明执行。\n{% for s in skills %}\n- {{ s.name }}：{{ s.description }}\n{% endfor %}\n{% endif %}\n"
+  }
+]
+
+最终回答: system.j2 的开头是角色设定：「你是运行在用户终端里的编码助手」。
+
+== 5. 完整消息序列（注意 role=tool 的消息格式）==
+=== 会话 e20e86c9…（4 条消息）===
+[用户] 帮我读取 agent/prompt/system.j2 的开头
+[助手] 请求调用工具: read_file
+[工具](read_file) # 角色 你是运行在用户终端里的编码助手，通过工具完成实际操作。  ## 运行环境 - 工作目录：{{ cwd }} - 操作系统：{{ os }} - Git…
+[助手] system.j2 的开头是角色设定：「你是运行在用户终端里的编码助手」。

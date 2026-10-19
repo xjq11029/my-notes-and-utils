@@ -1,0 +1,47 @@
+==============================================================================
+A. 真实模型 stream 到底吐几个 chunk？（文档：假模型 1 个，真实模型分多块·未实测）
+==============================================================================
+  chunk 总数        = 194
+  前 5 个 chunk 的 content 长度 = [0, 0, 0, 0, 0]
+  累计文本（前 60 字）= '长城是中国古代规模宏大、历史悠久的军事防御工程，也是中华民族勤劳与智慧的象征。'
+  → 结论：真实模型吐 194 个 chunk，明显多于 1 个，文档说法成立
+  → 顺带验证 ch02 的另一个说法：流式最后一个 chunk 才带完整 usage_metadata
+     带 usage_metadata 的 chunk 数 = 1，位置 = [192]
+
+==============================================================================
+C. usage_metadata / token 计费字段（文档：本机无 Key，未实测）
+==============================================================================
+  type(r.usage_metadata) = dict
+  r.usage_metadata = {'input_tokens': 18, 'output_tokens': 128, 'total_tokens': 146, 'input_token_details': {'cache_read': 4}, 'output_token_details': {}}
+  r.response_metadata 里的模型/身份字段：
+    · model_name = glm-4.5-air
+    · id = 20261016172420d54a55f30c724c82
+    · token_usage = {'completion_tokens': 128, 'prompt_tokens': 18, 'total_tokens': 146, 'completion_tokens_details': None, 'prompt_tokens_details': {'audio_tokens': None, 'cache_write_tokens': None, 'cached_tokens': 4, 'image_tokens': None, 'text_tokens': None}}
+    · finish_reason = stop
+
+==============================================================================
+D. 缓存命中率（ch09:95 声称未实测）——连发同样的长前缀，看 cached_tokens
+==============================================================================
+  第 1 次: input=793 cached=4 | raw={'completion_tokens': 67, 'prompt_tokens': 793, 'total_tokens': 860, 'completion_tokens_details': None, 'prompt_tokens_details': {'audio_tokens': None, 'cache_write_tokens': None, 'cached_tokens': 4, 'image_tokens': None, 'text_tokens': None}}
+  第 2 次: input=793 cached=780 | raw={'completion_tokens': 89, 'prompt_tokens': 793, 'total_tokens': 882, 'completion_tokens_details': None, 'prompt_tokens_details': {'audio_tokens': None, 'cache_write_tokens': None, 'cached_tokens': 780, 'image_tokens': None, 'text_tokens': None}}
+  第 3 次: input=793 cached=780 | raw={'completion_tokens': 36, 'prompt_tokens': 793, 'total_tokens': 829, 'completion_tokens_details': None, 'prompt_tokens_details': {'audio_tokens': None, 'cache_write_tokens': None, 'cached_tokens': 780, 'image_tokens': None, 'text_tokens': None}}
+
+==============================================================================
+B. with_structured_output 的 method 在 provider 子类上到底有何差别
+   （文档：基类三条路径都走 bind_tools；json_schema 的真实差别由 provider 子类实现·未实测）
+==============================================================================
+  method=None              → 抛 AttributeError: 'RunnableSequence' object has no attribute 'bound'
+  method=function_calling  → 抛 AttributeError: 'RunnableSequence' object has no attribute 'bound'
+  method=json_schema       → 抛 AttributeError: 'RunnableSequence' object has no attribute 'bound'
+  method=json_mode         → 抛 AttributeError: 'RunnableSequence' object has no attribute 'bound'
+
+==============================================================================
+E. 换成真实模型后，create_agent 的消息序列还符合 ch05 的断言吗
+==============================================================================
+  消息条数 = 4
+  1. [HumanMessage] '上海天气怎么样？'  tool_calls=
+  2. [AIMessage] '\n我来帮您查询上海的天气情况。\n'  tool_calls=[('get_weather', {'city': '上海'})]
+  3. [ToolMessage] '上海: 22°C，晴'  tool_calls=
+  4. [AIMessage] '\n上海今天的天气是22°C，晴朗的天气。温度比较舒适，是个不错的天气呢！'  tool_calls=
+  文档 ch05 断言的序列是 Human → AI(tool_call) → ToolMessage → AI(final)
+  → 看上面实际序列是否一致（真实模型可能直接回答、或调多次工具）

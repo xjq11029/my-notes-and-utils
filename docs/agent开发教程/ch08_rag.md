@@ -159,7 +159,9 @@ def search_docs(query: str) -> str:
 
 ## 三、代码：Python 与 TypeScript
 
-两套示例一一对应：`code/python/08_rag.py` 与 `code/typescript/08_rag.ts`。样例语料由代码现场生成，不依赖任何外部素材；嵌入用假嵌入，全程离线、零 API Key。
+两套示例演示同一件事：`code/python/08_rag.py` 与 `code/typescript/08_rag.ts`。样例语料由代码现场生成，不依赖任何外部素材；嵌入用假嵌入，全程离线、零 API Key。
+
+> ⚠️ 但**两边的语料和参数并不相同**，别指望输出逐行对得上：Python 用一段 93 字、`chunk_size=30` 的中文文本演示切分；TS 用另一段 LangChain 介绍、`chunkSize=40`、`separator="\n"`。因此 CSVLoader 在 Python 侧是 **3 个 Document**、TS 侧是 **2 个**；切分器在 Python 侧是 2 / 4 块、**在 TS 侧两种实现给出完全相同的 3 块且没有 WARNING**。下文凡标「Python 实测」的块，TS 侧都要另看。
 
 > **注意**：假嵌入的向量没有语义，所以示例里检索到的内容**不代表相关**。它验证的是链路通不通，不是检索准不准。
 
@@ -188,7 +190,7 @@ def search_docs(query: str) -> str:
 
 `manual.pdf` 是本示例**手搓**出来的最小合法 PDF（单页一行文本）——为了让示例自包含，不下载、不依赖外部文件，同时又能走通 pypdf 的真实解析路径。
 
-### 3.2 切分：两种实现的真实差别
+### 3.2 切分：两种实现的真实差别（**Python 实测**）
 
 同一段 93 字、含一个空行的文本，`chunk_size=30`：
 
@@ -208,16 +210,28 @@ def search_docs(query: str) -> str:
     → 依次尝试 ['\n\n', '\n', ' ', '']，粗的切不动就换更细的。
 ```
 
+> ⚠️ **TS 侧跑不出这个对比**：`08_rag.ts` 用的语料分隔符正好落在 `chunkSize=40` 以内，两种切分器输出**完全相同的 3 块**，一条 WARNING 都没有。「38 > 30」「递归版保证不超」这两条只在 Python 成立。
+
 两个细节值得记住：`CharacterTextSplitter` 超长时**只发一条 WARNING**，而那条 WARNING 走的是 `logging`、默认不显示——所以「明明设了 30 却切出 38」这个问题，很多人是查了很久才发现的。`RecursiveCharacterTextSplitter` 反过来，它保证不超 `chunk_size`，代价是可能切在句子中间（上面第 1 块就断在「切得太」）。
 
 ### 3.3 嵌入与检索
 
 ```text
-embed_query('退换货') → 维度 16，前 4 位 [...]
-similarity_search('退换货怎么处理', k=2) → 2 条
+── TS 实测（08_rag.ts）
+embedQuery('退换货') → 维度 4，前 4 位 [0.1,0.2,0.3,0.4]
+similaritySearch('退换货怎么处理', 2) → 2 条
     [1] faq.txt | 退换货政策：签收后 7 天内可无理由退换。
     [2] faq.txt | 运费规则：单笔订单满 99 元免运费。
+
+── Python 实测（08_rag.py，语料与函数名都不同）
+embed_documents(['机械键盘已发货', '显示器支架已签收']) → 2 个向量
+embed_query('键盘到哪了') → 维度 8，前 4 维 [-0.208, 0.869, 0.945, 0.065]
+similarity_search_with_score('键盘', k=2)：
+    #1 score=0.5845 | order_id: A-1001 / product: 机械键... | 源=orders.csv
+    #2 score=0.4035 | order_id: A-1002 / product: 人体工... | 源=orders.csv
 ```
+
+> 这块原先把 **TS 的输出套上了 Python 的函数名 `embed_query`**，维度还写成了 **16**——两边都不是（TS 是 4、Python 是 8）。已按两边实际输出分开列。**维度必须与 `embed_documents` 一致，否则算不了相似度**，这是硬约束。
 
 Python 示例用 `DeterministicFakeEmbedding` 保证同一段文本每次得到同一个向量（可复现），并另用 `FakeEmbeddings` 做了一次对照，证明它每次结果不同——**只够验证管道，不能当检索质量看**。
 
@@ -259,7 +273,7 @@ Python 示例用 `DeterministicFakeEmbedding` 保证同一段文本每次得到�
 
 6. **PDF 需要额外依赖。** Python 侧要装 `pypdf`；TS 侧的 `PDFLoader` 要装 `pdf-parse`。没装时不是「解析效果差」，是直接 import 失败。
 
-7. **`langchain-community` 已进入 sunset。** 本机实测（0.4.2）import 时会打印 `DeprecationWarning`：该包不再积极维护，官方建议迁移到各独立集成包。本章只借它讲「文件 → Document」这件事，与 sunset 无关；但**新项目选型时要知道这一点**。
+7. **`langchain-community` 已进入 sunset。** 官方建议迁移到各独立集成包（0.4.2 的 `DeprecationWarning` 属**本机核对**——本轮 `08_rag.py` / `.ts` 的输出里**并没有打印该警告**，别在示例输出里找它）。本章只借它讲「文件 → Document」这件事，与 sunset 无关；但**新项目选型时要知道这一点**。
 
 ## 五、关键结论
 

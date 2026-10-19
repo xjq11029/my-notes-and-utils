@@ -1,0 +1,99 @@
+========================================================================
+① 模型初始化的三个角度：提供商库 / init_chat_model / 本地 Ollama
+========================================================================
+  ⚠️ 本节只走到「构造出对象」，不发请求——真实调用需 API Key，未实测。
+
+  角度 1｜提供商库：直接 new 一个 ChatXxx 类
+    ChatOpenAI(model='gpt-4o') → ChatOpenAI，model_name='gpt-4o'
+    → 一个提供商一个类、一套参数名；换一家就得改 import 和参数名。
+
+  角度 2｜统一入口：init_chat_model("provider:model")
+    init_chat_model('openai:gpt-4o') → ChatOpenAI（前缀 openai 自动选中了 ChatOpenAI）
+    init_chat_model(model='deepseek-chat', model_provider='openai', base_url=...) → ChatOpenAI
+    底层实际用的 base_url = https://api.deepseek.com/v1
+    → provider 前缀指的是「用哪套协议 / 哪个类」，不是「哪家厂商」；
+      平台没有专用集成时，把它套进 openai 前缀即可。
+
+    两个「前缀没写 / 写错」的实测报错：
+      init_chat_model('deepseek:deepseek-chat') → ImportError: Initializing ChatDeepSeek requires the langchain-deepseek package. Please install it with `pip install langchain-deepseek`
+      init_chat_model('qwen-plus') → ValueError: Unable to infer model provider for model='qwen-plus'. Please specify 'model_provider' directly.
+      ↑ 前者说明「前缀 → 需要哪个包」；后者说明「不写前缀时框架得猜得出提供商」。
+
+  角度 3｜本地模型：ChatOllama（需本机先起 Ollama 服务）
+    （未安装 langchain-ollama，跳过：No module named 'langchain_ollama'）
+    → 也可以走统一入口：init_chat_model('deepseek-r1:1.5b', model_provider='ollama')。
+    ⚠️ Ollama 必须先在本机跑起来（默认 http://localhost:11434）。
+       服务没起、模型没 pull，构造能过，一 invoke 就连接失败——本机无 Ollama，未实测。
+
+========================================================================
+② invoke 的三种入参形态，与模型实际收到的消息（.seen 观测）
+========================================================================
+  [字符串] 模型收到 1 条：['HumanMessage']
+      [('HumanMessage', '翻译成英文：你好世界')]
+  [dict 列表] 模型收到 2 条：['SystemMessage', 'HumanMessage']
+      [('SystemMessage', '你是翻译助手。'), ('HumanMessage', '翻译成英文：你好世界')]
+  [消息对象列表] 模型收到 2 条：['SystemMessage', 'HumanMessage']
+      [('SystemMessage', '你是翻译助手。'), ('HumanMessage', '翻译成英文：你好世界')]
+
+  → 三种写法归一化成同一件事：一条 system + 一条 human。
+    模型侧永远只认消息对象：字符串被包成一条 HumanMessage，dict 被逐条转换。
+
+  单条 dict → ValueError: Invalid input type <class 'dict'>. Must be a PromptValue, str, or list of BaseMessages.
+  → 「dict 形态」指的是 dict 的**列表**；传单条 dict 会被当成非法输入直接拒绝。
+
+========================================================================
+③ 返回值 AIMessage 的字段结构
+========================================================================
+  一条「正常回答」的 AIMessage：
+    content            = '2 + 3 * 2 = 8'   ← 最终文本，最常读的就是它
+    tool_calls         = []   ← 模型请求调用的工具（这里没有）
+    invalid_tool_calls = []   ← 格式错误的调用尝试
+    response_metadata  = {}   ← 假模型是空字典
+    usage_metadata     = None   ← 假模型是 None
+    additional_kwargs  = {}
+    id                 = lc_run--…   ← 框架自动生成的运行 ID（后半段每次不同）
+
+  一条「请求调用工具」的 AIMessage：
+    content    = ''   ← 要调工具时，文本通常为空
+    tool_calls = [{'name': 'get_weather', 'args': {'city': '上海'}, 'id': 'call_1', 'type': 'tool_call'}]
+
+  → content / tool_calls 说的是「模型说了什么」；
+    response_metadata / usage_metadata 说的是「这次调用花了什么代价」——
+    模型版本、结束原因、token 数，都由真实 provider 填。
+    假模型不产生这两项，所以这里是空的，不是 bug。
+
+========================================================================
+④ 四种调用形态：invoke / stream / batch / ainvoke
+========================================================================
+  invoke  → '一次性返回。'
+            阻塞：等模型全部生成完，再一次性返回一个 AIMessage。
+  stream  → 1 个 chunk：['流式输出。']
+            ⚠️ 假模型只吐 1 个 chunk（一次给整条消息）；
+               真实模型逐 token 分多个 chunk，靠 for 循环边收边显示。
+  batch   → ['第一', '第二', '第三']
+            一批输入，按原顺序返回 list；真实场景下框架会并发发请求。
+  ainvoke → '异步返回。'
+            同步版的异步孪生：ainvoke / astream / abatch 三件套。
+
+========================================================================
+⑤ profile 属性与 config 参数（tags / metadata / callbacks）
+========================================================================
+  profile：LangChain 给模型做的「能力画像」，声明过才有——
+    假模型 profile = None（基类不带画像）
+    init_chat_model('openai:gpt-4o').profile（节选）= {'max_input_tokens': 128000, 'max_output_tokens': 16384, 'tool_calling': True, 'structured_output': True}
+    ⚠️ 画像来自「构造」，不代表真实调用行为；本机无 Key，未实测调用。
+    → 用途：运行时判断这个模型支不支持工具调用、上下文窗口有多大。
+
+  config：不改模型，只改「这一次调用」的记账方式
+    [回调] tags     = ['ch02', 'demo']
+    [回调] metadata = {'user_id': 'u-42', 'ls_provider': 'scriptedchatmodel', 'ls_model_type': 'chat', 'ls_integration': 'langchain_chat_model', 'lc_versions': {'langchain-core': '1.6.11', 'langchain': '1.4.2'}}
+    → tags / metadata / run_name 都不进消息、不改模型行为，
+      它们是给追踪系统（如 LangSmith）用的记账信息。
+      metadata 里多出的 ls_provider / ls_model_type / lc_versions 是框架自动补的。
+
+  with_config：把 tags / metadata 钉在模型对象上
+    返回对象类型 = RunnableBinding（不再是 ScriptedChatModel，这是个容易踩的点）
+    [回调] tags     = ['pinned']
+    [回调] metadata = {'src': 'with_config', 'ls_provider': 'scriptedchatmodel', 'ls_model_type': 'chat', 'ls_integration': 'langchain_chat_model', 'lc_versions': {'langchain-core': '1.6.11', 'langchain': '1.4.2'}}
+    → 返回的是包装后的 Runnable，照样能 invoke，但 isinstance 判断会失败；
+      要取回原对象用 .bound。

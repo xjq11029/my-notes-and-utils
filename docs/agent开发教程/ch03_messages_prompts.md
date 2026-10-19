@@ -329,7 +329,7 @@ const built = ChatPromptTemplate.fromMessages([
 const support: any = await built.partial({ role: "客服专员" });   // ⚠️ partial 也是异步
 ```
 
-实测输出（Python，2026-09-29，`langchain` 1.4.2 / `langchain-core` 1.6.4）：
+实测输出（Python，2026-10-16 复核，`langchain` 1.4.2 / `langchain-core` 1.6.11）：
 
 ```text
 ① 四种消息类型：字段与用途
@@ -412,7 +412,9 @@ ChatPromptTemplate.from_messages([("human", '返回 JSON: {{"k": 1}} 变量 {v}'
 
 **6. `BaseMessage` 里的花括号不会被替换。** 这是「已实例化消息不参与模板渲染」的规则，不是 bug。反过来用它也有好处：提示词里要写 JSON 示例时，放进 `SystemMessage(...)` 就完全不用转义。
 
-**7. 本节未实测的范围。** 真实多模态调用（把图片 / 音频发给模型）需要 API Key；`name` 字段的透传行为依赖具体供应商。这两项**均未实测**，正文只给写法与出处。其余结论均来自脚本化假模型 + `langchain` 1.4.2 / `langchain-core` 1.6.4 的实测。
+**7. 本节未实测的范围。** 真实多模态调用（把图片 / 音频发给模型）与 `name` 字段的跨供应商透传行为仍**未实测**（后者依赖具体供应商），正文只给写法与出处。其余结论来自脚本化假模型 + `langchain` 1.4.2 / `langchain-core` 1.6.11 的实测。
+
+> 补充（2026-10-16）：真实模型已接入，但**只测了文本与协议层字段**，多模态消息体没有发给过模型，该档维持「未实测」。
 
 ## 五、关键结论
 

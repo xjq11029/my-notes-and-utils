@@ -1,0 +1,18 @@
+== 1. 一次调用的完整事件序列 ==
+reasoning_start -> reasoning -> reasoning -> reasoning_end -> tool_call_start -> tool_call -> tool_call_end
+
+== 2. 手写 ReAct 循环：读文件 → 写摘要 → 汇报 ==
+第 1 轮：执行 read_file
+第 2 轮：执行 write_file
+循环共 3 轮结束
+
+== 3. 完整轨迹 ==
+=== 会话 6767c209…（6 条消息）===
+[用户] 读取 C:\Users\ADMINI~1\AppData\Local\Temp\agent-s06-xr_7it8y\notes.txt 并总结，把摘要写到 C…
+[助手] 请求调用工具: read_file
+[工具](read_file) 会话要只追加不修改；上下文要保留思维链；工具异常要回给模型。
+[助手] 请求调用工具: write_file
+[工具](write_file) 已写入 C:\Users\ADMINI~1\AppData\Local\Temp\agent-s06-xr_7it8y\summary.txt（22 字符）
+[助手] 已把 3 条要点写进 summary.txt：历史只追加、保留思维链、异常回给模型。
+
+summary.txt 内容: 核心：历史只追加、保留思维链、异常回给模型。

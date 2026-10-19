@@ -1,0 +1,67 @@
+<!DOCTYPE html><html lang=zh-CN><head><meta charset=utf-8><title>运行清单</title><style>
+:root{--bg:#0d1117;--panel:#161b22;--ink:#c9d1d9;--dim:#8b949e;--acc:#58a6ff;
+--ok:#3fb950;--warn:#d29922;--bad:#f85149;--line:#21262d}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+font:14px/1.65 "Microsoft YaHei","Segoe UI",system-ui,sans-serif}
+.wrap{max-width:1180px;margin:0 auto;padding:32px 28px 64px}
+h1{font-size:26px;margin:0 0 6px;letter-spacing:.5px}
+.sub{color:var(--dim);font-size:13px;margin-bottom:26px}
+.badge{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;
+border:1px solid var(--line);color:var(--dim);margin-right:6px}
+.badge.ok{color:var(--ok);border-color:#238636}
+.badge.bad{color:var(--bad);border-color:#da3633}
+section{margin-bottom:34px}
+h2{font-size:15px;margin:0 0 10px;padding-left:10px;border-left:3px solid var(--acc);
+font-weight:600}
+.term{background:var(--panel);border:1px solid var(--line);border-radius:8px;
+overflow:hidden}
+.bar{display:flex;align-items:center;gap:7px;padding:9px 13px;
+background:#0d1117;border-bottom:1px solid var(--line)}
+.dot{width:11px;height:11px;border-radius:50%}
+.d1{background:#ff5f57}.d2{background:#febc2e}.d3{background:#28c840}
+.file{margin-left:8px;color:var(--dim);font:12px/1 Consolas,monospace}
+pre{margin:0;padding:15px 17px;overflow-x:auto;
+font:12.5px/1.6 Consolas,"Cascadia Mono","Noto Sans Mono CJK SC",monospace;
+white-space:pre;color:var(--ink)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:8px 11px;border-bottom:1px solid var(--line);text-align:left}
+th{color:var(--dim);font-weight:600;background:#0d1117}
+td.ok{color:var(--ok);font-weight:600}
+code{font:12.5px Consolas,monospace;color:#79c0ff}
+</style></head><body><div class=wrap><h1>agent 开发教程 · 实测输出核验</h1><div class=sub>2026-10-16 · Windows · Python 3.14.2 / Node v24.11.0</div><div style='margin-bottom:22px'><span class='badge ok'>示例 34/34 exit=0</span><span class='badge bad'>tsc --noEmit 45 errors</span></div><section><h2>示例运行清单</h2><table><tr><th>语言</th><th>输出文件</th><th>字节</th><th>退出码</th></tr>
+<tr><td>Python</td><td><code>02_models.txt</code></td><td>7,062</td><td class=ok>0</td></tr>
+<tr><td>Python</td><td><code>03_messages_prompts.txt</code></td><td>8,508</td><td class=ok>0</td></tr>
+<tr><td>Python</td><td><code>04_structured_output.txt</code></td><td>6,159</td><td class=ok>0</td></tr>
+<tr><td>Python</td><td><code>05_create_agent.txt</code></td><td>2,085</td><td class=ok>0</td></tr>
+<tr><td>Python</td><td><code>06_middleware.txt</code></td><td>1,453</td><td class=ok>0</td></tr>
+<tr><td>Python</td><td><code>07_tools.txt</code></td><td>2,341</td><td class=ok>0</td></tr>
+<tr><td>Python</td><td><code>08_rag.txt</code></td><td>9,552</td><td class=ok>0</td></tr>
+<tr><td>Python</td><td><code>09_context.txt</code></td><td>3,560</td><td class=ok>0</td></tr>
+<tr><td>Python</td><td><code>10_observability.txt</code></td><td>3,772</td><td class=ok>0</td></tr>
+<tr><td>Python</td><td><code>11_state_graph.txt</code></td><td>3,581</td><td class=ok>0</td></tr>
+<tr><td>Python</td><td><code>12_persistence.txt</code></td><td>6,390</td><td class=ok>0</td></tr>
+<tr><td>Python</td><td><code>13_hitl_stream.txt</code></td><td>3,764</td><td class=ok>0</td></tr>
+<tr><td>Python</td><td><code>14_deep_agent.txt</code></td><td>4,133</td><td class=ok>0</td></tr>
+<tr><td>Python</td><td><code>15_filesystem.txt</code></td><td>4,683</td><td class=ok>0</td></tr>
+<tr><td>Python</td><td><code>16_delegation.txt</code></td><td>3,555</td><td class=ok>0</td></tr>
+<tr><td>Python</td><td><code>17_skills_memory.txt</code></td><td>5,869</td><td class=ok>0</td></tr>
+<tr><td>Python</td><td><code>18_multiagent.txt</code></td><td>4,497</td><td class=ok>0</td></tr>
+<tr><td>TypeScript</td><td><code>02_models.txt</code></td><td>7,249</td><td class=ok>0</td></tr>
+<tr><td>TypeScript</td><td><code>03_messages_prompts.txt</code></td><td>8,576</td><td class=ok>0</td></tr>
+<tr><td>TypeScript</td><td><code>04_structured_output.txt</code></td><td>5,490</td><td class=ok>0</td></tr>
+<tr><td>TypeScript</td><td><code>05_create_agent.txt</code></td><td>2,477</td><td class=ok>0</td></tr>
+<tr><td>TypeScript</td><td><code>06_middleware.txt</code></td><td>1,478</td><td class=ok>0</td></tr>
+<tr><td>TypeScript</td><td><code>07_tools.txt</code></td><td>2,063</td><td class=ok>0</td></tr>
+<tr><td>TypeScript</td><td><code>08_rag.txt</code></td><td>4,013</td><td class=ok>0</td></tr>
+<tr><td>TypeScript</td><td><code>09_context.txt</code></td><td>3,304</td><td class=ok>0</td></tr>
+<tr><td>TypeScript</td><td><code>10_observability.txt</code></td><td>3,008</td><td class=ok>0</td></tr>
+<tr><td>TypeScript</td><td><code>11_state_graph.txt</code></td><td>3,378</td><td class=ok>0</td></tr>
+<tr><td>TypeScript</td><td><code>12_persistence.txt</code></td><td>5,252</td><td class=ok>0</td></tr>
+<tr><td>TypeScript</td><td><code>13_hitl_stream.txt</code></td><td>3,203</td><td class=ok>0</td></tr>
+<tr><td>TypeScript</td><td><code>14_deep_agent.txt</code></td><td>4,229</td><td class=ok>0</td></tr>
+<tr><td>TypeScript</td><td><code>15_filesystem.txt</code></td><td>3,995</td><td class=ok>0</td></tr>
+<tr><td>TypeScript</td><td><code>16_delegation.txt</code></td><td>3,326</td><td class=ok>0</td></tr>
+<tr><td>TypeScript</td><td><code>17_skills_memory.txt</code></td><td>4,649</td><td class=ok>0</td></tr>
+<tr><td>TypeScript</td><td><code>18_multiagent.txt</code></td><td>4,375</td><td class=ok>0</td></tr>
+</table></section></div></body></html>

@@ -38,6 +38,8 @@ tool calling 的完整流程只有五步，一步都省不掉：
 
 第 ② 步里塞进 `tools` 字段的东西，长这样（摘自 `s04_tools.py`）：
 
+> 说明：真实代码里 `tools` 是**两项**——`read_file` 在前、`write_file` 在后（`s04_tools.py:47-80`）。本节只展开 `write_file` 一项讲结构，形状完全同构；下面 2.5 的契约表同理，别以为请求里只有一个工具。
+
 ```python
 tools = [
     {
@@ -135,7 +137,7 @@ session.messages.append({
 
 ## 三、代码：Python
 
-代码在 `handwritten/code/s04_tools.py`，完整跑一遍只需 140 行。逐段讲。
+代码在 `handwritten/code/s04_tools.py`，完整跑一遍只需 145 行。逐段讲。
 
 ### 3.1 定义普通函数
 
@@ -171,6 +173,8 @@ resp = model.invoke(session)
 （摘自 `s04_tools.py`）
 
 实际运行 `s04_tools.py`，第一步打印的就是模型的原始响应（实测输出，临时路径随运行变化）：
+
+> ⚠️ **这一节的「模型」是假模型**（`_fake_llm.FakeClient`）。下面那条 `tool_calls` 与 `content: null` 全部来自 `s04_tools.py:82-92` **写死的剧本**：`filepath` 是脚本自己 `tempfile.mkdtemp()` 生成后回填的（`:24-25`），`arguments` 那段 JSON 字符串是 `_fake_llm.py:98` 的 `json.dumps` 产物。**模型没有「选」过这个工具，也没有「填」过这个参数。** 本节证明的是「我们的客户端能正确处理一条形状正确的 tool_calls 响应」，不是「模型会这样点菜」——后者要到真实模型上才谈得上（`Model()` 换默认 client 即可，见 `code/README.md`「真实模型实测」，那里已实测真实模型确实自选对了工具）。
 
 ```text
 == 1. 模型返回的原始响应（注意 tool_calls 与 finish_reason）==
@@ -255,6 +259,8 @@ resp2 = model.invoke(session)
 
 第二次调用，模型看到上下文里的工具结果，给出最终回答。实测输出：
 
+> 同上（§3.1 的口径说明）：这里的「模型看到…给出最终回答」跑的仍是**假模型剧本**——`已创建 uv.md，内容是 UV 安装教程的一句话简介。` 是 `s04_tools.py:91` 剧本第 2 条的原文，不是模型生成的。本节验证的是「回填 `role=tool` 消息后，第二次请求的 messages 里确实带上了工具结果」这个**结构闭环**。
+
 ```text
 == 3. 回填后的最终回答 ==
 已创建 uv.md，内容是 UV 安装教程的一句话简介。
@@ -289,6 +295,8 @@ resp2 = model.invoke(session)
 2. 裸流程五步：**定义函数 → 上报 Schema → 模型返回 tool_calls → 客户端执行 → role=tool 回填再调**。五步缺一不可，顺序不可乱。
 3. **Schema 就是模型的全部工具认知**。`description` 不是注释，是模型选工具的唯一依据，值得认真写。
 4. 模型侧的实现真相：tools 被厂商转成**类型签名追加进系统提示词**，tool_calls 本质是模型生成的文本标记。
+
+> 口径：本条是**课件转述 + 官方文档**，**本仓库无任何代码或实测证据**——我们没有抓过任何厂商在收到 `tools` 后实际拼出的系统提示词。当作「一种合理的底层解释」来读，别当已验证的事实。（对照：框架线第 7 章同样只验证到「`tools` 被正确拼进请求载荷」这一层。）
 5. `finish_reason=tool_calls` 与 `role=tool` 回填、`tool_call_id` 配对、`arguments` 为 JSON 字符串——这四件事构成了 tool calling 的**契约骨架**，记牢它们，后面所有框架的工具机制都能一眼看穿。
 6. `globals().get` 的原始做法暴露了四个问题（查找范围受限、静默失败、无校验、异常炸），每一个都指向同一个方向：**这层苦力活该封装**。
 

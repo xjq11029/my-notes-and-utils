@@ -1,0 +1,79 @@
+<!DOCTYPE html><html lang=zh-CN><head><meta charset=utf-8><title>A/C/D/E：真实模型验证文档标「未实测」的声明</title><style>
+:root{--bg:#0d1117;--panel:#161b22;--ink:#c9d1d9;--dim:#8b949e;--acc:#58a6ff;
+--ok:#3fb950;--warn:#d29922;--bad:#f85149;--line:#21262d}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+font:14px/1.65 "Microsoft YaHei","Segoe UI",system-ui,sans-serif}
+.wrap{max-width:1180px;margin:0 auto;padding:32px 28px 64px}
+h1{font-size:26px;margin:0 0 6px;letter-spacing:.5px}
+.sub{color:var(--dim);font-size:13px;margin-bottom:26px}
+.badge{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;
+border:1px solid var(--line);color:var(--dim);margin-right:6px}
+.badge.ok{color:var(--ok);border-color:#238636}
+.badge.bad{color:var(--bad);border-color:#da3633}
+section{margin-bottom:34px}
+h2{font-size:15px;margin:0 0 10px;padding-left:10px;border-left:3px solid var(--acc);
+font-weight:600}
+.term{background:var(--panel);border:1px solid var(--line);border-radius:8px;
+overflow:hidden}
+.bar{display:flex;align-items:center;gap:7px;padding:9px 13px;
+background:#0d1117;border-bottom:1px solid var(--line)}
+.dot{width:11px;height:11px;border-radius:50%}
+.d1{background:#ff5f57}.d2{background:#febc2e}.d3{background:#28c840}
+.file{margin-left:8px;color:var(--dim);font:12px/1 Consolas,monospace}
+pre{margin:0;padding:15px 17px;overflow-x:auto;
+font:12.5px/1.6 Consolas,"Cascadia Mono","Noto Sans Mono CJK SC",monospace;
+white-space:pre;color:var(--ink)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:8px 11px;border-bottom:1px solid var(--line);text-align:left}
+th{color:var(--dim);font-weight:600;background:#0d1117}
+td.ok{color:var(--ok);font-weight:600}
+code{font:12.5px Consolas,monospace;color:#79c0ff}
+</style></head><body><div class=wrap><h1>agent 开发教程 · 实测输出核验</h1><div class=sub>2026-10-16 · 智谱 OpenAI 兼容端点</div><section><h2>A/C/D/E：真实模型验证文档标「未实测」的声明</h2><div class=term><div class=bar><span class='dot d1'></span><span class='dot d2'></span><span class='dot d3'></span><span class=file>真实模型/01_verify_untested_claims.txt</span></div><pre>==============================================================================
+A. 真实模型 stream 到底吐几个 chunk？（文档：假模型 1 个，真实模型分多块·未实测）
+==============================================================================
+  chunk 总数        = 194
+  前 5 个 chunk 的 content 长度 = [0, 0, 0, 0, 0]
+  累计文本（前 60 字）= &#x27;长城是中国古代规模宏大、历史悠久的军事防御工程，也是中华民族勤劳与智慧的象征。&#x27;
+  → 结论：真实模型吐 194 个 chunk，明显多于 1 个，文档说法成立
+  → 顺带验证 ch02 的另一个说法：流式最后一个 chunk 才带完整 usage_metadata
+     带 usage_metadata 的 chunk 数 = 1，位置 = [192]
+
+==============================================================================
+C. usage_metadata / token 计费字段（文档：本机无 Key，未实测）
+==============================================================================
+  type(r.usage_metadata) = dict
+  r.usage_metadata = {&#x27;input_tokens&#x27;: 18, &#x27;output_tokens&#x27;: 128, &#x27;total_tokens&#x27;: 146, &#x27;input_token_details&#x27;: {&#x27;cache_read&#x27;: 4}, &#x27;output_token_details&#x27;: {}}
+  r.response_metadata 里的模型/身份字段：
+    · model_name = glm-4.5-air
+    · id = 20261016172420d54a55f30c724c82
+    · token_usage = {&#x27;completion_tokens&#x27;: 128, &#x27;prompt_tokens&#x27;: 18, &#x27;total_tokens&#x27;: 146, &#x27;completion_tokens_details&#x27;: None, &#x27;prompt_tokens_details&#x27;: {&#x27;audio_tokens&#x27;: None, &#x27;cache_write_tokens&#x27;: None, &#x27;cached_tokens&#x27;: 4, &#x27;image_tokens&#x27;: None, &#x27;text_tokens&#x27;: None}}
+    · finish_reason = stop
+
+==============================================================================
+D. 缓存命中率（ch09:95 声称未实测）——连发同样的长前缀，看 cached_tokens
+==============================================================================
+  第 1 次: input=793 cached=4 | raw={&#x27;completion_tokens&#x27;: 67, &#x27;prompt_tokens&#x27;: 793, &#x27;total_tokens&#x27;: 860, &#x27;completion_tokens_details&#x27;: None, &#x27;prompt_tokens_details&#x27;: {&#x27;audio_tokens&#x27;: None, &#x27;cache_write_tokens&#x27;: None, &#x27;cached_tokens&#x27;: 4, &#x27;image_tokens&#x27;: None, &#x27;text_tokens&#x27;: None}}
+  第 2 次: input=793 cached=780 | raw={&#x27;completion_tokens&#x27;: 89, &#x27;prompt_tokens&#x27;: 793, &#x27;total_tokens&#x27;: 882, &#x27;completion_tokens_details&#x27;: None, &#x27;prompt_tokens_details&#x27;: {&#x27;audio_tokens&#x27;: None, &#x27;cache_write_tokens&#x27;: None, &#x27;cached_tokens&#x27;: 780, &#x27;image_tokens&#x27;: None, &#x27;text_tokens&#x27;: None}}
+  第 3 次: input=793 cached=780 | raw={&#x27;completion_tokens&#x27;: 36, &#x27;prompt_tokens&#x27;: 793, &#x27;total_tokens&#x27;: 829, &#x27;completion_tokens_details&#x27;: None, &#x27;prompt_tokens_details&#x27;: {&#x27;audio_tokens&#x27;: None, &#x27;cache_write_tokens&#x27;: None, &#x27;cached_tokens&#x27;: 780, &#x27;image_tokens&#x27;: None, &#x27;text_tokens&#x27;: None}}
+
+==============================================================================
+B. with_structured_output 的 method 在 provider 子类上到底有何差别
+   （文档：基类三条路径都走 bind_tools；json_schema 的真实差别由 provider 子类实现·未实测）
+==============================================================================
+  method=None              → 抛 AttributeError: &#x27;RunnableSequence&#x27; object has no attribute &#x27;bound&#x27;
+  method=function_calling  → 抛 AttributeError: &#x27;RunnableSequence&#x27; object has no attribute &#x27;bound&#x27;
+  method=json_schema       → 抛 AttributeError: &#x27;RunnableSequence&#x27; object has no attribute &#x27;bound&#x27;
+  method=json_mode         → 抛 AttributeError: &#x27;RunnableSequence&#x27; object has no attribute &#x27;bound&#x27;
+
+==============================================================================
+E. 换成真实模型后，create_agent 的消息序列还符合 ch05 的断言吗
+==============================================================================
+  消息条数 = 4
+  1. [HumanMessage] &#x27;上海天气怎么样？&#x27;  tool_calls=
+  2. [AIMessage] &#x27;\n我来帮您查询上海的天气情况。\n&#x27;  tool_calls=[(&#x27;get_weather&#x27;, {&#x27;city&#x27;: &#x27;上海&#x27;})]
+  3. [ToolMessage] &#x27;上海: 22°C，晴&#x27;  tool_calls=
+  4. [AIMessage] &#x27;\n上海今天的天气是22°C，晴朗的天气。温度比较舒适，是个不错的天气呢！&#x27;  tool_calls=
+  文档 ch05 断言的序列是 Human → AI(tool_call) → ToolMessage → AI(final)
+  → 看上面实际序列是否一致（真实模型可能直接回答、或调多次工具）
+</pre></div></section></div></body></html>

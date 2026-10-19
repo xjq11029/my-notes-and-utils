@@ -1,0 +1,80 @@
+<!DOCTYPE html><html lang=zh-CN><head><meta charset=utf-8><title>B：同上，JS ChatOpenAI（本地反代抓真实请求体）</title><style>
+:root{--bg:#0d1117;--panel:#161b22;--ink:#c9d1d9;--dim:#8b949e;--acc:#58a6ff;
+--ok:#3fb950;--warn:#d29922;--bad:#f85149;--line:#21262d}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+font:14px/1.65 "Microsoft YaHei","Segoe UI",system-ui,sans-serif}
+.wrap{max-width:1180px;margin:0 auto;padding:32px 28px 64px}
+h1{font-size:26px;margin:0 0 6px;letter-spacing:.5px}
+.sub{color:var(--dim);font-size:13px;margin-bottom:26px}
+.badge{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;
+border:1px solid var(--line);color:var(--dim);margin-right:6px}
+.badge.ok{color:var(--ok);border-color:#238636}
+.badge.bad{color:var(--bad);border-color:#da3633}
+section{margin-bottom:34px}
+h2{font-size:15px;margin:0 0 10px;padding-left:10px;border-left:3px solid var(--acc);
+font-weight:600}
+.term{background:var(--panel);border:1px solid var(--line);border-radius:8px;
+overflow:hidden}
+.bar{display:flex;align-items:center;gap:7px;padding:9px 13px;
+background:#0d1117;border-bottom:1px solid var(--line)}
+.dot{width:11px;height:11px;border-radius:50%}
+.d1{background:#ff5f57}.d2{background:#febc2e}.d3{background:#28c840}
+.file{margin-left:8px;color:var(--dim);font:12px/1 Consolas,monospace}
+pre{margin:0;padding:15px 17px;overflow-x:auto;
+font:12.5px/1.6 Consolas,"Cascadia Mono","Noto Sans Mono CJK SC",monospace;
+white-space:pre;color:var(--ink)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:8px 11px;border-bottom:1px solid var(--line);text-align:left}
+th{color:var(--dim);font-weight:600;background:#0d1117}
+td.ok{color:var(--ok);font-weight:600}
+code{font:12.5px Consolas,monospace;color:#79c0ff}
+</style></head><body><div class=wrap><h1>agent 开发教程 · 实测输出核验</h1><div class=sub>2026-10-16 · 智谱 OpenAI 兼容端点</div><section><h2>B：同上，JS ChatOpenAI（本地反代抓真实请求体）</h2><div class=term><div class=bar><span class='dot d1'></span><span class='dot d2'></span><span class='dot d3'></span><span class=file>真实模型/05_js_provider_subclass.txt</span></div><pre>==============================================================================
+JS 真实模型：withStructuredOutput 的 method 在 provider 子类上改了什么
+==============================================================================
+
+  ── method=(缺省)
+     抛 SyntaxError: Unexpected token &#x27;好&#x27;, &quot;好的，从“张三是一名&quot;... is not valid JSON
+     上线 tools           = None
+     上线 response_format = {&quot;type&quot;:&quot;json_schema&quot;,&quot;json_schema&quot;:{&quot;name&quot;:&quot;Person&quot;,&quot;strict&quot;:true,&quot;schema&quot;:{&quot;$schema&quot;:&quot;https://json-schema.org/draft/2020-12/schema&quot;,&quot;type&quot;:&quot;object&quot;,&quot;properties&quot;:{&quot;name&quot;:{&quot;type&quot;:&quot;string&quot;,&quot;description&quot;:&quot;姓名&quot;,&quot;title&quot;:&quot;Pers
+     上线 tools           = None
+     上线 response_format = {&quot;type&quot;:&quot;json_schema&quot;,&quot;json_schema&quot;:{&quot;name&quot;:&quot;Person&quot;,&quot;strict&quot;:true,&quot;schema&quot;:{&quot;$schema&quot;:&quot;https://json-schema.org/draft/2020-12/schema&quot;,&quot;type&quot;:&quot;object&quot;,&quot;properties&quot;:{&quot;name&quot;:{&quot;type&quot;:&quot;string&quot;,&quot;description&quot;:&quot;姓名&quot;,&quot;title&quot;:&quot;Pers
+     上线 tools           = None
+     上线 response_format = {&quot;type&quot;:&quot;json_schema&quot;,&quot;json_schema&quot;:{&quot;name&quot;:&quot;Person&quot;,&quot;strict&quot;:true,&quot;schema&quot;:{&quot;$schema&quot;:&quot;https://json-schema.org/draft/2020-12/schema&quot;,&quot;type&quot;:&quot;object&quot;,&quot;properties&quot;:{&quot;name&quot;:{&quot;type&quot;:&quot;string&quot;,&quot;description&quot;:&quot;姓名&quot;,&quot;title&quot;:&quot;Pers
+     上线 tools           = None
+     上线 response_format = {&quot;type&quot;:&quot;json_schema&quot;,&quot;json_schema&quot;:{&quot;name&quot;:&quot;Person&quot;,&quot;strict&quot;:true,&quot;schema&quot;:{&quot;$schema&quot;:&quot;https://json-schema.org/draft/2020-12/schema&quot;,&quot;type&quot;:&quot;object&quot;,&quot;properties&quot;:{&quot;name&quot;:{&quot;type&quot;:&quot;string&quot;,&quot;description&quot;:&quot;姓名&quot;,&quot;title&quot;:&quot;Pers
+     上线 tools           = None
+     上线 response_format = {&quot;type&quot;:&quot;json_schema&quot;,&quot;json_schema&quot;:{&quot;name&quot;:&quot;Person&quot;,&quot;strict&quot;:true,&quot;schema&quot;:{&quot;$schema&quot;:&quot;https://json-schema.org/draft/2020-12/schema&quot;,&quot;type&quot;:&quot;object&quot;,&quot;properties&quot;:{&quot;name&quot;:{&quot;type&quot;:&quot;string&quot;,&quot;description&quot;:&quot;姓名&quot;,&quot;title&quot;:&quot;Pers
+     上线 tools           = None
+     上线 response_format = {&quot;type&quot;:&quot;json_schema&quot;,&quot;json_schema&quot;:{&quot;name&quot;:&quot;Person&quot;,&quot;strict&quot;:true,&quot;schema&quot;:{&quot;$schema&quot;:&quot;https://json-schema.org/draft/2020-12/schema&quot;,&quot;type&quot;:&quot;object&quot;,&quot;properties&quot;:{&quot;name&quot;:{&quot;type&quot;:&quot;string&quot;,&quot;description&quot;:&quot;姓名&quot;,&quot;title&quot;:&quot;Pers
+     上线 tools           = None
+     上线 response_format = {&quot;type&quot;:&quot;json_schema&quot;,&quot;json_schema&quot;:{&quot;name&quot;:&quot;Person&quot;,&quot;strict&quot;:true,&quot;schema&quot;:{&quot;$schema&quot;:&quot;https://json-schema.org/draft/2020-12/schema&quot;,&quot;type&quot;:&quot;object&quot;,&quot;properties&quot;:{&quot;name&quot;:{&quot;type&quot;:&quot;string&quot;,&quot;description&quot;:&quot;姓名&quot;,&quot;title&quot;:&quot;Pers
+
+  ── method=functionCalling
+     返回 = undefined
+     上线 tools           = [&quot;Person&quot;]
+     上线 tool_choice     = {&quot;type&quot;:&quot;function&quot;,&quot;function&quot;:{&quot;name&quot;:&quot;Person&quot;}}
+     上线 response_format = None
+
+  ── method=jsonSchema
+     抛 SyntaxError: Unexpected token &#x27;好&#x27;, &quot;好的，从“张三是一名&quot;... is not valid JSON
+     上线 tools           = None
+     上线 response_format = {&quot;type&quot;:&quot;json_schema&quot;,&quot;json_schema&quot;:{&quot;name&quot;:&quot;Person&quot;,&quot;strict&quot;:true,&quot;schema&quot;:{&quot;$schema&quot;:&quot;https://json-schema.org/draft/2020-12/schema&quot;,&quot;type&quot;:&quot;object&quot;,&quot;properties&quot;:{&quot;name&quot;:{&quot;type&quot;:&quot;string&quot;,&quot;description&quot;:&quot;姓名&quot;,&quot;title&quot;:&quot;Pers
+     上线 tools           = None
+     上线 response_format = {&quot;type&quot;:&quot;json_schema&quot;,&quot;json_schema&quot;:{&quot;name&quot;:&quot;Person&quot;,&quot;strict&quot;:true,&quot;schema&quot;:{&quot;$schema&quot;:&quot;https://json-schema.org/draft/2020-12/schema&quot;,&quot;type&quot;:&quot;object&quot;,&quot;properties&quot;:{&quot;name&quot;:{&quot;type&quot;:&quot;string&quot;,&quot;description&quot;:&quot;姓名&quot;,&quot;title&quot;:&quot;Pers
+     上线 tools           = None
+     上线 response_format = {&quot;type&quot;:&quot;json_schema&quot;,&quot;json_schema&quot;:{&quot;name&quot;:&quot;Person&quot;,&quot;strict&quot;:true,&quot;schema&quot;:{&quot;$schema&quot;:&quot;https://json-schema.org/draft/2020-12/schema&quot;,&quot;type&quot;:&quot;object&quot;,&quot;properties&quot;:{&quot;name&quot;:{&quot;type&quot;:&quot;string&quot;,&quot;description&quot;:&quot;姓名&quot;,&quot;title&quot;:&quot;Pers
+     上线 tools           = None
+     上线 response_format = {&quot;type&quot;:&quot;json_schema&quot;,&quot;json_schema&quot;:{&quot;name&quot;:&quot;Person&quot;,&quot;strict&quot;:true,&quot;schema&quot;:{&quot;$schema&quot;:&quot;https://json-schema.org/draft/2020-12/schema&quot;,&quot;type&quot;:&quot;object&quot;,&quot;properties&quot;:{&quot;name&quot;:{&quot;type&quot;:&quot;string&quot;,&quot;description&quot;:&quot;姓名&quot;,&quot;title&quot;:&quot;Pers
+     上线 tools           = None
+     上线 response_format = {&quot;type&quot;:&quot;json_schema&quot;,&quot;json_schema&quot;:{&quot;name&quot;:&quot;Person&quot;,&quot;strict&quot;:true,&quot;schema&quot;:{&quot;$schema&quot;:&quot;https://json-schema.org/draft/2020-12/schema&quot;,&quot;type&quot;:&quot;object&quot;,&quot;properties&quot;:{&quot;name&quot;:{&quot;type&quot;:&quot;string&quot;,&quot;description&quot;:&quot;姓名&quot;,&quot;title&quot;:&quot;Pers
+     上线 tools           = None
+     上线 response_format = {&quot;type&quot;:&quot;json_schema&quot;,&quot;json_schema&quot;:{&quot;name&quot;:&quot;Person&quot;,&quot;strict&quot;:true,&quot;schema&quot;:{&quot;$schema&quot;:&quot;https://json-schema.org/draft/2020-12/schema&quot;,&quot;type&quot;:&quot;object&quot;,&quot;properties&quot;:{&quot;name&quot;:{&quot;type&quot;:&quot;string&quot;,&quot;description&quot;:&quot;姓名&quot;,&quot;title&quot;:&quot;Pers
+     上线 tools           = None
+     上线 response_format = {&quot;type&quot;:&quot;json_schema&quot;,&quot;json_schema&quot;:{&quot;name&quot;:&quot;Person&quot;,&quot;strict&quot;:true,&quot;schema&quot;:{&quot;$schema&quot;:&quot;https://json-schema.org/draft/2020-12/schema&quot;,&quot;type&quot;:&quot;object&quot;,&quot;properties&quot;:{&quot;name&quot;:{&quot;type&quot;:&quot;string&quot;,&quot;description&quot;:&quot;姓名&quot;,&quot;title&quot;:&quot;Pers
+
+  ── method=jsonMode
+     抛 OutputParserException: Failed to parse. Text: &quot;{&quot;name&quot;:&quot;张三&quot;,&quot;age&quot;:30,&quot;profession&quot;:&quot;软件工程师&quot;}&quot;. Error: [
+     上线 tools           = None
+     上线 response_format = {&quot;type&quot;:&quot;json_object&quot;}
+</pre></div></section></div></body></html>

@@ -24,11 +24,14 @@
  3. wrap_model_call
  4. after_model
  5. wrap_tool_call
- 6. before_model
- 7. wrap_model_call
- 8. after_model
- 9. after_agent
+ 6.         └─ 工具函数体真正执行
+ 7. before_model
+ 8. wrap_model_call
+ 9. after_model
+10. after_agent
 ```
+
+> 示例打印的是 **10 行**，其中第 6 行不是钩子、是**工具函数体真正执行的位置**（`wrap_tool_call` 的 `handler` 在里面被调用）。本章早前的版本把它删掉、重编成 9 步——读的时候要注意：**六个钩子**是 9 个位置，**整条链**是 10 步。
 
 读法（这三句是理解全部中间件行为的关键）：
 
@@ -109,6 +112,8 @@ def inject_notice(state, runtime):
 - JS 侧**没有** `request.override()`，约定是**展开原请求、覆盖要改的字段**：`handler({ ...request, model })`。
 
 两边共同的纪律：**不要直接改 `request` 对象本身**，链上还有别的中间件在等它。
+
+> ⚠️ 上面两条 bullet 的口径**是互斥的，别混着读**：Python 侧示例实测「直接改 `request.model` 也能跑」（`06_middleware.py` 里就这么试过并打印了这句话），只是不推荐；JS 侧**没有 `override()` 可用**，展开写法是唯一约定，直接改对象会污染链。把两句合成一句「两边都不要直接改」会丢掉这个差别。
 
 ## 三、代码：Python 与 TypeScript
 
@@ -214,7 +219,9 @@ wrap_* 钩子能改写请求：动态切换模型
   最终回复：'强模型的回答'
 ```
 
-两段输出合起来说明一件事：**钩子顺序由「这一轮调了几次模型、有没有执行工具」决定，而改写请求只影响这一次模型调用用的模型，不影响钩子顺序。**
+两段输出合起来说明一件事：**钩子顺序由「这一轮调了几次模型、有没有执行工具」决定。**
+
+> 但「改写请求不影响钩子顺序」这半句**没有实测支撑**——第二次运行（换强模型那次）**没有再挂 trace 中间件**，所以顺序根本没被打印第二遍。它是从「`wrap_model_call` 只换 `request.model`、不改变循环结构」推出来的合理结论，属**源码核对 / 推断**，不是跑出来的。要自己验：把 trace 中间件挂上、跑两轮以上，比较两次的顺序。
 
 ## 四、常见坑与边界条件
 
@@ -228,7 +235,7 @@ wrap_* 钩子能改写请求：动态切换模型
 
 **5. 改写请求不要直接改 `request` 对象。** Python 用 `request.override(...)`，JS 用 `handler({ ...request, model })`。直接改对象本身会污染链上其它中间件的语义。
 
-**6. 包归属与导入路径。** `FilesystemMiddleware`、`SubAgentMiddleware` 在 `deepagents` 而不是 `langchain.agents.middleware`；`SkillsMiddleware` 从 `deepagents.middleware` 导入（均为实测结论）。
+**6. 包归属与导入路径。** `FilesystemMiddleware`、`SubAgentMiddleware` 在 `deepagents` 而不是 `langchain.agents.middleware`；`SkillsMiddleware` 从 `deepagents.middleware` 导入（**均为本机核对 / 源码核对**——靠 `import` 试探确认，不在示例输出里）。
 
 **7. 上下文类中间件的参数形状两语言不同。** Python 是位置参数（`trigger=("messages", 8)`），JS 是对象（`trigger: { messages: 8 }`）——第 9 章会用到。
 

@@ -1,0 +1,22 @@
+== 1. 两个独立 Session：第二次调用「失忆」==
+
+== 2. 同一 Session 里的追问 ==
+
+== 3. 会话全文（print_friendly）==
+=== 会话 e3573a3d…（4 条消息）===
+[用户] uv 是什么？
+[助手] uv 是 Astral 用 Rust 写的 Python 包管理器，极快。
+[用户] 如何安装？
+[助手] 接着上面的：Windows 用 powershell -c "irm https://astral.sh/uv/install.ps1 | iex" 安装。
+
+== 4. 已保存到 C:\Users\ADMINI~1\AppData\Local\Temp\agent-sessions\e3573a3db7b04e38a87d320040d006d7.json ==
+恢复后会话 e3573a3d… 共 4 条消息：
+=== 会话 e3573a3d…（4 条消息）===
+[用户] uv 是什么？
+[助手] uv 是 Astral 用 Rust 写的 Python 包管理器，极快。
+[用户] 如何安装？
+[助手] 接着上面的：Windows 用 powershell -c "irm https://astral.sh/uv/install.ps1 | iex" 安装。
+
+== 5. 每次请求的 messages 长度（历史是客户端自己重传的）==
+第 1 次调用：1 条消息 ['user']
+第 2 次调用：3 条消息 ['user', 'assistant', 'user']

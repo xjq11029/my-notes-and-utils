@@ -1,0 +1,138 @@
+============================================================
+① 文档加载器：所有 Loader 都只做一件事——文件 → Document
+============================================================
+  [TextLoader]  notes.txt  → 1 个 Document
+      page_content = 'RAG 的第一条铁律：检索质量决定生成质量。 / 如果检索回来的片段本身不相关，再...'
+      metadata     = {'source': 'notes.txt'}
+      → 整个文件是一整条 page_content：Loader 不做任何切分。
+
+  [CSVLoader]   orders.csv  → 3 个 Document（每行一条）
+      'order_id: A-1001 / product: 机械键盘 / status...'   metadata={'source': 'orders.csv', 'row': 0}
+      'order_id: A-1002 / product: 人体工学椅 / statu...'   metadata={'source': 'orders.csv', 'row': 1}
+      → 列名被拼进了 page_content，行号落在 metadata['row']。
+
+  [JSONLoader]  faq.json  → 2 个 Document
+      '检索增强生成，提问前先把相关资料塞进上下文。'   metadata={'source': 'faq.json', 'seq_num': 1, 'q': 'RAG 是什么'}
+      '为了控制单次进上下文的文本长度，并提高检索命中率。'   metadata={'source': 'faq.json', 'seq_num': 2, 'q': '为什么要切分'}
+      → jq_schema 决定「切成几条」，content_key 决定「哪部分是正文」。
+
+  [PyPDFLoader] manual.pdf → 1 个 Document（**每页一条**）
+      page_content = 'RAG means retrieval augmented generation.'
+      metadata     = {'producer': 'PyPDF', 'creator': 'PyPDF', 'creationdate': '', 'source': 'manual.pdf', 'total_pages': 1, 'page': 0, 'page_label': '1'}
+      → 页码在 metadata['page'] 里；后面要引用出处，靠的就是它。
+
+  [DirectoryLoader] glob='*.md' → 1 个 Document
+      '# 部署说明 /  / 生产环境请把向量库换成 Milvus 或 Chroma。'
+      → 批量加载只是「遍历文件 + 逐个套 Loader」，没有任何魔法。
+
+  结论：Loader 的产物永远是 Document；差异只在两件事——
+        ① 一个文件切几条（整文件 / 每行 / 每页 / 每条记录）
+        ② metadata 里留下什么（source / row / page / 自定义字段）
+
+============================================================
+② 文档切分器：三个方法其实是同一条调用链
+============================================================
+  原文共 93 字，含一个空行（分两段）
+
+  [CharacterTextSplitter] separator='\n\n'：
+      [WARNING] Created a chunk of size 38, which is longer than the specified 30
+      → 2 个 chunk
+       38 字 | 检索增强生成的第一步，是把私有文档切成语义完整的片段。切得太碎会丢失上下文。
+       53 字 | 切得太大会稀释关键词，所以 chunk_size 与 chunk_overlap 这两个参数要按语料来调。
+      → 只认 '\n\n'：切完就交差，长度**超过** chunk_size 也不管（38 > 30、53 > 30）。
+        上面那条 WARNING 是它唯一的提示，而且走的是 logging，默认看不见。
+
+  [RecursiveCharacterTextSplitter] → 4 个 chunk
+       30 字 | 检索增强生成的第一步，是把私有文档切成语义完整的片段。切得太
+        8 字 | 碎会丢失上下文。
+       26 字 | 切得太大会稀释关键词，所以 chunk_size 与
+       26 字 | chunk_overlap 这两个参数要按语料来调。
+      → 依次尝试 ['\n\n', '\n', ' ', '']，粗的切不动就换更细的，
+        所以默认选它：它保证「不超过 chunk_size」，代价是可能切在句子中间。
+
+  chunk_overlap=6 的同一段文本 → 4 个 chunk
+       30 字 | 检索增强生成的第一步，是把私有文档切成语义完整的片段。切得太
+       14 字 | 片段。切得太碎会丢失上下文。
+       26 字 | 切得太大会稀释关键词，所以 chunk_size 与
+       28 字 | 与 chunk_overlap 这两个参数要按语料来调。
+      → overlap 让相邻 chunk 共享尾巴，避免答案正好被切断在边界上。
+
+  三个方法的调用链（实测）——
+      split_text(text)            → list[str]        只切文本
+      create_documents(texts)     → list[Document]   切文本 + 挂 metadata
+      split_documents(docs)       → list[Document]   切 Document + 继承 metadata
+      create_documents(['…']) → 4 个 Document，metadata={'source': 'inline'}
+      split_documents(1 个 Document) → 2 个 Document，
+        metadata={'source': 'notes.txt'}  ← source 被继承下来了
+
+============================================================
+③ 嵌入模型：把文本映射成向量，两个方法分工不同
+============================================================
+  ③-0 手写二维玩具（人工坐标系：第 1 维=动物性，第 2 维=机械性）
+      「猫在晒太阳」 → (0.90, 0.10)
+      「狗在打盹」 → (0.85, 0.15)
+      「汽车在高速公路上飞驰」 → (0.05, 0.95)
+      查询「小狗在睡觉」 → (0.80, 0.20)
+      距离「小狗在睡觉」 0.07 ← 狗在打盹
+      距离「小狗在睡觉」 0.14 ← 猫在晒太阳
+      距离「小狗在睡觉」 1.06 ← 汽车在高速公路上飞驰
+     → 狗最近、汽车最远：语义相近 = 距离近。真实嵌入模型 = 自动学出来的高维坐标系。
+  embed_documents(['机械键盘已发货', '显示器支架已签收']) → 2 个向量
+      第 1 个向量的前 4 维 = [2.223, -1.265, 1.509, -0.575]
+  embed_query('键盘到哪了') → 1 个向量
+      前 4 维 = [-0.208, 0.869, 0.945, 0.065]
+      维度 = 8（与 embed_documents 必须一致，否则算不了相似度）
+
+  为什么要分成两个方法？——因为有些真实嵌入模型对「文档」和「查询」用不同的
+  编码方式（比如非对称检索模型），入库走 embed_documents、检索走 embed_query。
+  维度一致是硬约束：混用两个不同模型建的库，检索时直接报错。
+
+  ⚠️ 对照：FakeEmbeddings 对**同一句话**连续调两次，
+      向量是否相同 = False   ← 每次都是新的随机向量
+     所以 FakeEmbeddings 只够验证「管道通不通」，检索排序毫无意义；
+     DeterministicFakeEmbedding 至少同文本同向量，输出可复现——本示例后面用它。
+
+============================================================
+④ 向量存储：写入语料，再按相似度取回
+============================================================
+  待入库 chunk 数 = 6（来自 CSV + JSON + Markdown）
+  （上面 ② 用的是 chunk_size=30，演示「切得细」；这里语料每篇都很短，
+    chunk_size 设成 80 才不会把一行订单拆成两半——这就是按语料调参。）
+      [1] order_id: A-1001 / product: 机械键盘 / st...  ← orders.csv
+      [2] order_id: A-1002 / product: 人体工学椅 / s...  ← orders.csv
+      [3] order_id: A-1003 / product: 显示器支架 / s...  ← orders.csv
+      [4] 检索增强生成，提问前先把相关资料塞进上下文。  ← faq.json
+      [5] 为了控制单次进上下文的文本长度，并提高检索命中率。  ← faq.json
+      [6] # 部署说明 /  / 生产环境请把向量库换成 Milvus 或 Chroma。  ← guide.md
+
+  store.add_documents(...) → 写入完成；InMemoryVectorStore 存在内存里，进程退出即消失。
+
+  similarity_search_with_score('键盘', k=2)：
+      #1 score=0.5845 | order_id: A-1001 / product: 机械键... | 源=orders.csv
+      #2 score=0.4035 | order_id: A-1002 / product: 人体工... | 源=orders.csv
+      → 返回 (Document, score) 二元组，Document 里连 metadata 一起带回来了——
+        这正是「回答时能标注出处」的原因。
+
+  ⚠️ 分数本身不要当真：假嵌入的向量没有语义，这个排序**不代表相关性**。
+     真实场景换成真实嵌入模型，同一段代码才谈得上「检索质量」。
+
+  store.as_retriever(search_kwargs={'k': 2}).invoke('切分') → 2 个 Document
+      → Retriever 是「只进不出的检索接口」：输入一句查询，输出一组 Document。
+        它是向量库和 agent 之间的标准接缝——下一节就把它包成工具。
+
+============================================================
+⑤ 接进 agent：检索是一个工具，不是一个步骤
+============================================================
+  工具名 = 'search_knowledge'
+  工具描述 = '在内部知识库里检索与 query 最相关的片段。\n\nArgs:\n    query: 检索关键词或自然语言问题'
+  → 模型看不到向量库、看不到 retriever，它只看到这个工具的 schema。
+  1. [HumanMessage] '为什么要做文档切分？'
+  2. [AIMessage] ''  tool_calls=[('search_knowledge', {'query': '切分'})]
+  3. [ToolMessage] '[1] (orders.csv) order_id: A-1001\nproduct: 机械键盘\nstatus: 已...'
+  4. [AIMessage] '根据知识库：切分是为了控制单次进上下文的长度，并提高检索命中率。'
+
+  → 模型先请求 search_knowledge，框架执行检索、把片段包成 ToolMessage 回灌，
+    模型再据此作答。这就是 RAG 的在线半程；离线半程（切分 / 嵌入 / 入库）
+    在上面 ①–④ 已经跑完，两半完全解耦。
+  → 注意：本示例里模型是脚本化的，所以「先检索再回答」是写死的；
+    真实模型才会自己判断要不要检索、检索什么——那部分需 API Key，未实测。

@@ -1,0 +1,37 @@
+== 1. 非流式：归一化后的 message（可直接进入会话历史）==
+{
+  "role": "assistant",
+  "content": "我是手写教程里的假模型，替你演示模型接口契约。",
+  "reasoning_content": "用户在问我是谁，直接自我介绍即可。"
+}
+
+== 2. 响应的原始形状（顶层结构即契约）==
+顶层字段     : ['choices', 'created', 'id', 'model', 'object', 'usage']
+choices[0]   : ['finish_reason', 'index', 'message']
+message 字段 : ['content', 'reasoning_content', 'role', 'tool_calls']
+usage        : {'prompt_tokens': 10, 'completion_tokens': 20, 'total_tokens': 30}
+finish_reason: stop
+
+== 3. 流式：逐 chunk 的 delta（手动迭代原始 chunk）==
+chunk 0: delta.content='1、2' finish=None
+chunk 1: delta.content='、3、' finish=None
+chunk 2: delta.content='4、5' finish=None
+chunk 3: delta.content='。' finish=None
+chunk 4: delta.content=None finish='stop'
+
+== 4. 拼装后的 message（与非流式形状完全一致）==
+{
+  "role": "assistant",
+  "content": "（假模型：没有匹配到脚本）"
+}
+
+== 5. 请求侧：发给模型服务的 JSON（第 1 次调用）==
+{
+  "model": "gpt-4o-mini",
+  "messages": [
+    {
+      "role": "user",
+      "content": "你是谁"
+    }
+  ]
+}

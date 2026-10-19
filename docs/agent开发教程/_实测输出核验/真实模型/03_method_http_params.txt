@@ -1,0 +1,67 @@
+==============================================================================
+B-1. 假模型基类 vs 真实 provider 子类：method 是否真的被「丢掉」
+     文档 code/README.md:63 / ch04 ③ 称：基类三条路径都走 bind_tools + tool_choice
+==============================================================================
+
+  ── model=glm-4-plus method=None include_raw=False
+     抛 ValidationError: 1 validation error for Person
+     HTTP.tools            = None
+     HTTP.response_format  = None
+
+  ── model=glm-4-plus method=function_calling include_raw=False
+     返回 NoneType: None
+     HTTP.tools            = ['Person']
+     HTTP.tool_choice      = Person
+     HTTP.response_format  = None
+
+  ── model=glm-4-plus method=json_schema include_raw=False
+     抛 ValidationError: 1 validation error for Person
+     HTTP.tools            = None
+     HTTP.response_format  = None
+
+  ── model=glm-4-plus method=json_mode include_raw=False
+     抛 OutputParserException: Failed to parse Person from completion {"name": "张三", "age": 30, "profession": "软件工程师"}. Got: 1 validation error for Per
+     HTTP.tools            = None
+     HTTP.response_format  = None
+
+==============================================================================
+B-2. 同一组实验换推理模型 glm-4.5-air（资源包对它另有额度）
+==============================================================================
+
+  ── model=glm-4.5-air method=None include_raw=False
+     抛 ValidationError: 1 validation error for Person
+     HTTP.tools            = None
+     HTTP.response_format  = None
+
+  ── model=glm-4.5-air method=function_calling include_raw=False
+     返回 Person: name='张三' age=30 occupation='软件工程师'
+     HTTP.tools            = ['Person']
+     HTTP.tool_choice      = Person
+     HTTP.response_format  = None
+
+  ── model=glm-4.5-air method=json_schema include_raw=False
+     抛 ValidationError: 1 validation error for Person
+     HTTP.tools            = None
+     HTTP.response_format  = None
+
+==============================================================================
+B-3. include_raw=True 能否兜住真实模型给的坏数据？
+     文档 ch04 ④：「include_raw 把抛错变成返回值，不会一条坏数据打断整批」
+==============================================================================
+
+  ── model=glm-4-plus method=None include_raw=True
+     抛 ValidationError: 1 validation error for Person
+     HTTP.tools            = None
+     HTTP.response_format  = None
+
+  ── model=glm-4-plus method=json_schema include_raw=True
+     抛 ValidationError: 1 validation error for Person
+     HTTP.tools            = None
+     HTTP.response_format  = None
+
+  ── model=glm-4-plus method=function_calling include_raw=True
+     返回 dict keys = ['parsed', 'parsing_error', 'raw']
+       parsed=None  parsing_error=None
+     HTTP.tools            = ['Person']
+     HTTP.tool_choice      = Person
+     HTTP.response_format  = None

@@ -8,7 +8,7 @@
 
 答案是：一份 JSON。准确地说，是 **OpenAI Chat Completions** 这个 HTTP 接口约定——请求长什么样、响应长什么样、出错时返回什么，全部写在一份公开的接口契约里。LangChain 的 `invoke`、`stream`，本质上都是在帮你拼这份 JSON、收这份 JSON。
 
-本教程的手写线（S1–S10）**全部建立在这份契约上**。框架线用类和中间件把契约包起来，手写线反其道而行：把契约摊开在你面前，一行行自己拼。理由有两个：
+本教程的手写线（S1–S11，其中 **S1–S10 有代码、S11 是方法论收束章**）**全部建立在这份契约上**。框架线用类和中间件把契约包起来，手写线反其道而行：把契约摊开在你面前，一行行自己拼。理由有两个：
 
 1. **契约是稳定的**。它从 2023 年公布至今基本没变，所有主流厂商都兼容它。学会一次，处处能用。
 2. **契约是透明的**。框架出问题时（比如响应里多了一个奇怪的字段），只有看得懂契约的人才排查得动。
@@ -132,7 +132,11 @@ usage        : {'prompt_tokens': 10, 'completion_tokens': 20, 'total_tokens': 30
 finish_reason: stop
 ```
 
-两个细节值得咀嚼：其一，message 字段里出现了 `tool_calls`——FakeClient 的 message 总是带这个属性（没有工具调用时为 `None`），`_normalize_message` 靠 `getattr` 判空，真 SDK 行为相同；其二，usage 数值是 FakeClient 的固定演示值（10/20/30），真实服务返回的数值随请求长度变化，但**字段名与嵌套位置是契约的一部分，不会变**。
+两个细节值得咀嚼：其一，message 字段里出现了 `tool_calls`——FakeClient 的 message 总是带这个属性（没有工具调用时为 `None`），`_normalize_message` 靠 `getattr` 判空。其二，usage 数值是 FakeClient 的固定演示值（10/20/30），真实服务返回的数值随请求长度变化，但**字段名与嵌套位置是契约的一部分，不会变**。
+
+> 口径订正：原先这里写「真 SDK 行为相同」（指 message 恒带 `tool_calls` 属性）——**本轮未验证到属性层**。真实模型侧我们只观测到**归一化之后**的 keys（`real_model_e2e.txt` 里从不出现 `tool_calls`，因为没触发工具调用时 `_normalize_message` 不写这个键）。真 SDK 的 pydantic 响应对象是否恒带该属性，属**官方文档 / 源码核对**，别当实测结论。
+>
+> 另：`usage` 在真实服务上不止三个字段——实测 `glm-4-plus` 返回 5 键（多 `completion_tokens_details` / `prompt_tokens_details`）。上表列的三项是契约里的稳定部分。
 
 ### 2.3 流式：同一个契约的另一种响应形态
 
@@ -290,7 +294,9 @@ def _invoke_stream(self, session, **kwargs) -> InvokeResult:
 
 ## 四、常见坑与边界条件
 
-**坑 1：`finish_reason` 的两种值语义不同。** `stop` 表示模型直接给出了最终回答；`tool_calls` 表示模型想调工具，此时 `message.content` 往往是 `None`、`tool_calls` 字段才有内容。判断"这轮结束没有"不能看 content 是否为空，要看 `finish_reason`——手写线只处理 `stop` 和 `tool_calls` 两种值，遇到 `length`（达到 max_tokens 被截断）等其他值时应显式报错而不是静默继续。
+**坑 1：`finish_reason` 的两种值语义不同。** `stop` 表示模型直接给出了最终回答；`tool_calls` 表示模型想调工具，此时 `message.content` 往往是 `None`、`tool_calls` 字段才有内容。判断"这轮结束没有"不能看 content 是否为空，要看 `finish_reason`。
+
+> ⚠️ **口径订正（源码核对）**：本章原先写「手写线只处理 `stop` 和 `tool_calls` 两种值」——**不准确，实际情况是手写线根本不读这个字段**。全仓 `agent/` 里 `finish_reason` 从未被消费：判停靠 `agent.py:64-69` 的 `registry.invoke(...) is None`（有没有 tool_calls），不靠 `finish_reason`；该字段只在演示脚本里被 print 出来（`s01:51`、`s04:105`）。所以「遇到 `length`（被 max_tokens 截断）应显式报错而不是静默继续」目前是**一条未实现的期望**，不是现状描述。要落实，得在归一化处把 `finish_reason` 透出来并加判断。
 
 **坑 2：多候选被静默丢弃。** 请求参数 `n > 1` 时响应会有多条 choices，但绝大多数应用（包括手写线）只取 `choices[0]`，其余候选直接消失。这不是 bug 而是取舍，但你要知道自己丢了什么。
 
@@ -302,7 +308,7 @@ def _invoke_stream(self, session, **kwargs) -> InvokeResult:
 
 ## 五、关键结论
 
-1. **框架的 `invoke` 底层就是一份 JSON 契约**：请求 `{model, messages, tools?, stream?}`，响应 `{id, choices[].message, usage, finish_reason}`。
+1. **框架的 `invoke` 底层就是一份 JSON 契约**：请求 `{model, messages, tools?, stream?}`，响应 `{id, object, created, model, choices[], usage}`——注意 **`finish_reason` 在 `choices[0]` 里面，不是响应顶层字段**（2.2 的表已列对，本条原先把它与 `id`/`usage` 并列，是失真）。
 2. **messages 是 `{role, content}` dict 数组**，四种 role：`system` / `user` / `assistant` / `tool`。框架线第 3 章的四个 Message 类只是这四种 role 的类包装。
 3. **思考字段名不统一**（`reasoning_content` vs `reasoning`），归一化要放在模型层边界（`_normalize_message`）。
 4. **流式只是把响应切碎**：正文在 `delta` 里、`finish_reason` 在最后一个 chunk；Model 层负责把 chunk 拼回与非流式同形的 message。

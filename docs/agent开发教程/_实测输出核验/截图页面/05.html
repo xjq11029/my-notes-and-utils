@@ -1,0 +1,66 @@
+<!DOCTYPE html><html lang=zh-CN><head><meta charset=utf-8><title>ch09:182「42 个快照」断言复现</title><style>
+:root{--bg:#0d1117;--panel:#161b22;--ink:#c9d1d9;--dim:#8b949e;--acc:#58a6ff;
+--ok:#3fb950;--warn:#d29922;--bad:#f85149;--line:#21262d}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+font:14px/1.65 "Microsoft YaHei","Segoe UI",system-ui,sans-serif}
+.wrap{max-width:1180px;margin:0 auto;padding:32px 28px 64px}
+h1{font-size:26px;margin:0 0 6px;letter-spacing:.5px}
+.sub{color:var(--dim);font-size:13px;margin-bottom:26px}
+.badge{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;
+border:1px solid var(--line);color:var(--dim);margin-right:6px}
+.badge.ok{color:var(--ok);border-color:#238636}
+.badge.bad{color:var(--bad);border-color:#da3633}
+section{margin-bottom:34px}
+h2{font-size:15px;margin:0 0 10px;padding-left:10px;border-left:3px solid var(--acc);
+font-weight:600}
+.term{background:var(--panel);border:1px solid var(--line);border-radius:8px;
+overflow:hidden}
+.bar{display:flex;align-items:center;gap:7px;padding:9px 13px;
+background:#0d1117;border-bottom:1px solid var(--line)}
+.dot{width:11px;height:11px;border-radius:50%}
+.d1{background:#ff5f57}.d2{background:#febc2e}.d3{background:#28c840}
+.file{margin-left:8px;color:var(--dim);font:12px/1 Consolas,monospace}
+pre{margin:0;padding:15px 17px;overflow-x:auto;
+font:12.5px/1.6 Consolas,"Cascadia Mono","Noto Sans Mono CJK SC",monospace;
+white-space:pre;color:var(--ink)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:8px 11px;border-bottom:1px solid var(--line);text-align:left}
+th{color:var(--dim);font-weight:600;background:#0d1117}
+td.ok{color:var(--ok);font-weight:600}
+code{font:12.5px Consolas,monospace;color:#79c0ff}
+</style></head><body><div class=wrap><h1>agent 开发教程 · 实测输出核验</h1><div class=sub>2026-10-16 · 智谱 OpenAI 兼容端点</div><section><h2>ch09:182「42 个快照」断言复现</h2><div class=term><div class=bar><span class='dot d1'></span><span class='dot d2'></span><span class='dot d3'></span><span class=file>真实模型/06_ch09_snapshot_count.txt</span></div><pre>==============================================================================
+前置事实核对：示例源码 09_context.py 的 keep 参数
+==============================================================================
+  源码出现：keep=(&quot;messages&quot;, 4),
+  源码出现：keep=2,  # 最近 2 条工具结果必须保留
+  正文 ch09:180 写的是「keep=2」（且把它归给 SummarizationMiddleware）。
+
+==============================================================================
+① 假模型摘要器 + checkpointer（6 轮、trigger=(&#x27;messages&#x27;, 8)）
+==============================================================================
+  第 1 轮  状态消息数=4
+  第 2 轮  状态消息数=8
+  第 3 轮  状态消息数=8
+  第 4 轮  状态消息数=8
+  第 5 轮  状态消息数=8
+  第 6 轮  状态消息数=8
+  → 最终状态消息数 = 8   （正文 ch09:182 声称 8）
+  → get_state_history 快照总数 = 42   （正文声称 42）
+  → 当前状态里还能找到第 1 轮长日志原文吗？ False
+  → 含原文的快照个数 = 12，其下标(新→旧)与消息数 = [(26, 9), (27, 8), (28, 8), (29, 7), (30, 7), (31, 6), (32, 5), (33, 5)] ...
+
+==============================================================================
+③ 真实模型摘要器（智谱 glm-4.5-air）+ checkpointer
+==============================================================================
+  第 1 轮  状态消息数=4
+  第 2 轮  状态消息数=8
+  第 3 轮  状态消息数=8
+  第 4 轮  状态消息数=8
+  第 5 轮  状态消息数=8
+  第 6 轮  状态消息数=8
+  → 最终状态消息数 = 8   （正文 ch09:182 声称 8）
+  → get_state_history 快照总数 = 42   （正文声称 42）
+  → 当前状态里还能找到第 1 轮长日志原文吗？ False
+  → 含原文的快照个数 = 12，其下标(新→旧)与消息数 = [(26, 9), (27, 8), (28, 8), (29, 7), (30, 7), (31, 6), (32, 5), (33, 5)] ...
+</pre></div></section></div></body></html>

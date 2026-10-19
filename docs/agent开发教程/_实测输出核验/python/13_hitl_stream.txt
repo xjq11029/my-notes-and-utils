@@ -1,0 +1,63 @@
+==============================================================================
+① interrupt / resume 的完整往返
+==============================================================================
+  第一次 invoke（会停在 interrupt）：
+    __interrupt__ = {'question': '确认扣款 199 元？', 'amount': 199}
+    此时状态：{'amount': 199, 'status': '待审批'}
+    待执行节点 next = ('approval',)
+
+  第二次 invoke（用 Command(resume=True) 恢复）：
+    最终状态：{'amount': 199, 'status': '已扣款'}
+
+  副作用日志（看清「节点从头重跑」这件事）：
+    1. 节点开始，读到 amount=199
+    2. 节点开始，读到 amount=199
+    3. 调用扣款接口：199 元
+
+  ⚠️ 看到没——「节点开始，读到 amount=199」出现了**两次**：
+     恢复不是从中断那一行继续，而是把整个节点**从头再执行一遍**。
+     所以 interrupt() 之前的代码必须是幂等的；
+     真正的副作用（扣款）要放到 interrupt() **之后**的节点里——
+     就像本示例把 charge 单独拆成一个节点那样。
+
+==============================================================================
+② stream_mode：同一张图，七种投影
+==============================================================================
+  stream_mode='values'   → [{'n': 0, 'note': ''}, {'n': 1, 'note': '第 1 步完成'}]
+  stream_mode='updates'  → [{'step': {'n': 1, 'note': '第 1 步完成'}}]
+  stream_mode='custom'   → ['进度：正在处理第 1 步']
+  stream_mode='debug'    → ['checkpoint', 'checkpoint', 'task', 'task_result', 'checkpoint']
+
+  各档给你的东西：
+    values  每步之后的**完整状态**（体积最大，但最省心）
+    updates 每步节点返回的**增量**（带节点名，适合做进度条）
+    custom  节点里用 get_stream_writer() 主动推的事件（适合推「第 3/10 步」）
+    debug   checkpoints + tasks 的合并，信息最多
+  另有：messages（LLM 逐 token，最常用于打字机效果）、
+        checkpoints / tasks（需要 checkpointer）
+
+==============================================================================
+③ 坑：agent 放进父图当子图后，stream_mode='messages' 就收不到 token 了
+==============================================================================
+  A. 直接 stream 子 agent —— 3 个分块，内部消息一览无余：
+       ns=() node=model [AIMessage] ''
+       ns=() node=tools [ToolMessage] 'x 的结果'
+       ns=() node=model [AIMessage] '查完了。'
+
+  B. 父图 stream，**不加** subgraphs=True —— 2 个分块：
+       ns=() node=agent [HumanMessage] '查 x'
+       ns=() node=agent [AIMessage] '查完了。'
+       ↑ 只剩「输入」和「最终答案」两条，模型内部的 token 全没了
+
+  C. 父图 stream，**加** subgraphs=True —— 1 个分块：
+       ns=agent node=model [AIMessage] '查完了。'
+       ↑ 分块带上了 namespace，能区分「这是哪个子图吐出来的」
+
+  ⚠️ 因为 create_agent 返回的是**已编译的图**，把它当节点加进父图，它就变成了子图。
+     子图的内部输出默认不透传——这就是「图能跑、结果也对，
+     但打字机效果莫名其妙没了」的原因。要透传就显式加 subgraphs=True。
+
+  ⚠️ 别把这里的「分块个数」当结论：本示例用的是假模型，
+     它一次吐一条完整消息，不是逐 token 吐——所以个数不可比。
+     真正要看的是**哪几条消息能看见**：A 能看到子图内部全部消息，
+     B 只剩进出两条，C 恢复了内部消息并额外标出它来自哪个子图。
