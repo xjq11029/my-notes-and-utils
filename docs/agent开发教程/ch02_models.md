@@ -33,7 +33,7 @@
 
 2.1 的三个角度里，角度 2（统一入口）是日常默认路径，本节把它展开。先明确一件事：**`init_chat_model()` 返回的是一个模型对象**——但**两语言返回的具体类型不同（示例实测）**：Python 侧是 `ChatOpenAI` 实例，**JS 侧是 `ConfigurableModel`**（`initChatModel` 的通用包装，内部才持有真正的 provider 类）。而且 JS 侧返回的是 **`Promise`**，少一个 `await` 拿到的是 Promise 而不是模型。2.3 起要讲的 `invoke` 等方法，都是这个对象上的方法。造它正是为了调它。
 
-下表回答的问题是：**这个函数到底能配哪些东西，哪些是它自己的参数、哪些只是转发？**
+「明明设了 `temperature=0`，输出还是飘」——这类「设了却不生效」的困惑，排查起点就在造模型的那一行。用 `init_chat_model` 只需要搞清楚一件事：**你写进去的参数，哪些归它自己管，哪些它原样转手给了别人？** 这条界线一清楚，后面所有坑都有了着落。
 
 实测签名（`langchain` 1.4.2）：
 
@@ -42,23 +42,37 @@ init_chat_model(model=None, *, model_provider=None,
                 configurable_fields=None, config_prefix=None, **kwargs)
 ```
 
-**它自己的参数只有四个**，`temperature` / `api_key` / `base_url` / `max_tokens` 全走 `**kwargs` 转发给底层那个 `ChatXxx` 类。这一点是理解后面所有坑的钥匙：**转发意味着参数名不归 LangChain 管**——`ChatOpenAI` 收 `base_url`，`ChatDeepSeek` 收 `api_base`，写错了报错的是底层类，不是 `init_chat_model`。
+对着签名数：**它自己的参数只有四个**——就是上面签名里那四个：`model` / `model_provider` 管「造哪个类的哪个模型」，`configurable_fields` / `config_prefix` 管「运行时能不能改」。除此之外你写的一切（`temperature` / `api_key` / `base_url` / `max_tokens` 是最常用的几个）都落进 `**kwargs`，**原样转发**给底层那个 `ChatXxx` 类的构造函数。
 
-| 参数 | 作用 | 谁在管 |
-|---|---|---|
-| `model` | 模型名，或 `"provider:model"` 形式 | `init_chat_model`（用来自动选类） |
-| `model_provider` | 提供商名，等价于 `model` 里的前缀 | `init_chat_model`（用来自动选类） |
-| `temperature` | 采样温度，越高越随机 | 转发给底层类 |
-| `api_key` | 密钥；不传则从环境变量读 | 转发给底层类 |
-| `base_url` | 请求地址 | 转发给底层类（**参数名随厂商变**） |
-| `max_tokens` | 输出 token 上限 | 转发给底层类 |
+打个比方：`init_chat_model` 像总机，只认四个转接规则；你说的其他任何话，它都原封不动传给分机那边的专人——而每个分机（每家集成）听懂的词并不一样。这就是下一段「钥匙」的由来。
 
-两处**本机核对（不在示例输出里）与官方文档参数表不一致**，按本教程口径**以本机核对为准**：
+这一点是理解后面所有坑的钥匙：**转发意味着 `init_chat_model` 这一层不校验参数名**。参数名由每个集成自己的字段定义决定，于是有两件事要分开记：
+
+- **名字可能不同**：`ChatOpenAI` 与 `ChatAnthropic` 的地址参数都收 `base_url`（本机核对二者 pydantic 字段的 alias），但 `ChatDeepSeek` 收的是 `api_base`（官方 reference 核对，本机未装 `langchain-deepseek`、**未实测**）。
+- **写错了不报错**：这才是真正咬人的地方。实测给 `ChatOpenAI` 传 `api_base`，构造**照样成功**，请求照旧打到 `api.openai.com`，只留一条 `UserWarning`——完整实测见第四节坑 2。
+
+下表回答的问题是：**这个函数到底能配哪些东西，哪些是它自己的参数、哪些只是转发？**
+
+| 参数 | 作用 | 谁在管 | 本机核对 |
+|---|---|---|---|
+| `model` | 模型名，或 `"provider:model"` 形式 | `init_chat_model`（用来自动选类） | 示例实测 |
+| `model_provider` | 提供商名，等价于 `model` 里的前缀 | `init_chat_model`（用来自动选类） | 示例实测 |
+| `configurable_fields` | 声明哪些参数能在运行时经 `config["configurable"]` 覆盖（见 2.6）。**显式传了 `model` 时默认 `None`；没传 `model` 时默认 `("model", "model_provider")`** | `init_chat_model` | 源码核对（docstring），未实测 |
+| `config_prefix` | 给上面那些运行时键加前缀（`{prefix}_{param}`），用于一个应用里并存多个可配置模型 | `init_chat_model` | 源码核对（docstring），未实测 |
+| `temperature` | 采样温度，越高越随机 | 转发给底层类 | 默认值已核对（见下），示例未传 |
+| `api_key` | 密钥；不传则从环境变量读 | 转发给底层类 | 示例实测 |
+| `base_url` | 请求地址 | 转发给底层类（**参数名随集成变**） | 示例实测 |
+| `max_tokens` | 输出 token 上限 | 转发给底层类 | 字段存在已核对，示例未传 |
+
+一个容易忽略的转发细节：`api_key` / `base_url` 在 `ChatOpenAI` 上是**别名**，字段本名分别是 `openai_api_key` / `openai_api_base`（示例 ① 打印的就是 `compat.openai_api_base`），`max_tokens` 的别名则是 `max_completion_tokens`（本机核对 `langchain-openai` 1.7.2 的 `model_fields`）。两种写法构造出的是同一个对象，但读源码、看请求体时看到的是本名。
+
+还有两处**本机核对（不在示例输出里）与官方文档参数表不一致**，按本教程口径**以本机核对为准**：
 
 - **`temperature` 的默认值**：官方文档参数表写 `0.7`；本机核对 `ChatOpenAI.model_fields["temperature"].default` 是 `None`（不传就不传，由服务端决定），`ChatOpenAI.model_fields["model_name"].default` 才是 `"gpt-3.5-turbo"`。所以「不设温度」和「设成 0.7」不是一回事。
-- **支持的 provider 列表**：官方文档列了 **24 个**（且有两处拼写粘连：`bedrockbedrock_converse`、`google_vertexaigrog`）；本机核对报错信息里给出的完整列表是 **28 个**（`langchain` 1.4.2），比文档多出 `baseten`、`langsmith`、`litellm`、`meta`：
-  `anthropic, anthropic_bedrock, azure_ai, azure_openai, baseten, bedrock, bedrock_converse, cohere, deepseek, fireworks, google_anthropic_vertex, google_genai, google_vertexai, groq, huggingface, ibm, langsmith, litellm, meta, mistralai, nvidia, ollama, openai, openrouter, perplexity, together, upstage, xai`。
-  这份列表会随版本变，别背——拼错时框架会把当前版本的全表打给你。
+- **支持的 provider 列表**：官方文档列了 **24 个**（且有两处拼写粘连：`bedrockbedrock_converse`、`google_vertexaigrog`）；本机核对报错信息里给出的完整列表是 **28 个**（`langchain` 1.4.2），比文档多出 `baseten`、`langsmith`、`litellm`、`meta`。完整名单见本节末尾的参考块——这份列表会随版本变，别背，拼错时框架会把当前版本的全表打给你。
+
+> **参考块｜`init_chat_model` 的 28 个 provider（本机核对，`langchain` 1.4.2）**
+> `anthropic, anthropic_bedrock, azure_ai, azure_openai, baseten, bedrock, bedrock_converse, cohere, deepseek, fireworks, google_anthropic_vertex, google_genai, google_vertexai, groq, huggingface, ibm, langsmith, litellm, meta, mistralai, nvidia, ollama, openai, openrouter, perplexity, together, upstage, xai`
 
 ### 2.3 `invoke` 的三种入参形态
 
@@ -81,7 +95,7 @@ init_chat_model(model=None, *, model_provider=None,
 
 ### 2.4 返回的 `AIMessage` 结构
 
-`invoke` 返回的不是字符串，是一个 `AIMessage`。下表回答的问题是：**这个对象里除了文本，还有什么值得读？**
+三种入口看过，再看 `invoke` 吐出来的东西：它返回的不是字符串，是一个 `AIMessage`。下表回答的问题是：**这个对象里除了文本，还有什么值得读？**
 
 | 字段 | 含义 | 谁填的 |
 |---|---|---|
@@ -106,7 +120,7 @@ usage_metadata={'input_tokens': 16, 'output_tokens': 15, 'total_tokens': 31, ...
 
 ### 2.5 四种调用形态
 
-下表回答的问题是：**同一个模型，我该用哪个方法调它？**
+一次 `invoke` 的来龙去脉清楚了，接下来看同一个模型的另外几种调法。下表回答的问题是：**同一个模型，我该用哪个方法调它？**
 
 | 方法（Python） | 对应 JS | 行为 | 典型场景 |
 |---|---|---|---|
@@ -145,7 +159,7 @@ init_chat_model('openai:gpt-4o').profile（节选）
 | `callbacks` | 回调处理器 | 触发 `on_chat_model_start` |
 | `max_concurrency` | `batch` 的最大并发数 | 未实测 |
 | `recursion_limit` | 图执行的递归深度上限 | 未实测（LangGraph 执行期生效：agent 编译成图后循环轮数超限会拦截执行，不绑定某一章） |
-| `configurable` | 运行时覆盖模型参数 | 未实测；需初始化时声明 `configurable_fields` |
+| `configurable` | 运行时覆盖模型参数 | 未实测；需初始化时声明 `configurable_fields`（可选 `config_prefix`，见 2.2 表） |
 
 前四项的用途集中在**可观测**上：它们不进消息、不影响模型输出，只在追踪系统（如 LangSmith）里可见。第 10 章 可观测与评测会接着用它们。实测还发现框架会往 `metadata` 里**自动补**几个键：`ls_provider`、`ls_model_type`、`ls_integration`、`lc_versions`（JS 侧叫 `versions`）——这些不是你写的，是给追踪用的。
 
@@ -160,13 +174,15 @@ init_chat_model('openai:gpt-4o').profile（节选）
 Python 侧：
 
 ```python
+import asyncio
+
 from _fake_model import ScriptedChatModel, reply, tool_call
 from langchain.chat_models import init_chat_model
 from langchain_core.callbacks import BaseCallbackHandler
 from langchain_core.messages import HumanMessage, SystemMessage
 
-# ① 三个初始化角度（只构造，不发请求）
-direct = init_chat_model("openai:gpt-4o", api_key="sk-placeholder")     # → ChatOpenAI
+# ① 三个初始化角度（只构造，不发请求；此处只留角度 2 的主干）
+unified = init_chat_model("openai:gpt-4o", api_key="sk-placeholder")  # 前缀 openai → ChatOpenAI
 compat = init_chat_model(model="deepseek-chat", model_provider="openai",  # 兼容用法：任何
                          api_key="sk-placeholder",                        # OpenAI 兼容平台
                          base_url="https://api.deepseek.com/v1")          # 都走 openai 前缀
@@ -191,6 +207,7 @@ print(msg.content, msg.tool_calls, msg.response_metadata, msg.usage_metadata)
 ScriptedChatModel(script=[reply("一次性返回。")]).invoke("你好")
 list(ScriptedChatModel(script=[reply("流式输出。")]).stream("你好"))    # 假模型：1 个 chunk
 ScriptedChatModel(script=[reply("第一"), reply("第二"), reply("第三")]).batch(["q1", "q2", "q3"])
+asyncio.run(ScriptedChatModel(script=[reply("异步返回。")]).ainvoke("你好"))  # 异步孪生
 
 # ⑤ profile 与 config
 print(ScriptedChatModel(script=[reply("x")]).profile)      # 假模型：None
@@ -303,11 +320,23 @@ await new ScriptedChatModel({ script: [reply("收到。")] }).invoke("你好", {
 
 ## 四、常见坑与边界条件
 
+以下八条坑全部来自本机实测或源码核对，每条都附了复现方式与排查方法；越靠前的踩得越快。
+
 **1. provider 前缀拼错，报错信息指向的是「包」而不是「前缀」。** 实测 JS 侧 `initChatModel("deepseek:deepseek-chat")` 抛的是 `Unable to import @langchain/deepseek`（中译：无法导入 `@langchain/deepseek`）——**前缀名与包名不是简单拼接**：实测 `openai` → `@langchain/openai`、`anthropic` → `@langchain/anthropic`、`ollama` → `@langchain/ollama`；读本机已装包源码（`langchain` 1.5.11 的 `chat_models/universal`）还能看到 `azure_openai` 也指向 `@langchain/openai`、`bedrock` 指向 `@langchain/aws`。Python 侧同一件事抛 `ImportError: Initializing ChatDeepSeek requires the langchain-deepseek package`（中译：初始化 `ChatDeepSeek` 需要 `langchain-deepseek` 包）。看到这类错，先去装包，别改前缀。
 
-**2. `base_url` 的兼容用法，以及「前缀指的是协议不是厂商」。** 绝大多数平台都兼容 OpenAI 接口规范，所以没有专用集成时，把模型名和地址塞进 `openai` 前缀即可（实测：`model="deepseek-chat", model_provider="openai", base_url="https://api.deepseek.com/v1"` → 底层是 `ChatOpenAI`，`openai_api_base` 就是传进去的地址）。但要记住**参数名随厂商变**：已知 `ChatDeepSeek` 用的是 `api_base` 而不是 `base_url`（本机未装 `langchain-deepseek`，这一条来自官方集成文档、**未实测**）。
+**2. 参数名写错不会报错，只会静默失效——本章最容易白耗一天的就是这条。** 2.2 说过 `init_chat_model` 不校验 `**kwargs`，实测确认了后果（构造层，`langchain` 1.4.2 / `langchain-openai` 1.7.2 / `langchain-anthropic` 1.7.6，本机可复现）：
 
-**3. 环境变量名每个 provider 一套，而且不传 `api_key` 会**在构造时**就报错。** 已实测：JS 侧 `new ChatOpenAI({...})` 缺 key 时抛 `OpenAIError: Missing credentials. Please pass an apiKey, workloadIdentity, adminAPIKey, or set the OPENAI_API_KEY ...`（中译：缺少凭据，请传入 `apiKey`，或设置 `OPENAI_API_KEY` 环境变量）——不是等到调用才失败。**注意字段名**：`@langchain/openai` 1.6.2 上认的是**顶层 `apiKey`**，写 `openAIApiKey` 会被当成没传而报同一个错。命名规律是 `{PROVIDER}_API_KEY`，但**别猜**：`langchain-deepseek` 读 `DEEPSEEK_API_KEY`，`ChatTongyi` 读 `DASHSCOPE_API_KEY`，名字和 provider 名并不总是对得上。
+| 你写的 | 实测结果 |
+|---|---|
+| `init_chat_model('openai:gpt-4o', api_key=…, api_base='https://api.deepseek.com/v1')` | **构造成功**。`api_base` 被挪进 `model_kwargs`，`openai_api_base` 仍是 `None`，请求照旧打到 `https://api.openai.com/v1`；只有一条 `UserWarning: api_base is not default parameter` |
+| `init_chat_model('openai:gpt-4o', api_key=…, temperture=0)`（拼错） | 同上：静默进 `model_kwargs`，`temperature` 保持 `None` |
+| `init_chat_model('anthropic:…', api_key=…, totally_bogus_kwarg=123)` | 同上：只有 warning，不抛错 |
+
+机制：`BaseChatModel` 的 pydantic 配置是 `extra='ignore'`，未知字段本身不报错；集成构造时把挑剩的 kwargs 整包塞进 `model_kwargs`，顺手打一条 warning（`langchain_core/utils/utils.py`）。而 `UserWarning` 默认只往 stderr 印一次、不中断执行，日志里极易被划过去。**所以「设了却不生效」优先怀疑参数名**，验证方法是把字段打出来看：`print(m.openai_api_base, m.temperature, m.model_kwargs)`——写对了字段有值、`model_kwargs` 是空的；写错了正好反过来。上面三行都是**构造层核对**（不发请求、不需要 Key），脚本与原始输出在 `_实测输出核验/ch02_kwargs_构造层核对.py` / `.txt`。
+
+另一件事仍然成立：**参数名随集成变**。绝大多数平台兼容 OpenAI 接口规范，没有专用集成时把模型名和地址塞进 `openai` 前缀即可（示例实测：`model="deepseek-chat", model_provider="openai", base_url="https://api.deepseek.com/v1"` → 底层是 `ChatOpenAI`，`openai_api_base` 就是传进去的地址）。但 `ChatDeepSeek` 的地址参数叫 `api_base`（官方 reference 核对，本机未装 `langchain-deepseek`、**未实测**）——把它原样传给 `ChatOpenAI`，落到的就是上面那张表的第一行。
+
+**3. 环境变量名每个 provider 一套；而「不传 `api_key` 会不会在构造时就报错」取决于集成。** OpenAI 系会：Python 侧 `init_chat_model("openai:gpt-4o")` 直接抛 `OpenAIError: Missing credentials. Please pass an api_key, workload_identity, admin_api_key, or set the OPENAI_API_KEY ...`（中译：缺少凭据，请传入 `api_key`，或设置 `OPENAI_API_KEY` 环境变量），JS 侧 `new ChatOpenAI({...})` 抛同一条——都不是等到调用才失败。**但 Anthropic 不会**：本机实测 `init_chat_model("anthropic:claude-sonnet-4-5")` 在无 `api_key`、环境里也没有 `ANTHROPIC_API_KEY` 的情况下**构造成功**，报错推迟到第一次调用。所以「构造通过」不等于「凭据没问题」，别拿 OpenAI 的行为当跨集成的通则。**注意字段名**：`@langchain/openai` 1.6.2 上认的是**顶层 `apiKey`**，写 `openAIApiKey` 会被当成没传而报同一个错。命名规律是 `{PROVIDER}_API_KEY`，但**别猜**：`langchain-deepseek` 读 `DEEPSEEK_API_KEY`，`ChatTongyi` 读 `DASHSCOPE_API_KEY`，名字和 provider 名并不总是对得上。
 
 **4. Ollama 必须先起服务，且要先 `pull` 模型。** `ChatOllama(model="deepseek-r1:1.5b")` 的构造不需要服务在线，所以「构造成功」不代表能用。默认地址 `http://localhost:11434`；服务没起是连接失败，模型没 `pull` 是模型不存在，两种报错要分清楚。本机无 Ollama，**未实测**。
 
@@ -317,12 +346,12 @@ await new ScriptedChatModel({ script: [reply("收到。")] }).invoke("你好", {
 
 **7. `with_config()` 之后对象类型就变了。** 实测 Python 与 JS 都返回 `RunnableBinding`，`isinstance(obj, ChatOpenAI)` / `obj instanceof ChatOpenAI` 都会是 `False`。它照样能 `invoke`，但如果你后面写了类型判断或按类取属性，就会在这一步断掉；要拿回原对象用 `.bound`。
 
-**8. 本章的未实测范围。** 真实 provider 的 `invoke` / `stream` 真实分块 / token 计费**已于 2026-10-16 用智谱 OpenAI 兼容端点补测**（194 个 chunk、`usage_metadata` 与 `cached_tokens` 齐全，见 2.5 节坑 5 与 `code/README.md`「真实模型实测」）。**仍未实测**的是：`langchain-deepseek`、`langchain-ollama` 的参数细节（本机未装、无本地 Ollama），以及**模型质量类**表现（回答准确性、指令遵从度）——本轮只测了协议层与框架机制，没做质量评测。本章其余「实测」结论分两类：**构造层实测**（不发请求，如 `init_chat_model` 的类映射、`profile` 内容、各类报错）与**假模型实测**（调用链路）。
+**8. 本章的未实测范围。** 真实 provider 的 `invoke` / `stream` 真实分块 / token 计费**已于 2026-10-16 用智谱 OpenAI 兼容端点补测**（194 个 chunk、`usage_metadata` 与 `cached_tokens` 齐全，见 2.5 节与第四节坑 5，以及 `code/README.md`「真实模型实测」）。**仍未实测**的是：`langchain-deepseek`、`langchain-ollama` 的参数细节（本机未装、无本地 Ollama）——所以坑 2 里「`ChatDeepSeek` 的地址参数叫 `api_base`」只有官方 reference 背书；`configurable_fields` / `config_prefix` 的运行时覆盖行为（2.2 表里那两行只是**源码核对（docstring）**）；以及**模型质量类**表现（回答准确性、指令遵从度）——本轮只测了协议层与框架机制，没做质量评测。本章的「实测」结论分三类：**构造层实测**（不发请求，如 `init_chat_model` 的类映射、`profile` 内容、坑 2 与坑 3 的参数名和凭据行为——跨集成对照用的是本机已装的 `langchain-openai` 1.7.2 与 `langchain-anthropic` 1.7.6）、**字段核对**（`model_fields` 的默认值与 alias）、**假模型实测**（调用链路）。
 
 ## 五、关键结论
 
 1. **三个初始化角度按「谁决定用哪个类」切**：提供商库（自己选类）、`init_chat_model`（前缀选类）、本地 Ollama（模型在本机）——三种写法的失效方式完全不同，分清楚走的是哪条路，出错时才知道该查什么。
-2. **`init_chat_model` 自己的参数只有四个，其余全是 `**kwargs` 转发**——所以参数名不归 LangChain 管、随厂商变，这是「写错参数」类问题的根源。
+2. **`init_chat_model` 自己的参数只有四个**（`model` / `model_provider` / `configurable_fields` / `config_prefix`），其余全是 `**kwargs` 转发——**转发意味着这一层不校验参数名**，而写错名字**不报错、只静默失效**（实测见坑 2）。这才是「明明设了却不生效」类问题的根源，比「报错」更难查。
 3. **`AIMessage` 要读两层**：「模型说了什么」是 `content` / `tool_calls`；「花了什么代价」是 `response_metadata` / `usage_metadata`（由 provider 驱动填，假模型为空）——只读 `content`，会把 token 账和工具调用意图全丢掉。
 4. **`stream` 的 chunk 是「增量」不是「片段」**：要靠循环拼接；假模型只吐 1 个 chunk 是**可复现性取舍**，别用它推断真实分块粒度。
 5. **`profile` 与 `config` 分工**：前者是模型的能力画像（声明过才有，未知模型是 `None`），后者是单次调用的记账方式（只透传给回调，不进消息）。
@@ -330,7 +359,8 @@ await new ScriptedChatModel({ script: [reply("收到。")] }).invoke("你好", {
 ## 本章要点回顾
 
 - **三个初始化角度**见**图 3**：提供商库 / `init_chat_model` / 本地 Ollama。
-- **`init_chat_model` 只有四个自己的参数**，`temperature` / `api_key` / `base_url` / `max_tokens` 都是转发；实测 `ChatOpenAI` 的 `temperature` 默认是 `None`（**与官方文档参数表的 0.7 不一致，以实测为准**）。
+- **`init_chat_model` 只有四个自己的参数**——`model` / `model_provider` / `configurable_fields` / `config_prefix`；`temperature` / `api_key` / `base_url` / `max_tokens` 都是转发的 `**kwargs`。实测 `ChatOpenAI` 的 `temperature` 默认是 `None`（**与官方文档参数表的 0.7 不一致，以实测为准**）。
+- **转发不校验参数名**：给 `ChatOpenAI` 传 `api_base`、或把 `temperature` 拼错，**构造全部成功**，值静默落进 `model_kwargs`，只有一条 `UserWarning`（基类 pydantic 是 `extra='ignore'`）——「设了不生效」先 `print(m.openai_api_base, m.temperature, m.model_kwargs)` 对照。`api_key` / `base_url` 在 OpenAI 与 Anthropic 集成里都是别名（本名 `openai_api_base` / `anthropic_api_url`），DeepSeek 的地址参数则是 `api_base`（官方 reference，未实测）。
 - **实测 provider 列表 28 个**（官方文档列的是旧集合），且会随版本变——拼错时框架会把全表打给你。
 - **`invoke` 三种入参归一化一致**见**图 4**：字符串 → 1 条 `HumanMessage`，`dict` 列表 / 消息对象列表 → 2 条（System + Human）；**单条 dict 直接报错**。
 - **`AIMessage` 七字段**：`content` / `tool_calls` / `invalid_tool_calls` / `response_metadata` / `usage_metadata` / `additional_kwargs` / `id`；假模型下 `response_metadata` 为空、`usage_metadata` 为 `None`（JS 为 `undefined`）。**`id` 分语言**：Python 假模型由框架填 `lc_run--…`，**JS 假模型不填（`undefined`）**——别按「假模型只填前三个」一刀切。
@@ -338,7 +368,7 @@ await new ScriptedChatModel({ script: [reply("收到。")] }).invoke("你好", {
 - **`profile`**：实测 `openai:gpt-4o` → `{'max_input_tokens': 128000, 'tool_calling': True, 'structured_output': True, ...}`；未知模型 → `None`；假模型 Python `None` / JS `{}`。
 - **`config`**：`tags` / `metadata` / `run_name` / `callbacks` 只影响记账，实测透传到 `on_chat_model_start`；框架自动补 `ls_provider` / `ls_model_type` / `ls_integration` / `lc_versions`。
 - **`with_config()` 返回 `RunnableBinding`**，不再是原来的模型类，`isinstance` / `instanceof` 判断会失败；取回原对象用 `.bound`。
-- **四个坑**：provider 前缀报错指向包名；`base_url` 是兼容用法但参数名随厂商变；不传 `api_key` 在**构造时**就失败；`dict` 形态必须传列表（JS 报错信息看不出问题）。
+- **坑共 8 条**（第四节），最常踩的是这四条：provider 前缀报错指向**包名**而不是前缀；**参数名写错不报错、只静默失效**；不传 `api_key` 是否在**构造期**失败**取决于集成**（OpenAI 系会、Anthropic 不会）；`dict` 形态必须传列表（JS 报错信息看不出问题）。
 - **已补测（2026-10-16，智谱端点）**：真实 provider 的 `invoke`、真实 `stream` 分块（194 chunk）、token 计费与缓存字段（`usage_metadata` / `cached_tokens`）。详见 `code/README.md` 的「真实模型实测」。
-- **仍未实测**：DeepSeek 与 Ollama 的参数细节（本机无 Ollama、未装 `langchain-deepseek`）；模型质量类指标（工具选择倾向、提示词遵从度）。
-- **示例全部离线可跑**（假模型），补测用的脚本与原始输出在 `_实测输出核验/真实模型/`。
+- **仍未实测**：DeepSeek 与 Ollama 的参数细节（本机无 Ollama、未装 `langchain-deepseek`）；`configurable_fields` / `config_prefix` 的运行时覆盖（只有源码核对）；模型质量类指标（工具选择倾向、提示词遵从度）。
+- **示例全部离线可跑**（假模型）。补测与核对的脚本、原始输出都在 `_实测输出核验/`：真实模型补测在其 `真实模型/` 子目录，本章的参数名与凭据核对是根目录的 `ch02_kwargs_构造层核对.py` / `.txt`（只构造、不需要 Key）。

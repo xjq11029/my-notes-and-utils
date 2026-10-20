@@ -1,6 +1,7 @@
 # 实测输出核验报告
 
 > 核验日期：2026-10-16 · 环境：Windows / Python 3.14.2（`code/python/.venv`）/ Node v24.11.0 / pnpm 10.20.0
+> 2026-10-19 追加一份 ch02 构造层核对（同环境、同版本，**不发请求、不需要 Key**）。
 > 本目录是**一次性核验产物**，不是教程正文。所有 `.txt` 是脚本 stdout 的原样重定向，未编辑。
 
 ---
@@ -12,6 +13,7 @@
 | `python/*.txt` | 17 个 Python 示例（02–18）的原始 stdout+stderr，逐个 `exit=0` |
 | `typescript/*.txt` | 17 个 TypeScript 示例（02–18）的原始 stdout+stderr，逐个 `exit=0` |
 | `typescript/_typecheck.txt` | `npx tsc --noEmit` 的完整报错（**exit=1，45 个 error TS**） |
+| `ch02_kwargs_构造层核对.*` | **2026-10-19 追加**：ch02 §2.2 与坑 2 / 坑 3 的构造层核对——`init_chat_model` 真实签名、**未知 kwargs 不报错只静默进 `model_kwargs`**、无凭据时构造期是否失败（OpenAI 系会 / Anthropic 不会）、字段本名与 alias。只构造不发请求，**不需要 Key** |
 | `真实模型/00_connectivity.*` | 智谱 key 的连通性与可用模型探测 |
 | `真实模型/01_verify_untested_claims.*` | 文档标注「未实测」的 5 项声明（A–E）真实模型验证 |
 | `真实模型/02`、`03` | `with_structured_output` 的 `method` 行为（前两版，含踩坑记录） |

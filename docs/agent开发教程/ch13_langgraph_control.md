@@ -9,11 +9,15 @@
 
 两件事看着不相关，但**暂停与恢复**共用同一个底层事实：它们建立在检查点之上。所以本章的第一条硬性前置条件就是上一章的 checkpointer。（**流式本身不需要 checkpointer**——只有 `stream_mode` 里的 `checkpoints` / `tasks` 两档才要求，3.2 节那个父图流式示例就没配。）
 
+**一句话主线：本章回答「怎么让图停下来等人、怎么把过程投影给前端」——`interrupt` / `resume` 与静态中断是两种暂停方式，`stream_mode` 的七档投影与 `subgraphs=True` 是流式的两个控制面。**
+
 > 版本锚点：本章结论在 `langgraph` **1.2.12**（Python）与 `@langchain/langgraph` **1.4.17**（JS）上实测；示例源码见 `code/python/13_hitl_stream.py` 与 `code/typescript/13_hitl_stream.ts`。
 
 ## 二、机制与原理
 
-### 2.1 interrupt() 与 Command(resume=...)：一次完整的暂停与恢复
+### 2.1 `interrupt()` 与 `Command(resume=...)`：一次完整的暂停与恢复
+
+让图「停下来等人」，API 只有一对：节点里调 `interrupt()`，外面用 `Command(resume=...)` 把它叫醒。这一节走一遍完整往返，再数清三个前置条件。
 
 导入路径两边不同，先记住：
 
@@ -41,17 +45,19 @@
 
 ### 2.2 最核心的实测结论：恢复时整个节点从头重跑
 
-这是本章唯一必须记死的一条，也是理解后面一切坑的钥匙：
+往返跑通了，但有一个行为细节不知道，后面所有坑都会变成玄学：**恢复执行时，节点内部到底从哪一行继续？** 这是本章唯一必须记死的一条，也是理解后面一切坑的钥匙：
 
 > **恢复不是「从中断那一行继续」，而是把整个节点从头再执行一遍。**
 
 为什么会这样？因为**检查点只落在超步边界**（第 11 章 2.5 节：一轮节点执行完、状态结算后才落盘）——它存得住「这一轮开始前的状态」，存不住**节点内部执行到了哪一行**。`interrupt()` 的工作方式是：恢复时从上一个检查点把节点**重跑一遍**，跑到 `interrupt()` 那一行时发现「这里之前断过、且带了 resume 值」，于是把值交还给你，继续往下走。重跑就是它定位断点的手段——不是缺陷，是检查点粒度决定的必然设计。
 
+可以用「没有即时存档、只有关卡存档」的老游戏打个比方（类比，只帮助理解，机制以上文为准）：你在 Boss 房暂停，回来时是从关卡开头重跑，跑到 Boss 房那一刻，系统认出「这里断过」，把你之前的选择还给你。`interrupt()` 正是这个逻辑——所谓存档粒度，就是检查点的粒度。
+
 本机实测的副作用日志说明了这一点：在 `interrupt()` 之前往列表里 append 一行「节点开始，读到 amount=199」，跑完一轮之后，**这行出现了两次**——第一次是原始执行，第二次是恢复时的重跑。**两语言都复现了「两次」**，这是本章最硬的一条双语言一致结论。
 
 > 但**完整日志的条数不一致**：Python 侧 3 行（第 3 行是「调用扣款接口：199 元」），**JS 侧只有 2 行**——`13_hitl_stream.ts` 的 charge 节点根本没写日志。所以「真副作用要拆成独立节点、且只执行一次」这半条**只有 Python 证据**。
 
-由此推出**四条铁律**：
+由此推出**四条铁律**——每条都对应上面那条机制的一个直接后果：
 
 | # | 铁律 | 为什么 |
 |---|---|---|
@@ -64,6 +70,8 @@
 
 ### 2.3 静态中断：`interrupt_before` / `interrupt_after`
 
+节点内的 `interrupt()` 要改代码；还有一种不动节点、编译时就能声明的暂停方式——在指定节点的前 / 后停。
+
 除了节点内的 `interrupt()`，编译时还能声明「在某个节点前/后停下来」：
 
 - Python：`graph.compile(checkpointer=..., interrupt_before=["charge"])`
@@ -72,6 +80,8 @@
 它的问题是**只会在节点边界停**，停不到节点中间，也拿不到结构化的人工输入（恢复时是再 `invoke(None)` 续跑，人工决定得另外写进状态）。所以它适合**调试时观察中间状态**，**不推荐用来做审批流**——审批流请用节点内的 `interrupt()`。
 
 ### 2.4 stream_mode：同一张图，最多七种投影（**示例实跑 4 档 / 3 档**）
+
+暂停与恢复讲完了，转到第二个问题：执行过程怎么送给前端。同一张图、同一次执行，`stream_mode` 决定给你看哪种投影。
 
 这张表回答「我该用哪个 `stream_mode`」。注意它不是七个功能，而是**同一次执行的七种看法**。
 
@@ -100,9 +110,11 @@
 
 ### 2.5 坑：agent 当子图后，内部消息默认不透传
 
+最后一类坑不在参数，而在结构：把 `create_agent` 的产物直接挂进父图当节点之后，流式行为会悄悄变。
+
 `create_agent` 返回的是**一张已编译的图**。把它直接当节点加进父图，它就变成了**子图**——而子图的内部输出默认不往上传。
 
-实测三组对比：
+三组对比回答同一个问题：同一条子 agent、同一种 `stream_mode="messages"`，分别能看见什么。
 
 | 组 | 怎么流 | 能看见什么 |
 |---|---|---|
@@ -116,7 +128,7 @@
 
 ### 3.1 interrupt / resume 的完整往返
 
-Python 侧的关键是看副作用日志：`interrupt()` 之前那行会被执行两次。
+下面这段代码把 2.1 的往返与 2.2 的重跑结论跑成一次完整演示——Python 侧的关键是看副作用日志：`interrupt()` 之前那行会被执行两次。
 
 ```python
 from langgraph.checkpoint.memory import InMemorySaver
@@ -190,7 +202,7 @@ console.log(r2.status, SIDE_EFFECTS);             // 日志里「节点开始」
 
 ### 3.2 子图流式：A / B / C 三组对比
 
-Python 侧把 agent 直接当节点挂进父图，然后三种流法各跑一次。
+Python 侧把 agent 直接当节点挂进父图，然后三种流法各跑一次。回答的问题是：同一条子 agent，三种流法分别能看见什么。
 
 ```python
 sub_agent = create_agent(model=ScriptedChatModel(script=[...]), tools=[lookup])
@@ -236,6 +248,8 @@ const c = await collect(await parent.stream(inp, { streamMode: "messages", subgr
 
 ## 四、常见坑与边界条件
 
+九条坑可以分两组读：前六条围绕中断与恢复（第 1 条是总根源），后三条围绕流式（子图透传、分块形状、JS 类型定义）。
+
 1. **恢复时节点从头重跑**——所有坑的总根源。凡 `interrupt()` 之前的代码，都要假设它会跑两次。
 2. **别用 `try/except` 包 `interrupt()`**。它靠抛异常挂起，吞掉异常等于取消暂停；确实要 catch，必须把异常原样重抛。
 3. **同一个节点里多个 `interrupt()` 靠调用顺序对应 resume 值**，重排顺序会串位。
@@ -248,6 +262,8 @@ const c = await collect(await parent.stream(inp, { streamMode: "messages", subgr
 
 ## 五、关键结论
 
+把全章收束成六条可迁移的判断：
+
 1. **HITL 建立在检查点之上**：三个前置条件是 checkpointer、`thread_id`、可序列化 payload。**流式不在此列**——它不需要 checkpointer，只有 `checkpoints` / `tasks` 两档 `stream_mode` 才要求。
 2. **`interrupt()` 靠抛异常挂起**，因此不能被 `try/except` 吞掉；`Command(resume=...)` 是唯一能当 `invoke` 输入的 `Command` 形态。
 3. **恢复时整个节点从头重跑**（副作用日志实测出现两次）——由此推出四条铁律：不包 `try/except`、不重排、不传复杂值、之前的副作用必须幂等。**真正的副作用要拆成独立节点**放在 `interrupt()` 之后，而不是想办法让副作用幂等。
@@ -256,6 +272,8 @@ const c = await collect(await parent.stream(inp, { streamMode: "messages", subgr
 6. **`subgraphs=True` 是子图流式的开关**：不加，agent 内部消息默认不透传。
 
 ## 本章要点回顾
+
+读完自检，下面是可勾选的清单：
 
 - **导入路径**：Python `from langgraph.types import Command, interrupt`；JS `import { Command, interrupt } from "@langchain/langgraph"`。
 - **HITL 三个前置条件**：checkpointer、`thread_id`、可序列化 payload（**流式不需要 checkpointer**）。

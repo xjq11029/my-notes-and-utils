@@ -12,7 +12,7 @@
 
 *图 18　图的基本构件*
 
-这一章要回答五个问题：
+**一句话主线：本章回答「自己画一张图」的四个落点——状态长什么样（schema）、多个节点的贡献怎么合（reducer）、流程怎么表达（节点 / 边 / 条件边 / `Send`）、同一线程再次 `invoke` 会发生什么。** 顺着这条线，要回答五个问题：
 
 1. State 怎么定义（schema 有哪几种形态）；
 2. 节点返回的更新**怎么合并进**当前状态（reducer）；
@@ -24,9 +24,11 @@
 
 ### 2.1 `StateGraph` 与 State schema
 
+从这一节开始正式画图。画图之前先定一件事：**这张图里共享的数据长什么样**——节点读它、写它，边围着它转，schema 是整张图的地基，后面每一节都建立在它上面。
+
 图 = **State（共享数据）+ Node（函数）+ Edge（流转规则）**，最后必须 `compile()` 才能运行。构造图只是「画图纸」；结构错误在编译这一步就会被发现，`checkpointer` / `store` 等运行时参数也在这一步传入。
 
-State schema 就是「共享数据长什么样」。它回答的问题是：**用哪种方式描述状态字段**。
+State schema 就是「共享数据长什么样」。它回答的问题是：**用哪种方式描述状态字段**——三种形态在两种语言里的写法，看下表：
 
 | 形态 | Python | TypeScript |
 |---|---|---|
@@ -37,9 +39,11 @@ State schema 就是「共享数据长什么样」。它回答的问题是：**�
 
 要点：**每个字段各管各的**。同一个 State 里，`counter` 可以是覆盖语义、`log` 是追加语义、`messages` 是消息专用语义，互不影响。
 
+schema 只回答了「字段是什么类型」；还有一个它回答不了的问题：两个节点都往同一个字段写东西，听谁的？这就是下一节的 reducer。
+
 ### 2.2 Reducer：默认是覆盖，`Annotated` 才合并
 
-reducer 回答的问题是：**节点返回的更新，怎么和当前状态里的旧值合并**。
+schema 定了字段，reducer 定「合并规则」。它回答的问题是：**节点返回的更新，怎么和当前状态里的旧值合并**。
 
 ```text
 new_value = reducer(left = 当前状态值, right = 节点返回的更新)
@@ -48,6 +52,10 @@ new_value = reducer(left = 当前状态值, right = 节点返回的更新)
 ![图 19　Reducer 合并语义](assets/19_reducer_semantics.png)
 
 *图 19　Reducer 合并语义*
+
+可以把 reducer 类比成一块共享白板旁的两种约定（类比，只帮助理解，机制以上文公式和下表为准）：**覆盖式**约定「后写的人把整块板擦掉重写」；**追加式**约定「后写的人接着往下写」。字段没有显式声明 reducer 时，LangGraph 取前一种。
+
+两个节点先后写入同一个字段，字段写法不同，最终状态差多少？下表回答的正是这个问题：
 
 | 字段写法 | reducer | 两个节点分别返回 | 最终值 |
 |---|---|---|---|
@@ -59,17 +67,21 @@ new_value = reducer(left = 当前状态值, right = 节点返回的更新)
 
 ### 2.3 `add_messages`
 
-消息不是普通列表，它需要按 ID 去重更新：同一条消息（同一个 `id`）再次出现应该是**替换**，而不是重复追加。`add_messages` 就是内置的消息专用 reducer——第 5 章 2.3 节「`AgentState.messages` 只追加」就是它在 agent 状态上的样子，那里给了实测证据，这里给出形式化定义。
+reducer 讲的是通用规则；这一节看最常用的那个合并型字段——消息。消息不是普通列表，它需要按 ID 去重更新：同一条消息（同一个 `id`）再次出现应该是**替换**，而不是重复追加。`add_messages` 就是内置的消息专用 reducer——第 5 章 2.3 节「`AgentState.messages` 只追加」就是它在 agent 状态上的样子，那里给了实测证据，这里给出形式化定义。
 
 > ⚠️ 口径：**「追加」是示例实测的，「按 ID 去重 / 替换」不是**。`11_state_graph.py` 与第 5 章示例里每条消息的 `id` 各不相同，从未构造过「同 ID 再来一次」的用例，所以去重行为属**源码核对**。要自己验：手工传两条 `id` 相同、`content` 不同的消息，看状态里剩几条。JS 侧对应的是 `messagesStateReducer`（另有预置 schema `MessagesAnnotation`）——注意本章 JS 示例为了与 Python 对照，`messages` 用的是普通 `concat`，所以行为上只追加、不去重。
 
 ### 2.4 `Overwrite`：合并型 reducer 的逃生舱
+
+合并型 reducer 好用，但逼出一个新问题：**想清空一个追加型字段，怎么办？** 直接返回空列表行不行？答案有点反直觉。
 
 如果一个字段有合并型 reducer（例如 `operator.add`），那「返回空列表」是**清不掉**它的：空列表会被拼上去，旧值还在。要强制覆盖，得包一层显式指令 `Overwrite([])`。
 
 > 示例实测的是**包了 `Overwrite` 之后清空成功**（`log = []`）那一半；「不包就清不掉、旧值还在」这一半在 `11_state_graph.py` 里是**直接 print 的字面量**，不包 `Overwrite` 的分支从未真正执行过（JS 侧更是完全没有这一节）。结论本身按 reducer 语义成立，但别当成两边都跑过的实测。
 
 ### 2.5 节点、边、条件边、入口点
+
+「状态怎么合」讲完了，接下来讲另一半：**流程怎么表达**——图从哪开始、经过哪些节点、靠什么规则走到下一步。
 
 ![图 20　条件边与 `Send` 并行](assets/20_send_fanout.png)
 
@@ -80,9 +92,11 @@ new_value = reducer(left = 当前状态值, right = 节点返回的更新)
 - **普通边**：`add_edge("a", "b")`，从 a 无条件走到 b。
 - **条件边**：`add_conditional_edges("classify", 路由函数, 映射表)`。路由函数返回一个**节点名**，图就走那条分支——**一次只走一条**，适合分类、分流、按条件重试。
 
-这些构件不是「逐个函数调用」那么执行的——图按**超步（super-step）**推进：**一轮里所有就绪的节点同时执行，轮末统一结算（reducer 合并进状态），再进入下一轮**。可以类比游戏里的回合制：一回合内所有就绪角色同时出手，回合结束时统一结算伤害，然后开下一回合。你写普通图时一回合通常只有一个节点，感觉不到它；但两件事全靠这个概念才说得通：`Send` 派发的多个并行任务跑在**同一个超步**里（下节），第 12 章的检查点**逐超步存一份快照**。
+这些构件不是「逐个函数调用」那么执行的——图按**超步（super-step）**推进：**一轮里所有就绪的节点同时执行，轮末统一结算（reducer 合并进状态），再进入下一轮**。可以类比游戏里的回合制（类比）：一回合内所有就绪角色同时出手，回合结束时统一结算伤害，然后开下一回合。你写普通图时一回合通常只有一个节点，感觉不到它；但两件事全靠这个概念才说得通：`Send` 派发的多个并行任务跑在**同一个超步**里（下节），第 12 章的检查点**逐超步存一份快照**。
 
 ### 2.6 `Send`：一条边派发 N 个并行分支
+
+条件边解决的是「二选一」；可实际需求常常是「全都跑」——100 个文件每个起一个任务，跑完再汇总。`Send` 就是为这种形状准备的。
 
 条件边是「选一条路」，`Send` 是「**同时走多条路**」。路由函数不再返回节点名，而是返回一个 `Send` 列表：`[Send("worker", {"item": it}) for it in state["items"]]`。LangGraph 会为每一项起一个并行任务，它们在**同一个 super-step**（超步——上节 2.5 已讲：一轮里同时执行、轮末统一结算的节点集合）里执行，结果靠目标字段的 reducer 汇总——这就是 map-reduce（派发一批并行任务、再把各自结果汇总起来的模式）。
 
@@ -90,15 +104,21 @@ new_value = reducer(left = 当前状态值, right = 节点返回的更新)
 
 ### 2.7 `Command` 与子图
 
+边与 `Send` 覆盖了「流程往哪走」的常见形状；还有两种更灵活的组织方式——节点自己决定去哪，以及把整张图当零件复用。
+
 - **`Command`**：在节点里返回它，可以**同时**做两件事——`update` 更新状态、`goto` 跳转到指定节点。它是「动态路由 + 状态更新」的合一。第 13 章会讲它的另一种形态 `Command(resume=...)`。
   - **JS 侧返回 `Command` 的节点建议显式声明去向** `addNode(name, fn, { ends: [...] })`；Python 靠类型注解 `Command[Literal[...]]`。「不写就报 `UnreachableNodeError`」是**源码核对**——本机 `tsc --noEmit` 的 45 条报错里没有一条是该错误名。
 - **子图**：编译好的图可以直接当节点用。Python 直接 `add_node("x", agent)`；JS 侧 `11_state_graph.ts` 取的是 `agent.graph`——「`ReactAgent` 包装对象本身不是 Runnable」属**源码核对**。**注意这与第 18 章的 JS 示例矛盾**：`18_multiagent.ts` 里直接把 agent 当节点用也能跑通，说明至少在该版本上不必一律取 `.graph`。两处口径以能跑通的 18 号为准，别照抄「必须取 `.graph`」。
 
 ### 2.8 同一线程再次 `invoke` 的语义
 
+最后一节回答本章最反直觉的问题：图带上检查点之后，**同一个线程再次 `invoke`，第二次的输入和检查点里存的状态怎么合？**
+
 **前置说明**：这一节要用到下一章的检查点（checkpointer）——只需知道一件事：**图 `compile()` 时带上 checkpointer 后，同一个 `thread_id` 的多次 `invoke` 会共享一条状态历史**；不配则每次调用都是失忆重来。checkpointer 本身是第 12 章的主题。
 
 这一条官方文档只讲 reducer 本身，没讲「同一线程再次 `invoke` 时输入如何进入状态」。本机实测（`langgraph` 1.2.12 / JS 1.4.17，两侧一致）给出如下结果——图只有一个节点 `bump`：`n = n + 1`，`trail` 追加 `f"→{n}"`；`n` 无 reducer（覆盖），`trail` 有 `operator.add`（追加）。
+
+五次调用、两种字段、两种命运——下表逐次列出传入与结果：
 
 | 调用 | 传入 | 结果 `n` | 结果 `trail` | 为什么 |
 |---|---|---|---|---|
@@ -118,7 +138,7 @@ new_value = reducer(left = 当前状态值, right = 节点返回的更新)
 
 ## 三、代码：Python 与 TypeScript
 
-完整可运行版本见 `code/python/11_state_graph.py` 与 `code/typescript/11_state_graph.ts`。
+完整可运行版本见 `code/python/11_state_graph.py` 与 `code/typescript/11_state_graph.ts`。四段代码对应机制部分的四个主题：schema 与 reducer、同线程多次 `invoke`、`Send` 并行、`Overwrite` 清空。
 
 **① State schema 与 reducer**——一个字段覆盖、一个字段合并：
 
@@ -239,6 +259,8 @@ new StateGraph(State)
 
 ## 四、常见坑与边界条件
 
+下面各条可以分三类读：**合并语义**（默认 reducer、`Overwrite`、`Send` 汇总）、**线程语义**（2.8 的三种 `invoke` 输入）、**跨语言差异**（`ends` 声明、`.graph`、`messages` reducer、节点名）。
+
 - **默认 reducer 是覆盖，不是合并**：**顺序执行**的两个节点都写同一个标量字段时，留下的是**最后执行的那个**。但**同一 super-step 的并行分支写同一个无 reducer 字段会直接报错**——**源码核对**抛 `InvalidUpdateError: At key 'x': Can receive only one value per step.`（示例未构造过这个用例：④ 的 `Send` 写的是带 `operator.add` 的字段）。不是「不确定地覆盖」，而是**编译能过、跑起来抛异常**。凡可能被并发写入的字段，必须给 reducer。
 - **`invoke(None)` 与 `invoke({})` 完全不同**：前者不注入输入，线程已跑完时什么都不做、直接返回当前状态；后者注入空字典，才是「从检查点续跑」。实测第 2、3 次调用就是这两个。
 - **输入字典里的字段会被自己的 reducer 处理**：标量字段传了值就覆盖检查点里的值（实测第 4 次 `n=100` → `101`）。想「续跑但不动状态」就传 `{}`。
@@ -253,6 +275,8 @@ new StateGraph(State)
 
 ## 五、关键结论
 
+把全章收束成七条可迁移的判断：
+
 1. **图 = State + Node + Edge**，必须 `compile()` 才能运行；`checkpointer` / `store` 在编译时传入。
 2. **State schema 三形态**：TypedDict / dataclass / Pydantic（JS 统一用 `Annotation.Root`，每个字段用 `default: () => ...`）。
 3. **默认 reducer = 覆盖**（**顺序**执行时后者覆盖前者；**并行**写同一无 reducer 字段会抛 `InvalidUpdateError`）；`Annotated[type, reducer]` 才是合并。消息用 `add_messages`（JS：`messagesStateReducer`）。
@@ -262,6 +286,8 @@ new StateGraph(State)
 7. **同一线程再次 `invoke`（实测）**：输入里出现的字段按各自 reducer 合并、没出现的保留检查点值；`invoke(None)` 不注入新输入（已跑完的线程上为空操作）、`invoke({})` 才是续跑。
 
 ## 本章要点回顾
+
+读完自检，下面是可勾选的清单：
 
 - **图 = State（数据）+ Node（函数）+ Edge（流转）**，`compile()` 之后才可运行。
 - **默认 reducer 是覆盖**——`counter` 两个节点都写，最后只剩 `2`；要合并必须写 `Annotated[type, reducer]`。

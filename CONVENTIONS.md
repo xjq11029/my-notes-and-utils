@@ -111,23 +111,26 @@
 
 ## 四、统计口径
 
-**排除**：`.git/`、`.workbuddy/`、`.workbuddy-ai/`、`node_modules/`、**`.venv/`**。
+**排除**：`.git/`、`.workbuddy/`、`.workbuddy-ai/`、`node_modules/`、**`.venv/`**、**`__pycache__/`**、**`*.pyc`**。
 
-> ⚠️ `.venv/` 是 2026-10-16 补进排除列表的：本仓库 `docs/agent开发教程/code/python/.venv/` 有 **2.2 万个文件**，不排除时「总文件数」会报成 23149（真实值 922），「MD 篇数」会多算 35 篇（依赖包自带的 README）。旧版口径漏了它，所以历史统计数字都不可信。
+> ⚠️ `.venv/` 是 2026-10-16 补进排除列表的：本仓库 `docs/agent开发教程/code/python/.venv/` 有 **2.2 万个文件**，不排除时「总文件数」会报成 23149（真实值 920），「MD 篇数」会多算 35 篇（依赖包自带的 README）。旧版口径漏了它，所以历史统计数字都不可信。
+>
+> ⚠️ `__pycache__/` 与 `*.pyc` 是 2026-10-19 补进的：二者已被 `.gitignore` 排除（属构建产物），现有 20 个 `.pyc`（集中在 `docs/agent开发教程/` 的示例运行残留），不排除时各目录计数虚高。
 
 ```bash
 # 总文件数
-find . -type f ! -path './.git/*' ! -path './.workbuddy/*' ! -path './.workbuddy-ai/*' ! -path '*/node_modules/*' | wc -l
+find . -type f ! -path './.git/*' ! -path './.workbuddy/*' ! -path './.workbuddy-ai/*' ! -path '*/node_modules/*' ! -path '*/.venv/*' ! -path '*/__pycache__/*' ! -name '*.pyc' | wc -l
 
 # Markdown 篇数
-find . -type f -name '*.md' ! -path './.git/*' ! -path './.workbuddy/*' ! -path './.workbuddy-ai/*' ! -path '*/node_modules/*' | wc -l
+find . -type f -name '*.md' ! -path './.git/*' ! -path './.workbuddy/*' ! -path './.workbuddy-ai/*' ! -path '*/node_modules/*' ! -path '*/.venv/*' ! -path '*/__pycache__/*' | wc -l
 
 # Markdown 总行数（必须用 -exec cat {} +；用 xargs wc -l 会分批截断）
-find . -type f -name '*.md' ! -path './.git/*' ! -path './.workbuddy/*' ! -path './.workbuddy-ai/*' ! -path '*/node_modules/*' -exec cat {} + | wc -l
+find . -type f -name '*.md' ! -path './.git/*' ! -path './.workbuddy/*' ! -path './.workbuddy-ai/*' ! -path '*/node_modules/*' ! -path '*/.venv/*' ! -path '*/__pycache__/*' -exec cat {} + | wc -l
 
 # 单目录文件数（必须排除依赖目录，否则会被 node_modules 污染）
-find docs -type f ! -path '*/node_modules/*' | wc -l
+find docs -type f ! -path '*/node_modules/*' ! -path '*/.venv/*' ! -path '*/__pycache__/*' ! -name '*.pyc' | wc -l
 ```
 
 > 注意：`find` 的 `-path` 参数**必须加引号**，否则 `!` 会被 shell 展开导致报错。
 > `node_modules/` 是 `scripts/` 下按需安装的依赖（已被 `.gitignore` 排除），统计时必须一并排除，否则数字会被依赖包内的文件污染。
+> 2026-10-19 复核发现：历史统计（含提交信息里的「922 文件」）与磁盘实数有最大 88 个文件的出入（`_实测输出核验/` 等新增产物未同步进各目录行）——**统计数字以改动前用上述命令实数为准，不沿用旧值**。

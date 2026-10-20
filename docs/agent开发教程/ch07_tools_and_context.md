@@ -10,11 +10,15 @@
 
 本章要回答八个问题：① 一次工具调用怎么往返（2.1）；② 工具本身怎么定义、描述怎么写、调不调用谁说了算（2.2）；③ schema 三要素从哪来（2.3）；④ 工具怎么读到图状态、单次运行配置、长期记忆（2.4）；⑤ 老代码里的注入写法怎么改（2.5）；⑥ 工具怎么反过来改图状态、返回值有几类（2.6）；⑦ 工具执行失败怎么办（2.7）；⑧ 工具由别人提供（MCP）时怎么接（2.8）。
 
+**本章回答：工具这条路，从自己写（2.1–2.7）到别人供给（2.8），每一环由什么机制兜底、各有什么坑。**八个问题按「跟着一次调用走一遍」的顺序排：先跟完全程，再逐个拆环节。
+
 前七个**由 `code/` 示例覆盖**，最后一个是规模化之后必然遇到的新问题。但「覆盖」不等于「每条都是实测」——本节里 `@tool` 参数校验的报错文案、`tool_choice` 的请求载荷、`runtime` 保留参数名的报错、`execution_info` 五字段、迁移对照表等都属**源码核对 / 本机核对**，2.7 的「默认行为两语言相反」更是**没做过对照实验**（见该节标注）。读的时候按第 1 章的四级口径区分。至于「知识在外部」——也就是检索增强（RAG）——已独立成第 8 章。
 
 ## 二、机制与原理
 
 ### 2.1 一次工具调用的往返
+
+第 5 章画了循环的四步骨架，这一节把其中「执行工具」那一步放成慢镜头：一次工具调用，模型侧和框架侧各发生了什么、两边靠什么缝合。
 
 模型侧拿到工具清单（`name` + `description` + 参数 schema），输出 `tool_calls`，每项形如 `{name, args, id}`；框架的 `tools` 节点按 `name` 找到工具、用 schema 校验参数、执行函数体，再把返回值包成 `ToolMessage` 并把 `tool_call_id` 填成第 1 步里的 `id`；这条 `ToolMessage` 追加进历史再次进入模型，模型据此决定「继续调工具」还是「给最终答案」。`id` ↔ `tool_call_id` 是整条链路的接缝——2.6 节的 `Command` 坑、2.7 节的错误处理坑，本质都是这条接缝没对上。
 
@@ -39,6 +43,8 @@
 
 一个观测陷阱要说明：本教程的假模型记「模型被给了哪些工具」时只读 `.name`，而裸函数只有 `__name__`——所以 `fake.bind_tools([裸函数])` 会记成空列表。**这是假模型的观测局限，不是框架不收裸函数**：真实模型走 `convert_to_openai_tool` 的 callable 分支，照样拿到 schema（已用 `ChatOpenAI` 的载荷核对，见下）。
 
+定义方式讲完了，日常默认用 `@tool`——把它接受的三个参数逐个摊开。
+
 **`@tool` 的三个参数**
 
 下表回答：**`@tool` 能覆盖哪三样东西，覆盖规则是什么**。
@@ -57,6 +63,8 @@
 - `args_schema` 传 Pydantic 模型后：参数默认值进 `default`、字段描述进 `description`、`Literal[...]` 变成 `enum`。
 
 一个容易踩的差异（实测）：**docstring 的 `Args:` 段，裸函数默认就解析，`@tool` 要显式开 `parse_docstring=True`**。同一段 Google 风格 docstring，裸函数下 `city` 的参数描述是 `"城市名称"`，`@tool` 下是 `None`，加上 `parse_docstring=True` 才补上。（`config` / `runtime` 是保留参数名，见 2.3 节。）
+
+「怎么定义」到此为止；模型这次到底调不调，还有一半决定权在调用方手里。
 
 **`tool_choice`：把「调不调」的决定权收回来**
 
@@ -87,20 +95,22 @@ def force_tools(request, handler):
 
 > ⚠️ **未实测**：以上只验证到「`tool_choice` 被正确拼进绑定与载荷」。**真实模型下这四个取值是否真的生效**——`"none"` 是否真的一次都不调、`"required"` 是否真的无视用户意图硬调、指定工具名是否真的只调那一个——**本轮没有测**（2026-10-16 已接入真实模型，但只测了流式分块、结构化输出载荷与 token 字段，没做 `tool_choice` 语义验证）。语义以 OpenAI / DeepSeek 官方文档为准（两家对 `tool_choice` 的取值规定一致）。要自己验：拿 `ChatOpenAI(base_url=...)` 接任一兼容端点，四种取值各跑一遍看 `tool_calls` 是否出现。
 
+最后落到写法层面：描述和粒度怎么设计，模型才选得对。
+
 **工具描述的写法要点**
 
 与「怎么写工具」直接相关的几条经验，按重要性排：
 
 - **描述要写清「什么时候用它」，不只是「它是什么」**。模型选工具的唯一依据就是描述——「查询航班」不够，要写清需要哪些参数、返回什么、什么场景该用。写法上用 Google 风格 docstring 的 `Args:` / `Returns:` 段，参数说明会直接进 schema（注意上面那条：`@tool` 下要开 `parse_docstring=True`）。
 - **一个工具只做一件事**。`do_everything(action, data)` 这种大杂烩，描述里必然要写「当 `action` 为 weather 时……」，模型很难判断该不该选它；拆成 `get_weather` / `calculator` 之后每个描述都能一句话说清。**工具的粒度就是模型的选择粒度**。
-- **优先返回字符串**。框架能把 dict 序列化进 `ToolMessage`（2.6 节），但序列化后的形态不受你控制。实测（1.4.2）：返回 `{"id": "u1", "name": "张三"}`，`ToolMessage.content` 就是 `'{"id": "u1", "name": "张三"}'`——**中文没有被转义成 `\uXXXX`**，旧版本里曾出现的乱码问题在当前版本没有复现；想完全掌控形态仍建议自己 `json.dumps(..., ensure_ascii=False)`。
+- **优先返回字符串**。框架能把 dict 序列化进 `ToolMessage`（2.6 节），但序列化后的形态不受你控制。实测（1.4.2）：返回 `{"id": "u1", "name": "张三"}`, `ToolMessage.content` 就是 `'{"id": "u1", "name": "张三"}'`——**中文没有被转义成 `\uXXXX`**，旧版本里曾出现的乱码问题在当前版本没有复现；想完全掌控形态仍建议自己 `json.dumps(..., ensure_ascii=False)`。
 - **同步 vs 异步按 IO 形态选**：CPU 密集用同步 `def`，IO 密集（API、数据库、文件）用 `async def`。实测异步工具经 `agent.ainvoke(...)` 正常；直接 `agent.invoke(...)` 也能跑通（框架内部搭了事件循环）。
 
 工具执行失败怎么办见 2.7 节，这一节不重复。
 
 ### 2.3 schema 三要素：名称、描述、参数
 
-模型看不到你的函数体，它只看到三样东西。下表回答：**同一个功能，两种语言分别怎么写，schema 从哪来**。
+2.2 反复出现「schema」这个词——`args_schema=`、`convert_to_openai_tool`、模型看到的「参数 schema」，这一节把它说透。模型看不到你的函数体，它只看到三样东西。下表回答：**同一个功能，两种语言分别怎么写，schema 从哪来**。
 
 | 要素 | Python | TypeScript |
 |---|---|---|
@@ -112,7 +122,7 @@ def force_tools(request, handler):
 
 ### 2.4 `ToolRuntime`：工具里的「后门」
 
-工具执行的那一刻，环境里有哪些信息可用？下表回答这个问题。
+2.3 讲的是模型能看到什么；这一节反过来，讲工具自己能看到什么。工具执行的那一刻，环境里有哪些信息可用？下表回答这个问题。
 
 | 成员 | 含义 | Python | TypeScript |
 |---|---|---|---|
@@ -123,11 +133,11 @@ def force_tools(request, handler):
 | Execution Info | 本次执行的元信息（文档口径：thread / run / 尝试次数） | `runtime.execution_info` | `runtime.executionInfo` |
 | Tool Call ID | 本次调用的唯一标识，返回 `Command` 时要用 | `runtime.tool_call_id` | `runtime.toolCallId` |
 
-两条实测补充（`langchain` 1.4.2 / JS 1.5.11）：**`runtime` 参数对模型完全隐藏**，模型只看到 `name` / `description` / 参数 schema；**JS 侧 `executionInfo` 的实际字段**是 `{checkpointId, checkpointNs, taskId, nodeAttempt, nodeFirstAttemptTime}`（本机未配 `thread_id`、无检查点），而文档口径为 `thread_id` / `run_id` / `node_attempt`（需 `deepagents>=0.5.0` 或 `langgraph>=1.1.5`）——字段名跨语言、跨版本都会变，别硬编码。
+这些成员合起来就是标题说的「后门」——打个比方（类比）：顾客只能看到端上桌的菜，厨师却能在后厨随手取用配料；模型属于前者，工具属于后者。但「后门」不是「法外之地」，两条实测补充（`langchain` 1.4.2 / JS 1.5.11）：**`runtime` 参数对模型完全隐藏**，模型只看到 `name` / `description` / 参数 schema；**JS 侧 `executionInfo` 的实际字段**是 `{checkpointId, checkpointNs, taskId, nodeAttempt, nodeFirstAttemptTime}`（本机未配 `thread_id`、无检查点），而文档口径为 `thread_id` / `run_id` / `node_attempt`（需 `deepagents>=0.5.0` 或 `langgraph>=1.1.5`）——字段名跨语言、跨版本都会变，别硬编码。
 
 ### 2.5 旧注入模式 → 新写法
 
-v1 之前，往工具里注入东西靠一组「魔法类型」；下表回答**老代码里的注入写法现在该怎么改**（本机实测：新写法统一走 `runtime: ToolRuntime` 参数，`langchain` 1.4.2）。
+2.4 里那个 `runtime` 参数不是凭空设计的，它是一次大扫除的结果。v1 之前，往工具里注入东西靠一组「魔法类型」；下表回答**老代码里的注入写法现在该怎么改**（本机实测：新写法统一走 `runtime: ToolRuntime` 参数，`langchain` 1.4.2）。
 
 | 旧写法（v1 已不推荐） | v1 新写法 | 说明 |
 |---|---|---|
@@ -138,7 +148,7 @@ v1 之前，往工具里注入东西靠一组「魔法类型」；下表回答**
 
 ### 2.6 工具返回值的四类，与 `return_direct`
 
-返回值会被框架怎么处理？会不会顺手改状态？下表回答这个问题。
+读环境的部分（2.4–2.5）到此为止，现在看工具怎么「写回去」——函数体 `return` 出去的东西，归宿不止一种。返回值会被框架怎么处理？会不会顺手改状态？下表回答这个问题。
 
 | 返回类型 | 框架怎么处理 | 是否改图状态 |
 |---|---|---|
@@ -152,6 +162,8 @@ v1 之前，往工具里注入东西靠一组「魔法类型」；下表回答**
 返回 `Command` 有一条硬规则：**必须自带一条 `tool_call_id` 匹配的 `ToolMessage`**，否则 `ToolNode` 找不到对应关系，直接抛 `ValueError`——因为历史里每条 `AIMessage` 的 tool call 都必须有对应的 `ToolMessage` 才算闭合。（例外：`Command` 的 `graph` 指向父图时，执行离开了当前图，这条要求解除。）**`return_direct`** 则用来短路循环：工具执行完直接把结果作为最终答案返回，不再回模型加工；批量调用时语义很关键——同一批并行工具里，**只有当每一个都 `return_direct=True`**，整批跑完才会直接结束，只要有一个没设，就仍带着全部 `ToolMessage` 回到模型。
 
 ### 2.7 错误处理：v1 换了写法
+
+2.6 讲的都是正常返回；工具跑到一半抛异常，是每个项目都会遇到的场面。这一节讲 v1 的错误处理路线，以及两语言默认行为的差异。
 
 本机实测口径：**v1 的 agent 中间件路线已不再推荐 `ToolException` / `handle_tool_error` 这套旧 API**。注意措辞——它们**没有从包里删掉**：`langchain.tools` 仍导出 `ToolException`，`StructuredTool` 仍有 `handle_tool_error` 字段，`langchain` 自己的 MCP 适配器（`langchain/mcp/tools.py`）就还在用它。变的是**错误处理的入口**，不是 API 的存在。现在有两条路：**① 自己写 `@wrap_tool_call` 中间件**，捕获异常后返回一条内容可读的 `ToolMessage`（`tool_call_id` 从 `request.tool_call["id"]` 取）；**② 用内置中间件**——Python 侧为 `ToolErrorMiddleware`（本机示例未实测其构造参数，按官方文档），JS 侧为 `toolErrorMiddleware`，本机实测签名 `{ onError, tools? }`，`onError(error, request)` 返回内容则转成错误 `ToolMessage`，**什么都不返回就原样抛出**；它**不重试**，要重试得再叠一个 `toolRetryMiddleware({ onFailure: "error" })`。
 
@@ -170,7 +182,7 @@ v1 之前，往工具里注入东西靠一组「魔法类型」；下表回答**
 
 ### 2.8 MCP：工具由别人提供
 
-模型上下文协议（MCP, Model Context Protocol）把「工具供给」标准化了：工具不是自己写的，而是别人以服务形式提供的。
+自己写工具的路到 2.7 走完了，最后一节换一种供给方式——工具不由自己写。模型上下文协议（MCP, Model Context Protocol）把「工具供给」标准化了：工具不是自己写的，而是别人以服务形式提供的。
 
 ![图 13　MCP 接入与多服务器聚合](assets/13_mcp_aggregation.png)
 

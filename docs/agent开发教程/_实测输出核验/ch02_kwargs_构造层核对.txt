@@ -1,0 +1,71 @@
+环境：langchain 1.4.2
+      langchain-openai 1.7.2
+      langchain-anthropic 1.7.6
+      ANTHROPIC_API_KEY 是否已设： False
+      OPENAI_API_KEY 是否已设： False
+
+========================================================================
+A. init_chat_model 的真实签名
+========================================================================
+  (model: 'str | None' = None, *, model_provider: 'str | None' = None, configurable_fields: "Literal['any'] | list[str] | tuple[str, ...] | None" = None, config_prefix: 'str | None' = None, **kwargs: 'Any') -> 'BaseChatModel | _ConfigurableModel'
+
+========================================================================
+B. 未知 kwargs：报错，还是静默失效？
+========================================================================
+
+  B1｜把 DeepSeek 的地址参数名给 ChatOpenAI
+    传入：{'spec': 'openai:gpt-4o', 'api_key': 'sk-placeholder', 'api_base': 'https://api.deepseek.com/v1'}
+    → 构造成功：ChatOpenAI（**没有报错**）
+       openai_api_base = None
+       temperature = None
+       model_kwargs = {'api_base': 'https://api.deepseek.com/v1'}
+       [UserWarning] WARNING! api_base is not default parameter. api_base was transferred to model_kwargs. Please confirm that api_base is wh
+
+  B2｜参数名拼错（temperature → temperture）
+    传入：{'spec': 'openai:gpt-4o', 'api_key': 'sk-placeholder', 'temperture': 0}
+    → 构造成功：ChatOpenAI（**没有报错**）
+       openai_api_base = None
+       temperature = None
+       model_kwargs = {'temperture': 0}
+       [UserWarning] WARNING! temperture is not default parameter. temperture was transferred to model_kwargs. Please confirm that temperture
+
+  B3｜换一个集成，传一个不存在的参数名
+    传入：{'spec': 'anthropic:claude-sonnet-4-5', 'api_key': 'sk-placeholder', 'totally_bogus_kwarg': 123}
+    → 构造成功：ChatAnthropic（**没有报错**）
+       anthropic_api_url = 'https://api.anthropic.com'
+       temperature = None
+       model_kwargs = {'totally_bogus_kwarg': 123}
+       [UserWarning] WARNING! totally_bogus_kwarg is not default parameter. totally_bogus_kwarg was transferred to model_kwargs. Please confi
+
+  B4｜对照组：参数名写对
+    传入：{'spec': 'openai:gpt-4o', 'api_key': 'sk-placeholder', 'base_url': 'https://api.deepseek.com/v1', 'temperature': 0, 'max_tokens': 128}
+    → 构造成功：ChatOpenAI（**没有报错**）
+       openai_api_base = 'https://api.deepseek.com/v1'
+       temperature = 0.0
+       model_kwargs = {}
+
+========================================================================
+C. 不传凭据：构造期就失败，还是推迟到调用？
+========================================================================
+  openai:gpt-4o                    无 key → OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPE
+  anthropic:claude-sonnet-4-5      无 key → 构造成功：ChatAnthropic（报错会推迟到调用）
+
+========================================================================
+D. 字段本名 vs 别名（本机核对 model_fields）
+========================================================================
+
+  ChatOpenAI
+    openai_api_base    (地址)  alias='base_url'  default=None
+    openai_api_key     (密钥)  alias='api_key'  default=None
+    max_tokens         (输出上限)  alias='max_completion_tokens'  default=None
+    temperature        (温度)  alias=None  default=None
+    populate_by_name = True
+
+  ChatAnthropic
+    anthropic_api_url  (地址)  alias='base_url'  default=None
+    anthropic_api_key  (密钥)  alias='api_key'  default=SecretStr('')
+    max_tokens         (输出上限)  alias='max_tokens_to_sample'  default=None
+    temperature        (温度)  alias=None  default=None
+    populate_by_name = True
+
+  BaseChatModel 的 pydantic extra 配置： 'ignore'

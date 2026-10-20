@@ -7,7 +7,11 @@
 1. **跑偏**——模型做到第七步忘了第一步的目标，或者干脆漏掉一步；
 2. **上下文膨胀**——所有中间过程都堆在主对话里，越到后面越贵、越糊涂。
 
-Deep Agents 给这两个麻烦各准备了一件工具：**规划**（`write_todos`）和**委派**（子代理 + `task` 工具）。本章回答四个问题：
+Deep Agents 给这两个麻烦各准备了一件工具：**规划**（`write_todos`）和**委派**（子代理 + `task` 工具）。
+
+一句话主线：**本章顺着「先治跑偏、再治膨胀」的顺序走**——先用 `write_todos` 治「忘事」，再用子代理治「上下文膨胀」，最后说清一件事：后者的核心价值是隔离，不是并行。
+
+本章回答四个问题：
 
 1. `write_todos` 的**语义**到底是什么？为什么它不是「往列表里加一条」？
 2. 规划能力为什么默认不开，开了之后状态里多了什么？
@@ -19,6 +23,8 @@ Deep Agents 给这两个麻烦各准备了一件工具：**规划**（`write_tod
 ## 二、机制与原理
 
 ### 2.1 write_todos 的语义：全量覆盖，不是追加
+
+两个麻烦里的第一个是「跑偏」。Deep Agents 给的药方是规划工具 `write_todos`——这一节先看它的数据结构，再挖一个几乎每个初学者都会踩的语义坑。
 
 先看规划表长什么样。这张表回答「`todos` 这个字段里装的是什么」——实测它是一份**结构化待办列表**，每条含 `content` 与 `status`：
 
@@ -39,6 +45,8 @@ state['todos'] = [
 
 **关键在语义，不在结构**：`write_todos` 是**全量覆盖**——模型每次都要把**整张表重新写一遍**，而不是「追加一条」。
 
+打个比方：全量覆盖就像每周重抄一遍完整清单，而不是在旧清单末尾补一行——抄漏一笔，那笔就从记录里消失了（类比）。
+
 这带来一个必须记住的推论：**规划列表不是 append-only**。状态里的 `todos` 永远是最新的一张完整表，所以**模型忘掉一条，那条就真的没了**。这也解释了为什么规划提示词里会反复强调「每轮更新完整列表」——不是啰嗦，是这个工具的数据模型决定的。
 
 ![图 28　规划循环：模型每轮重写整张待办表，状态里的 todos 始终是最新快照](assets/28_planning_loop.png)
@@ -47,12 +55,12 @@ state['todos'] = [
 
 ### 2.2 规划要显式开启
 
-`write_todos` **默认不在**绑定给模型的工具里（第 14 章「注册 9 个、模型可见 8 个」都不含它）。要开规划，必须显式加中间件：
+语义清楚了，接着问一个实操问题：这工具怎么没出现？`write_todos` **默认不在**绑定给模型的工具里（第 14 章「注册 9 个、模型可见 8 个」都不含它）。要开规划，必须显式加中间件：
 
 - Python：`from langchain.agents.middleware import TodoListMiddleware`，然后 `create_deep_agent(model=..., middleware=[TodoListMiddleware()])`
 - TypeScript：`import { todoListMiddleware } from "langchain"`，然后 `middleware: [todoListMiddleware()]`
 
-加与不加的差别，实测有两条：
+加与不加的差别，实测有两条。下表回答的问题是：**加不加 `TodoListMiddleware`，差别体现在哪两处？**
 
 | | 不加 `TodoListMiddleware` | 加了之后 |
 |---|---|---|
@@ -63,9 +71,7 @@ state['todos'] = [
 
 ### 2.3 SubAgent 的全部 11 个字段
 
-这张表回答「定义一个子代理能配什么」。官方文档只列了 `name` / `description` / `system_prompt` / `tools`（可选 `model` / `middleware`），**本机核对一共 11 个字段**。
-
-> ⚠️ 口径：这 11 个名字是 `16_delegation.py` 里**逐行 print 的字面量**（源码硬编码），不是从 `SubAgent` 类型上探测出来的；JS 输出里也自己写明「Python 侧实测 11 个，JS 侧为同名 camelCase」。所以**「11 个」是 Python 单边的读源码结论**，JS 侧的 `interruptOn` / `responseFormat` 等并未独立验证过。
+规划讲完，转到第二个麻烦——上下文膨胀，药方是委派。要派活，先得知道能定义一个什么样的子代理。这张表回答「定义一个子代理能配什么」。官方文档只列了 `name` / `description` / `system_prompt` / `tools`（可选 `model` / `middleware`），**本机核对一共 11 个字段**（「11 个」这一数字的口径说明见本节末参考块）。
 
 | 字段（Python） | TypeScript | 作用 |
 |---|---|---|
@@ -83,9 +89,14 @@ state['todos'] = [
 
 **字段多的意义**：子代理不是「一个只有提示词的小模型」，它可以是**一个独立配置的 agent**——有自己的工具白名单、自己的权限边界、自己的模型、自己的中断点。**权限和中断这两个字段尤其值得用**：把子代理能碰的文件收窄，比事后审计便宜得多。
 
+> **参考块｜「11 个字段」的口径**
+> ⚠️ 口径：这 11 个名字是 `16_delegation.py` 里**逐行 print 的字面量**（源码硬编码），不是从 `SubAgent` 类型上探测出来的；JS 输出里也自己写明「Python 侧实测 11 个，JS 侧为同名 camelCase」。所以**「11 个」是 Python 单边的读源码结论**，JS 侧的 `interruptOn` / `responseFormat` 等并未独立验证过。
+
 ### 2.4 description 是唯一依据，task 返回的是报告
 
-主代理不会「读」子代理的 `system_prompt`——**它只看得到 `name` + `description`**。`task` 工具给模型暴露的参数就是这两样的投影：
+字段清单有了，这一节回答两个更要紧的问题：主代理凭什么决定派不派活，派出去之后回来的是什么。
+
+先看第一个。主代理不会「读」子代理的 `system_prompt`——**它只看得到 `name` + `description`**。下面这段回答的问题是：**`task` 工具给模型暴露的参数长什么样？**它就是这两样的投影：
 
 ```text
 task(description: "查一下 LangGraph 的检查点机制", subagent_type: "researcher")
@@ -96,7 +107,7 @@ task(description: "查一下 LangGraph 的检查点机制", subagent_type: "rese
 
 所以 `description` 写得含糊，子代理就**永远不会被用上**——不是效果差，是根本没被选中。写 `description` 的正确姿势是**写清「什么时候该派给我」**，而不是「我是谁」。示例里的写法是「负责查资料。当需要外部信息时派给它。」——后半句才是关键。
 
-另一个必须建立的预期：**`task` 的返回是一份最终报告，不是子代理的完整对话**。子代理的中间过程（读了哪些文件、试错了多少次）留在它**自己的上下文**里，主代理只拿到结论。这正是委派省 token 的来源，也是它的风险来源——**结论错了，主代理看不到中间过程，很难察觉**。
+再看第二个。另一个必须建立的预期：**`task` 的返回是一份最终报告，不是子代理的完整对话**。子代理的中间过程（读了哪些文件、试错了多少次）留在它**自己的上下文**里，主代理只拿到结论。这正是委派省 token 的来源，也是它的风险来源——**结论错了，主代理看不到中间过程，很难察觉**。
 
 ![图 29　子代理的上下文防火墙：主代理只看到 name + description 与最终报告](assets/29_subagent_firewall.png)
 
@@ -104,7 +115,7 @@ task(description: "查一下 LangGraph 的检查点机制", subagent_type: "rese
 
 ### 2.5 mode：isolated 与 fork
 
-这张表回答「子代理一开始能看见什么」。两种模式的区别只有一处，但影响很大。
+派活之前还有一档选择：子代理一开始能看见什么。这张表回答「子代理一开始能看见什么」。两种模式的区别只有一处，但影响很大。
 
 | `mode` | 子代理的初始上下文 | 适合 |
 |---|---|---|
@@ -118,7 +129,7 @@ task(description: "查一下 LangGraph 的检查点机制", subagent_type: "rese
 
 ### 2.6 子代理的价值是上下文隔离，不是并行
 
-这是本章最容易被误解的一点。子代理常被当成「多开几个模型并行跑」的性能手段，但它的**核心收益是上下文隔离**：
+这是本章最容易被误解的一点。子代理常被当成「多开几个模型并行跑」的性能手段，但它的**核心收益是上下文隔离**（类比：像把一块棘手的活派给下属，只要求他回来交一页结论——他查了多少资料、走了多少弯路，都留在自己的笔记本里）：
 
 - 子代理的中间过程**不污染主代理的上下文窗口**——主代理全程只持有任务清单和结论；
 - 「并行」是隔离的**副产品**，而且**由模型决定**：`task` 工具的描述里明确告诉模型「任务相互独立时，就在**同一条消息里发多个 tool call** 并发跑」——所以并发是**可选项**，不是保证（模型完全可以一次只发一个）。
@@ -134,7 +145,7 @@ task(description: "查一下 LangGraph 的检查点机制", subagent_type: "rese
 
 ### 3.1 开启规划，看状态里的 todos
 
-Python 侧加 `TodoListMiddleware` 后发一次 `write_todos`，再把状态里的 `todos` 打出来——这就是 2.1、2.2 两节结论的证据。
+机制讲完了，接起来跑。这一节把规划跑起来：加上 `TodoListMiddleware`，发一次 `write_todos`，再把状态里的 `todos` 打出来——这就是 2.1、2.2 两节结论的证据。
 
 ```python
 from _fake_model import ScriptedChatModel, reply, tool_call
@@ -184,7 +195,7 @@ for (const item of out.todos) console.log(item.status, item.content);
 
 ### 3.2 定义子代理并派活
 
-Python 侧先构造一个 `SubAgent`，再让主代理用 `task` 把活派给它。注意 `description` 那句话——它是子代理能否被选中的唯一依据。
+这一节把委派跑起来：定义一个 `researcher` 子代理，让主代理用 `task` 把活派给它——两处值得盯着看：`description` 那句话，以及 `task` 带回来的返回值。Python 侧先构造一个 `SubAgent`，再让主代理用 `task` 把活派给它。注意 `description` 那句话——它是子代理能否被选中的唯一依据。
 
 ```python
 from _fake_model import ScriptedChatModel, reply, tool_call
@@ -246,6 +257,8 @@ await boss.invoke({ messages: [{ role: "user", content: "帮我调研一下检�
 
 ## 四、常见坑与边界条件
 
+以下八条，前七条约定「怎么用」，最后一条划定本章的实测边界。
+
 1. **把 `write_todos` 当 append-only**。它是**全量覆盖**；模型漏写一条，那条就从状态里消失，没有「历史待办」可回查。
 2. **忘了加 `TodoListMiddleware`**。默认没有 `write_todos`，模型想规划也没工具可用（第 14 章第 2 条坑）。
 3. **`description` 写成自我介绍**。主代理只凭 `name` + `description` 决定派不派活，含糊的描述等于这个子代理**不存在**。
@@ -254,6 +267,7 @@ await boss.invoke({ messages: [{ role: "user", content: "帮我调研一下检�
 6. **`isolated` 下背景没写全**。子代理只有你给的那段描述，主代理已积累的上下文它一概不知——需要背景就改用 `fork`，或在描述里补全。
 7. **`fork` 的上下文一开始就很长**。继承主代理历史会让子代理的上下文窗口提前被占掉，隔离收益打折。
 8. **子代理质量需真实模型才能评估**。「子代理会不会被正确选中、报告质量如何」**需 API Key，未实测**；本章只验证「字段有哪些、工具是否暴露、状态多了什么键」。
+
 ## 五、关键结论
 
 1. **`write_todos` 是全量覆盖语义**：模型每次重写整张表，状态里的 `todos` 永远是最新快照，**规划列表不是 append-only**，漏写即丢失。
