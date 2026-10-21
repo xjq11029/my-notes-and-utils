@@ -108,16 +108,18 @@ console.log("=".repeat(78));
 
 const profile = createHarnessProfile({
   systemPromptSuffix: "回答一律用中文。",
-  excludedTools: ["execute"], // 不要执行能力
+  excludedTools: ["edit_file"], // 裁掉默认可见的工具；execute 默认本来就不可见
   toolDescriptionOverrides: { grep: "在本项目源码里搜索。" },
 });
 // ⚠️ excludedTools 是 **Set**，不是数组——直接 JSON.stringify 会得到 {}
 console.log(`  profile.excludedTools = ${JSON.stringify(Array.from(profile.excludedTools))}`);
 console.log(`  profile.systemPromptSuffix = ${JSON.stringify(profile.systemPromptSuffix)}`);
 
-registerHarnessProfile("my-profile", profile);
-const back: any = getHarnessProfile("my-profile");
+registerHarnessProfile("my-provider", profile);
+const back: any = getHarnessProfile("my-provider");
 console.log(`  已注册并回读 profile：excludedTools = ${JSON.stringify(Array.from(back?.excludedTools ?? []))}`);
+// ⚠️ 本示例的假模型不报告 provider（getName() 不在 ChatOpenAI/ChatAnthropic 映射里），
+// 所以 profile 只验证「注册 + 回读」；真实 provider 类会按 provider 自动匹配。
 
 console.log();
 console.log("  ⚠️ 与 Python 的三处差异（实测）：");

@@ -20,7 +20,7 @@
 
 先看下面这张表——它回答的问题是「我该把东西存哪一套」。选错了会出现「对话能续上但记不住用户」或「记得住用户但对话一断就丢」这类奇怪现象。
 
-| | Checkpointer（检查点保存器） | Store（跨线程存储） |
+| 维度 | Checkpointer（检查点保存器） | Store（跨线程存储） |
 |---|---|---|
 | **作用范围** | 单个线程（thread） | 跨线程 |
 | **存什么** | 图状态的完整快照 | 应用自定义的键值数据 |
@@ -54,7 +54,7 @@
 
 上一节讲怎么定位检查点；这一节讲它白送的一个能力——**持久执行**。
 
-有了逐超步的检查点，「持久执行」是免费得到的：进程崩了，重启后拿同一个 `thread_id` 再 `invoke` 一次，图从**最近的检查点**继续，只丢最后一次超步。
+有了逐超步的检查点，「持久执行」就有基础了——但前提是**检查点本身是持久化的**：`SqliteSaver` / `PostgresSaver` 等落盘后端能让进程崩溃后从最近的检查点续跑，只丢最后一次超步；`InMemorySaver` 随进程消失，重启后同一 `thread_id` 也拿不回历史（见图 22 的对照）。
 
 ![图 22　检查点把状态放到进程之外：内存版重启即失，持久化版从最近检查点续跑](assets/22_checkpoint_recovery.png)
 
@@ -70,6 +70,12 @@
 
 > ⚠️ **与官方文档的差异**：文档在排障章节直接写 `from langgraph.checkpoint.sqlite import SqliteSaver`，但 **`langgraph` 1.2.12 的默认安装不含 `langgraph.checkpoint.sqlite`**，必须先 `pip install langgraph-checkpoint-sqlite`（生产用 `langgraph-checkpoint-postgres`）。本仓库 `code/python/requirements.txt` 里这一行特意注释掉了，就是为了提醒。JS 侧对应 `@langchain/langgraph-checkpoint-*` 系列包（未实跑）。
 
+最小例子（三步，假设 `graph` 已定义）：
+
+1. `app = graph.compile(checkpointer=InMemorySaver())`
+2. `cfg = {"configurable": {"thread_id": "demo"}}`
+3. `app.invoke({"n": 0}, cfg)` 后再 `app.invoke({}, cfg)`——第二次从最近检查点续跑。
+
 ### 2.4 读与改：get_state / get_state_history / update_state
 
 快照存下来之后，怎么看见它、怎么改写它？三个方法各管一件事。
@@ -79,7 +85,7 @@
 | 方法 | Python | TypeScript | 给你什么 |
 |---|---|---|---|
 | 当前快照 | `graph.get_state(cfg)` | `await graph.getState(cfg)` | `values` / `next` / `config` / `metadata` |
-| 历史快照 | `graph.get_state_history(cfg)` | `await graph.getStateHistory(cfg)` | **异步迭代器**，从新到旧 |
+| 历史快照 | `graph.get_state_history(cfg)` | `await graph.getStateHistory(cfg)` | **Python 同步迭代器 / JS 异步迭代器**，从新到旧 |
 | 改写历史 | `graph.update_state(cfg, values)` | `await graph.updateState(cfg, values)` | 返回**新分支**的 config |
 
 两个字段要会读：`values` 是这一份快照的完整状态；`next` 是**待执行节点**——跑完的线程 `next` 为空，这是判断「图是否停在半路」最可靠的信号。**时间旅行（time travel）** 就是「拿一个历史快照的 config，改掉几个字段，再从那里重放」。它**新建分支**，原线程的历史一条都不动——语义上和 **git 的 branch 完全同构**：历史是只读的，你只是在某个旧 commit 上开了条新分支往前走。（类比展开：就像 `git checkout` 到旧 commit 后在新分支上继续提交，原分支的日志一个字节都不会变；LangGraph 里同样没有「修改历史」这个操作，能做的只有开新分支。）这使它成为调试 agent 最有力的一招：把 agent 走错的那一步改回正确状态，看它接下来会不会又走错。
@@ -92,13 +98,13 @@
 
 checkpointer 管的是线程之内的图状态；还有一类数据要跨线程地活——用户偏好、长期事实、共享知识——那是 store 的地盘。这一节讲它的数据模型与五个方法。
 
-Store 的模型很简单：**命名空间是一个字符串元组，任意层数** + 一个键 + 一个 JSON 可序列化的值。`("alice", "memories")` 只是「用用户维度做命名空间」这一种用法，不是唯一用法。
+Store 的模型很简单：**命名空间是一个字符串元组，任意层数** + 一个键 + 一个 **dict 值**。`("alice", "memories")` 只是「用用户维度做命名空间」这一种用法，不是唯一用法。
 
 五个方法在两种语言里的签名和语义，看下表——它回答「要存 / 取 / 找东西，该调哪个方法、传什么」：
 
 | 方法 | Python | TypeScript | 说明 |
 |---|---|---|---|
-| 写入 | `put(namespace, key, value, index=None)` | `await store.put(ns, key, value, index?)` | 值必须是 JSON 可序列化对象 |
+| 写入 | `put(namespace, key, value, index=None)` | `await store.put(ns, key, value, index?)` | 值必须是 **dict / 键值对象**（传字符串或列表会抛 `ValueError`） |
 | 读取 | `get(namespace, key) -> Item \| None` | `await store.get(ns, key)` | 读 `.value` 拿数据 |
 | 搜索 | `search(namespace_prefix, *, query=None, filter=None, limit=10, offset=0)` | `await store.search(nsPrefix, { query?, filter?, limit?, offset? })` | **前缀**匹配，不是精确匹配 |
 | 删除 | `delete(namespace, key)` | `await store.delete(ns, key)` | |
@@ -106,7 +112,7 @@ Store 的模型很简单：**命名空间是一个字符串元组，任意层数
 
 > 上表中位置参数形式（`put` / `get` / `search(prefix)` / `list_namespaces(prefix=...)`）是本机实测跑过的；`delete` 已在下面示例中调用过一次（删单个键）；`query` / `filter` / `limit` 等关键字选项来自官方 Stores 页（JS 侧类型定义 `@langchain/langgraph-checkpoint` 1.1.5），未逐项实跑。
 
-**`search` 是前缀匹配，这是最容易踩的一处**：数据写进 `("alice", "memories")` 和 `("alice", "notes")` 之后，`search(("alice",))` 会把两个命名空间下的条目**全都捞出来**（实测命中 3 条），而不是只返回 `("alice",)` 这一层。想要精确一层，就把命名空间写细：`search(("alice", "memories"))`。
+**`search` 是前缀匹配，这是最容易踩的一处**：数据写进 `("alice", "memories")` 和 `("alice", "notes")` 之后，`search(("alice",))` 会把两个命名空间下的条目**全都捞出来**（实测命中 3 条），而不是只返回 `("alice",)` 这一层。把命名空间写细只能**缩小**命中范围（`search(("alice", "memories"))` 仍会命中 `("alice", "memories", "food")` 这样的子命名空间），**不是精确匹配**。
 
 **语义检索（semantic search）** 需要在构造 Store 时配 `index`——三个字段，两种语言的字段名还有一处不同：
 
@@ -280,25 +286,24 @@ await store.delete(USER, "pref-city");
 
 ## 四、常见坑与边界条件
 
-这一节的坑覆盖四类：`invoke` 输入语义（`{}` 与 `None` 的区别）、部署选型（内存版与 sqlite 后端）、搜索口径（前缀匹配）与双语言差异（挂 store 的位置、异步迭代器）。
+这一节的坑覆盖四类：`invoke` 输入语义（`{}` 与 `None` 的区别）、部署选型（内存版与 sqlite 后端）、搜索口径（前缀匹配）与双语言差异（store 的挂载入口、迭代器形态）。
 
 1. **`invoke({})` 与 `invoke(None)` 不是「相反」，而是「注入空输入」与「不注入输入」的区别**。空字典把「空输入」按各字段的 reducer 合并进检查点状态并重跑节点——想「续跑」用它；`None` 不注入任何输入，线程已跑完时就是空操作（图一步不跑），但若 config 指向一个还有待执行任务的状态（例如 `update_state` 刚改写出的分叉点），图会从那里继续往下执行——想「从历史快照重放」，用 `update_state` 返回的新分支 config 配 `invoke(None, cfg)`（3.1 节实测：从改写点重放到 `n=101`）。
 2. **生产环境别用 `InMemorySaver` / `MemorySaver` / `InMemoryStore`**。进程一退出全没，表现为「用户的会话随机丢失」。
 3. **`SqliteSaver` 要另装包**（`pip install langgraph-checkpoint-sqlite`），否则 import 就失败（**本机核对**：venv 里确实只有 `langgraph-checkpoint` 4.3.0、没有 sqlite 后端包；但示例从未真的去 import 它并捕获报错）。**中途换后端，历史搬不过去**——持久化方案要在项目早期定。
 4. **`search` 是前缀匹配**。命名空间写粗了会误命中；数据一多就把命名空间写细。
 5. **时间旅行不是改历史**。`update_state` 返回的是新分支的 config，原线程不受影响；要接着新分支跑，必须用返回的那个 config。
-6. **两边挂 store 的位置不同**。Python 是 `compile(checkpointer=..., store=...)`，JS 是把 store 放进运行配置一起传（`invoke(input, { ...cfg, store })`）——这是双语言差异里容易漏的一处。**另外 `get_state_history` 在 JS 侧是异步迭代器**，直接 `console.log` 只会得到迭代器对象，必须先 `for await` 收进数组。
+6. **两边都可以在 `compile` 传 store**。Python 是 `compile(checkpointer=..., store=...)`；JS 的 `StateGraph.compile` 也支持 `store`（类型定义里有），也可以在 `invoke` 的运行配置里传——不是「两边位置不同」，只是 JS 多一个运行期入口。**另外 `get_state_history` 在 JS 侧是异步迭代器**，直接 `console.log` 只会得到迭代器对象，必须先 `for await` 收进数组。
 
 ## 五、关键结论
-
-把全章收束成六条可迁移的判断：
 
 1. **checkpointer 管线程，store 管人**。前者按 `thread_id` 存图状态快照，后者按命名空间存跨线程键值数据，两者不可互替。
 2. **检查点是逐超步存的**，因此「持久执行」不需要额外机制：崩溃后用同一个 `thread_id` 再 `invoke`，图从最近检查点续跑。
 3. **`thread_id` / `checkpoint_ns` / `checkpoint_id` 三级定位**：哪条线程 → 线程里的哪张图 → 哪一个快照。`update_state` 的输入就是一份带 `checkpoint_id` 的历史 config。
 4. **时间旅行新建分支**，原线程历史不动——调试 agent 最有力的一招。
-5. **`search` 是前缀匹配**：`search(('alice',))` 会命中 `('alice','memories')` 与 `('alice','notes')` 下的全部条目（实测 3 条）。
-6. **语义检索要额外配 `index`（`embed`/`embeddings` + `dims` + `fields`）**，且需要真实嵌入模型；本章只给写法，未实测。
+5. **语义检索要额外配 `index`（`embed`/`embeddings` + `dims` + `fields`）**，且需要真实嵌入模型；本章只给写法，未实测。
+
+> 口径：checkpointer 续跑、历史快照、`update_state` 分支、Store 前缀搜索为示例实测（`12_persistence.*`）；语义检索与部分 Store 关键字选项未实测；换后端搬不了历史是架构约束。
 
 ## 本章要点回顾
 

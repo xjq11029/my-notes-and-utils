@@ -14,7 +14,7 @@
 
 本章讲 RAG 的**完整链路**——Load（加载）→ Split（切分）→ Embed（嵌入）→ Store（入库）→ Retrieve（检索），以及最后一跳：把检索器包成工具，交给第 5 章的 agent 调用。一句话主线：**本章回答，一条 RAG 链路上每一步把上一步的产物换成什么、出了问题该从哪一步查起、以及怎么把检索器交到 agent 手里。**
 
-> **本章依赖需单独安装**（其他章不受影响）：Python 侧 `pip install langchain-text-splitters langchain-community pypdf`；JS 侧 `pnpm add @langchain/textsplitters @langchain/classic @langchain/community d3-dsv`。精确版本见 `code/python/requirements.txt` 与 `code/typescript/package.json`。
+> **本章依赖需单独安装**（其他章不受影响）：Python 侧 `pip install langchain-text-splitters langchain-community pypdf jq`（Windows 的 `JSONLoader` 需要 `jq`）；JS 侧 `pnpm add @langchain/textsplitters @langchain/classic @langchain/community d3-dsv`。精确版本见 `code/python/requirements.txt` 与 `code/typescript/package.json`。
 
 本章**不涉及**：向量库的选型运维（Milvus / Chroma 只讲到「什么时候该换」）、重排序与混合检索（那是检索调优的下一层）、模型侧的上下文治理（见第 9 章 上下文工程）。
 
@@ -39,6 +39,17 @@ RAG 常被讲成一堆组件，但拆开看只有五步，每步都只做一件�
 | Retrieve | 查询文本 → 最相关的几个 `Document` | Retriever |
 
 检索不准，先看 Split（块切碎了）和 Retrieve（相似度算法）；答案编造，先看 Load（源文件里到底有没有这段）。
+
+最小例子（只看前两步：文件 → `Document` → 短块）：
+
+```python
+from langchain_core.documents import Document
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+docs = [Document(page_content="退款政策：7 天无理由退货。", metadata={"source": "faq.txt"})]
+chunks = RecursiveCharacterTextSplitter(chunk_size=12, chunk_overlap=0).split_documents(docs)
+print(chunks[0].page_content, chunks[0].metadata)
+```
 
 打个比方（类比）：这五步像一条工厂流水线，每台机器只负责把上一步的产物换成另一种形态——文件变成文档、长文档变成短块、文本变成向量——所以每一步在干什么，都可以用「输入什么、输出什么」一句话说清。
 
@@ -169,9 +180,9 @@ def search_docs(query: str) -> str:
 
 > **注意**：假嵌入的向量没有语义，所以示例里检索到的内容**不代表相关**。它验证的是链路通不通，不是检索准不准。
 
-读法只有一条：2.2–2.6 讲的每一步，在 3.1–3.5 各有一段对应的实测输出——先看产物长什么样，再对回机制小节的表。
+读法只有一条：2.2–2.6 讲的每一步，在 3.1–3.4 各有一段对应的实测输出——先看产物长什么样，再对回机制小节的表；3.5 是双语言差异表。
 
-### 3.1 加载：同一份语料，四种切法
+### 3.1 加载：五种 Loader，各自切出什么
 
 先看第一站 Load。下面这段输出回答的问题是：**同一份现场生成的语料，每种 Loader 各自切出几条、metadata 里留下什么**。
 
@@ -243,7 +254,7 @@ similarity_search_with_score('键盘', k=2)：
 
 > 这块原先把 **TS 的输出套上了 Python 的函数名 `embed_query`**，维度还写成了 **16**——两边都不是（TS 是 4、Python 是 8）。已按两边实际输出分开列。**维度必须与 `embed_documents` 一致，否则算不了相似度**，这是硬约束。
 
-Python 示例用 `DeterministicFakeEmbedding` 保证同一段文本每次得到同一个向量（可复现），并另用 `FakeEmbeddings` 做了一次对照，证明它每次结果不同——**只够验证管道，不能当检索质量看**。
+Python 示例用 `DeterministicFakeEmbedding` 保证同一段文本每次得到同一个向量（可复现），并另用 Python 的 `FakeEmbeddings` 做了一次对照，证明它每次结果不同；TS 的 `FakeEmbeddings` 则是固定向量。三者都**只够验证管道，不能当检索质量看**。
 
 ### 3.4 接进 agent
 
@@ -277,11 +288,11 @@ Python 示例用 `DeterministicFakeEmbedding` 保证同一段文本每次得到�
 
 链路讲完，下面七条是它最常见的卡点。
 
-1. **`chunk_overlap` 必须小于 `chunk_size`。** 相等或更大时，切分器会陷入「切完退回去又切」的循环，多数实现直接报错。经验值是 `chunk_size` 的 10%–20%。
+1. **`chunk_overlap` 不能大于 `chunk_size`。** `>` 会抛 `ValueError`；**相等不会报错**，但会让相邻块大量重叠、切出很多重复块，实际配置应明显小于 `chunk_size`。经验值是 `chunk_size` 的 10%–20%。
 
-2. **空分隔符会让 `CharacterTextSplitter` 报错。** `separator=""` 不是「按字符切」的意思——要按字符切，用 `RecursiveCharacterTextSplitter`（它的回退列表最后一项就是空串），或显式设 `chunk_size` 让它在超长时硬切。
+2. **空分隔符不是报错，而是按字符切。** `CharacterTextSplitter(separator="")` 会照常工作，每个字符都成为切分点；要按块大小硬切，用 `RecursiveCharacterTextSplitter`（它的回退列表最后一项就是空串），或显式设 `chunk_size`。真正要小心的是空分隔符带来的块数膨胀。
 
-3. **假嵌入只验机制，不验语义。** 示例里检索排序看着「挺对」，那是巧合——假向量是哈希出来的，与语义无关。换成真实嵌入模型之前，任何关于「检索准不准」的结论都不成立。
+3. **假嵌入只验机制，不验语义。** 示例里检索排序看着「挺对」，那是巧合——Python 的 `DeterministicFakeEmbedding` 按文本哈希，Python 的 `FakeEmbeddings` 每次随机，TS 的 `FakeEmbeddings` 对所有文本返回同一固定向量（`[0.1,0.2,0.3,0.4]`）。三者都与语义无关；换成真实嵌入模型之前，任何关于「检索准不准」的结论都不成立。
 
 4. **入库与检索必须用同一个嵌入模型。** 换模型等于换坐标系，旧向量全部作废，必须重建索引。这不是「最好这样」，是**必须**。
 
@@ -294,16 +305,12 @@ Python 示例用 `DeterministicFakeEmbedding` 保证同一段文本每次得到�
 ## 五、关键结论
 
 1. **RAG 的五步是形态转换，不是五个组件。** 文件 → Document → 短 Document → 向量 → 可检索的库 → 相关片段。每步只做一件事，排查问题时按这个链条往前找。
+2. **默认用 `RecursiveCharacterTextSplitter`**。它保证不超 `chunk_size`；`CharacterTextSplitter` 会静默超长，提示只在默认不可见的日志里。
+3. **检索器就是一个工具。** 包成 `@tool` 交给 agent 之后，检索从固定步骤变成可选动作——这是 RAG 与流水线式问答的本质区别。
+4. **上限在检索侧，不在模型侧。** 检索不到，模型只能编。所以调 RAG 的第一顺位是切分粒度与检索策略，不是换更大的模型。
+5. **离线半程与在线半程要分开部署。** Load / Split / Embed / Store 只在文档变更时跑；只有 Retrieve 在每次提问时跑。
 
-2. **Loader 之间没有本质区别**，差异只有两点：一个文件切几条、metadata 留什么。metadata 是标注出处的唯一依据。
-
-3. **默认用 `RecursiveCharacterTextSplitter`**。它保证不超 `chunk_size`；`CharacterTextSplitter` 会静默超长，提示只在默认不可见的日志里。
-
-4. **检索器就是一个工具。** 包成 `@tool` 交给 agent 之后，检索从固定步骤变成可选动作——这是 RAG 与流水线式问答的本质区别。
-
-5. **上限在检索侧，不在模型侧。** 检索不到，模型只能编。所以调 RAG 的第一顺位是切分粒度与检索策略，不是换更大的模型。
-
-6. **离线半程与在线半程要分开部署。** Load / Split / Embed / Store 只在文档变更时跑；只有 Retrieve 在每次提问时跑。
+> 口径：本章的 Loader / Splitter / 假嵌入 / 内存向量库 / 检索器接工具为示例实测（`08_rag.*`）；真实嵌入与生产向量库未实测；TS 的 JSON Pointer 与包归属见 3.5。
 
 ## 本章要点回顾
 

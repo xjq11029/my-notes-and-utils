@@ -154,9 +154,21 @@ LangChain 里承担「带什么进去」的基本单元是 **Message（消息）
 
 用 f-string 拼提示词在 demo 里够用，但变量一多就可读性骤降、改一处容易漏一处、**没有任何变量校验**（拼错了照样发出一个缺值的提示词）。更根本的问题是：现代聊天模型 API **原生支持角色概念**，它要的不是一个字符串，而是一个**结构化的消息列表**。用字符串去伪造角色（`"Human：你好\nAI：你好！..."`）不仅难维护，还极易让模型混淆对话边界。
 
-于是 LangChain 1.x 的 Prompt 机制完成了一次替换：**`PromptTemplate`（字符串 → 字符串）让位给 `ChatPromptTemplate`（变量 → 消息列表）**。
+于是 LangChain 1.x 的 Prompt 机制换了一次推荐入口：**字符串模板 `PromptTemplate` 让位给面向消息列表的 `ChatPromptTemplate`**（`PromptTemplate` API 仍在包里、仍可用，只是 chat 场景不再推荐）。
 
 打个**类比**：`ChatPromptTemplate` 像预印表单——空格（变量）留好，发下去之前填上；f-string 拼提示词像手写海报，写快了就漏项。（类比只帮助记，机制以上文的替换为准。）
+
+最小例子（先看模板怎么把变量变成消息）：
+
+```python
+from langchain_core.prompts import ChatPromptTemplate
+
+prompt = ChatPromptTemplate.from_messages([
+    ("system", "你是翻译助手。"),
+    ("human", "把 {text} 翻译成英文。"),
+])
+print(prompt.format_messages(text="你好"))
+```
 
 下表回答的问题是：**三个调用方法返回的东西不一样，我该用哪个？**
 
@@ -444,12 +456,11 @@ ChatPromptTemplate.from_messages([("human", '返回 JSON: {{"k": 1}} 变量 {v}'
 
 1. **模型无状态，历史要自己维护**：每次调用都必须在同一个消息列表上追加、并保存 AI 的回复。
 2. **四种消息类型是「角色 → 载荷」的绑定**：`SystemMessage` 定规则、`HumanMessage` 是输入、`AIMessage` 是输出（可带 `tool_calls`）、`ToolMessage` 回灌结果（必须带匹配的 `tool_call_id`）。
-3. **JSON dict 与消息对象在模型侧完全等价**（实测 `.seen` 类型序列一致）；差别只在你这一侧的书写与校验时机。
-4. **`content` 是弱类型，`content_blocks` 是标准化视图**：写多模态、读思维链 / 引用都优先用 `content_blocks`；它是 property，每次访问重新解析，不缓存。
-5. **`ChatPromptTemplate` 的三种调用方式返回三种东西**：`invoke()` → `ChatPromptValue`（可直接喂模型）、`format()` → `str`、`format_messages()` → `list[BaseMessage]`。**JS 侧三者都是异步的。**
-6. **初始化列表只认六种元素**：`str` / `tuple` / `dict` / `BaseMessage` / `BaseMessagePromptTemplate` / `BaseChatPromptTemplate`。分类依据是「提示词从哪来」。**`str` 默认角色是 `human`；可调用对象不受支持（实测报错）。**
-7. **`MessagesPlaceholder` 插的是消息列表，`partial()` 钉的是固定变量**——前者给历史，后者做模板变体。
-8. **裁剪历史的判据是「哪部分丢得起」**：system 是角色设定，必须留；更早的问答可以丢，但要保证不切断一次工具调用。
+3. **`content` 是弱类型，`content_blocks` 是标准化视图**：写多模态、读思维链 / 引用都优先用 `content_blocks`；它是 property，每次访问重新解析，不缓存。
+4. **`ChatPromptTemplate` 的三种调用方式返回三种东西**：`invoke()` → `ChatPromptValue`、`format()` → `str`、`format_messages()` → `list[BaseMessage]`；JS 侧三者都是异步的。
+5. **裁剪历史的判据是「哪部分丢得起」**：system 是角色设定，必须留；更早的问答可以丢，但要保证不切断一次工具调用。
+
+> 口径：本章的示例实测来自 `code/python|typescript/03_messages_prompts.*`；真实多模态调用与 `name` 跨供应商透传未实测；`content_blocks` 与六种初始化类型中的源码结论见各节标注。
 
 ## 本章要点回顾
 

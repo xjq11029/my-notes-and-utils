@@ -12,8 +12,7 @@
 ========================================================================
 ② runtime 注入：工具里读取 state / context / store
 ========================================================================
-  工具返回值: TypeError: this.store.batch is not a function
- Please fix your mistakes.
+  工具返回值: 历史 2 条 | tenant=t-7 | store 回读={"tenant":"t-7"}
   → runtime 参数对模型不可见：模型只看到工具名和描述。
   → 旧写法 InjectedState / InjectedStore 在 v1 已由 runtime 统一取代。
 

@@ -51,8 +51,8 @@
 **Python 侧一共 7 个 run**：1 个根 `chain`（整次 agent 调用，对应 LangSmith 里的一条 trace）+ 2 个 `model` chain（图里的 `model` 节点，各挂 1 个 `llm`）+ 1 个 `tools` chain（挂 1 个 `tool`）。
 
 > ⚠️ **JS 侧不是 7 个，是 10 个 run**（`_实测输出核验/typescript/10_observability.txt`）。差异有两处：
-> ① **chain 一律无名**——根节点显示为 `chain` 而不是 `price_lookup`，即 `runName` 在 JS 侧**没有透传到回调**；
-> ② 树里多出 2 个 `chain` 子节点（JS 的图结构本身多两层包装）。
+> ① **chain 一律无名**——根节点显示为 `chain` 而不是 `price_lookup`。本示例的 TS recorder 在 `on_chain_start` 里硬编码了 `"chain"`，**没有读取 `runName` 参数**，所以这只能说明「本 recorder 没拿到名字」，不能断言框架没有透传；
+> ② 树里多出 3 个 `chain` 节点（JS 7 个 chain、Python 4 个；总数 10 vs 7 的差就是这 3 个）。
 > 所以「7 个 run」是 **Python 单边结论**，别拿它去核对 JS 的 trace。
 
 为什么是 2 个 `model`：agent loop 的本质就是「调模型 → 有工具调用就执行 → 再调模型」。第一圈模型请求工具，第二圈模型拿到工具结果、给出最终答案。**run 的数量直接反映 loop 转了几圈**——这本身就是排障线索：本该一圈解决的问题转了三圈，说明模型在反复试。
@@ -68,6 +68,18 @@
 ### 2.4 离线回调：TraceRecorder 的完整思路
 
 树看完了，该问「它是怎么来的」。这一节把 `TraceRecorder` 的思路四步拆开，再看两个实测踩出来的细节——它也是本章「无账号也能讲 trace」的底气。上面那棵树不是 LangSmith 给的，是示例里一个几十行的 `TraceRecorder` 自己搭的。思路四步：① 继承 `BaseCallbackHandler`；② 在 `on_chain_start` / `on_chat_model_start` / `on_tool_start` 里用回调给的 `run_id`、`parent_run_id` 建节点、挂父子关系、记开始时间；③ 在对应的 `_end` 里记结束时间；④ 从根递归打印。
+
+最小例子（只打印每次模型调用的 `run_id`，不建树）：
+
+```python
+from langchain_core.callbacks import BaseCallbackHandler
+
+class PrintRuns(BaseCallbackHandler):
+    def on_chat_model_start(self, serialized, messages, *, run_id, **kwargs):
+        print("model run:", run_id)
+```
+
+把它放进 `config={"callbacks": [PrintRuns()]}` 即可生效；完整的 `TraceRecorder` 见本节后半。
 
 两个必须知道的细节（都是实测踩出来的）：**工具名在 `serialized["name"]` 里，不在回调参数里**（Python 侧如此；JS 侧的 `handleToolStart` 相反，名字在第 7 个参数上，照抄会拿到空名字）；**`parent_run_id` 为 `None` 的就是根**，不需要自己猜父子关系。
 
@@ -169,7 +181,7 @@ LANGSMITH_PROJECT="pr-clear-harmony-32"               # 项目名：WebUI 按它
 - **run 树**：2.1–2.3 节讲的那棵树原样出现在页面上——根节点是一次 `invoke`，下面挂 `model` / `tools` 节点，再下面才是真正的 `llm` / `tool` run。点任一节点看它自己的输入输出，这就是 2.3 节说的「逐层下钻」。想确认自己对 trace 结构的理解，就拿 2.4 节的 `TraceRecorder` 打出来的树和页面上的树对一遍，两者应该长得一样。
 - **耗时**：每个 run 的起止时间与总时长。长尾藏在哪个节点，一眼能看出来——对应 2.8 节「该盯的五个数」里的端到端 P95。
 - **token 用量**：`llm` run 上有输入 / 输出 token 数。本示例的离线桩**没去接**这个字段（不是接不到）：token 来自模型响应里的 `usage` 元数据，只有真实模型才有——**2026-10-16 已实测该字段齐全**（见 2.8 节）。LangSmith 页面把它汇总到项目维度，成本估算也建在这上面。
-- **标签与元数据**：`invoke(..., config={"run_name": ..., "tags": [...], "metadata": {...}})` 里的三个字段会挂到对应 run 上，用来在项目里筛选、分组（示例常用 `run_name` 给一次运行起名、用 `metadata` 记 `user_id` / `session_id`）。实测（离线、无 tracer）：这三个 config 字段不会让调用报错，但**不配 LangSmith 时它们不产生任何效果**，只是被 Runnable 原样收下。
+- **标签与元数据**：`invoke(..., config={"run_name": ..., "tags": [...], "metadata": {...}})` 里的三个字段会挂到对应 run 上，用来在项目里筛选、分组（示例常用 `run_name` 给一次运行起名、用 `metadata` 记 `user_id` / `session_id`）。实测（离线、无 tracer）：这三个 config 字段不会让调用报错，但**没有挂任何回调 / tracer 时它们不产生任何效果**，只是被 Runnable 原样收下；一旦挂了自定义回调，仍能在回调里读到（第 2 章的 `TagProbe` 示例就是离线读到的）。
 
 > ⚠️ 页面上的字段名、按钮位置、指标口径都随 LangSmith 版本变化，**本节全部未实测**，以官方文档与页面实际显示为准。
 
@@ -205,7 +217,8 @@ class TraceRecorder(BaseCallbackHandler):
     def on_chain_end(self, outputs, **kw): self._end(kw["run_id"])
 
     def on_chat_model_start(self, serialized, messages, **kw):
-        self._start(kw["run_id"], kw.get("parent_run_id"), "ChatModel", "llm")
+        name = (serialized or {}).get("name") or "ChatModel"
+        self._start(kw["run_id"], kw.get("parent_run_id"), name, "llm")
     def on_llm_end(self, response, **kw): self._end(kw["run_id"])
 
     def on_tool_start(self, serialized, input_str, **kw):
@@ -327,7 +340,9 @@ console.log(`结果：${passed}/${CASES.length} 通过`);
 2. **trace 能回答「agent 为什么走了这一步」，靠的是每个 run 都带自己的输入输出**——只有一堆时间点没有因果链的观测，回答不了任何「为什么」。
 3. **离线回调就能搭出同一棵树，「等接好观测再做 agent」是伪命题**：`BaseCallbackHandler` + start / end 事件 + `run_id` / `parent_run_id` 就够；LangSmith 本质相同，只是把数据送到服务端并支持跨进程。
 4. **agent 评测与普通 LLM 评测的分水岭在第二层：过程对不对**——答案碰对、过程全错是最常见的假阳性；判定器本身也要被评测，LLM 当裁判有四类系统性偏差，能用确定性规则就别用。
-5. **上线盯五个数**：模型调用次数、输入 token、缓存命中率、工具调用次数、端到端 P95。token 与缓存命中来自模型返回的 `usage` 元数据——**已实测可取**（`usage_metadata.input_token_details.cache_read`，实测同一长前缀连发 3 次为 4 → 780 → 780）；本示例的离线桩没记，要自己接。
+5. **上线指标要分两层：调用规模、成本、延迟；能直接从 `usage` 元数据拿到的只有 token 与缓存命中**——**已实测可取**（`usage_metadata.input_token_details.cache_read`，实测同一长前缀连发 3 次为 4 → 780 → 780）；本示例的离线桩没记，要自己接。
+
+> 口径：trace 树、7 个 run 与评测示例为离线桩示例实测（`10_observability.*`）；LangSmith 上报、真实评测集与成本未实测；判定器四类偏差为通用结论，未做统计检验。
 
 ## 本章要点回顾
 

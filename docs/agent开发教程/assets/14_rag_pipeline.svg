@@ -10,7 +10,7 @@
 <rect x="0" y="0" width="680" height="400" fill="#111721"/>
 
 <text x="34" y="38" font-family="system-ui, sans-serif" font-size="17" font-weight="700" fill="#dfe6ee">RAG 检索链路：离线建库，在线取用</text>
-<text x="34" y="62" font-family="system-ui, sans-serif" font-size="12" fill="#7d8b9c">本质是「把可能相关的资料，在提问时塞进上下文」——所以它也是上下文工程的一部分</text>
+<text x="34" y="62" font-family="system-ui, sans-serif" font-size="12" fill="#7d8b9c">本质是「把相关资料在提问时塞进上下文」；本图从切分开始，Load 见 2.2</text>
 
 <!-- 离线阶段 -->
 <rect x="34" y="82" width="612" height="112" rx="9" fill="#1b2532" stroke="#3a4a5e" stroke-width="1"/>

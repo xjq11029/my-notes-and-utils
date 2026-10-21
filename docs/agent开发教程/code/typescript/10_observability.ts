@@ -177,4 +177,4 @@ console.log("  工具调用次数   工具选错 / 反复重试，看这里最�
 console.log("  端到端 P95     平均延迟掩盖长尾，而用户体验由长尾决定");
 console.log();
 console.log("  ⚠️ 本示例的 trace 是离线回调，只记了耗时；token 与成本字段需要真实模型");
-console.log("     返回的 usage 元数据，本机无 API Key，未实测——以官方文档为准。");
+console.log("     返回的 usage 元数据已在 2026-10-16 用智谱端点实测（见 code/README「真实模型实测」C/D）；本示例的离线桩不产生 usage。");

@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 400" width="680" height="400" role="img">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 420" width="680" height="420" role="img">
 <title>缓存前缀边界：改动点之后的内容全部无法命中</title>
 <desc>提示词缓存按前缀比对。一旦改动某处，该位置之后的全部内容都需要重新计算。</desc>
 <defs>
@@ -47,8 +47,9 @@
 <text x="571" y="293" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#ff9d99">失效</text>
 
 <!-- 结论 -->
-<rect x="34" y="326" width="612" height="60" rx="8" fill="#2a2320" stroke="#e8a34b" stroke-width="1.2"/>
+<rect x="34" y="326" width="612" height="80" rx="8" fill="#2a2320" stroke="#e8a34b" stroke-width="1.2"/>
 <text x="50" y="346" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#f3c47a">三条推论（直接影响架构选择）</text>
 <text x="50" y="364" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">① 稳定内容放前面（系统指令、工具 schema），易变内容放后面（本次提问）</text>
 <text x="50" y="380" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">② 时间顺序 = 前缀顺序：最旧的内容排在最前，也就是前缀本身 → 压缩最旧内容会伤缓存</text>
+<text x="50" y="396" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">③ 动态注册工具（如按需从 MCP 拉工具）会反复打断前缀——省下的 token 与丢掉的缓存命中要一起算</text>
 </svg>

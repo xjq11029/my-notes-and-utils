@@ -139,6 +139,7 @@ const rows: Array<[string, string, string]> = [
   ["运行时注入", "InjectedState / InjectedStore", "runtime 参数"],
   ["链式拼装", "LCEL 的 .pipe()", "StateGraph 的 addNode / addEdge"],
   ["扩展点", "自定义 Agent / 继承", "middleware 的六个钩子"],
+  ["流式节点名", "agent", "Python: model / JS: model_request"],
 ];
 console.log("  能力         旧版写法                           v1 写法");
 console.log("  " + "-".repeat(88));

@@ -36,6 +36,7 @@
   运行时注入        InjectedState / InjectedStore      runtime 参数
   链式拼装         LCEL 的 .pipe()                     StateGraph 的 addNode / addEdge
   扩展点          自定义 Agent / 继承                     middleware 的六个钩子
+  流式节点名        agent                              Python: model / JS: model_request
 
   迁移的心智转变（比记 API 更重要）：
     · 旧版：agent 是一个**组件**，你用 LCEL 把它串进链里；

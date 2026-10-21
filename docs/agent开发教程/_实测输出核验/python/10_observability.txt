@@ -1,11 +1,11 @@
 ==============================================================================
 ① 一次 agent 调用产生的 trace 树
 ==============================================================================
-├─ [chain] price_lookup  (4.0 ms)
-  ├─ [chain] model  (1.1 ms)
-    ├─ [llm  ] ScriptedChatModel  (0.4 ms)
-  ├─ [chain] tools  (1.3 ms)
-    ├─ [tool ] get_price  (0.3 ms)
+├─ [chain] price_lookup  (3.7 ms)
+  ├─ [chain] model  (1.2 ms)
+    ├─ [llm  ] ScriptedChatModel  (0.5 ms)
+  ├─ [chain] tools  (1.0 ms)
+    ├─ [tool ] get_price  (0.2 ms)
   ├─ [chain] model  (0.3 ms)
     ├─ [llm  ] ScriptedChatModel  (0.1 ms)
 
@@ -56,4 +56,4 @@
   └────────────────┴──────────────────────────────────────────────┘
 
   ⚠️ 本示例的 trace 是离线回调，只记了耗时；token 与成本字段需要真实模型
-     返回的 usage 元数据，本机无 API Key，未实测——以官方文档为准。
+     返回的 usage 元数据已在 2026-10-16 用智谱端点实测（见 code/README「真实模型实测」C/D）；本示例的离线桩不产生 usage。

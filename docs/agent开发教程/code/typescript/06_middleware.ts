@@ -5,7 +5,7 @@
  * 本示例做一件文档里没有、但写代码时最需要知道的事：
  * **把六个钩子在一次含工具调用的完整轮次里的真实触发顺序打出来。**
  *
- * 运行：pnpm run 03_middleware
+ * 运行：pnpm run 06_middleware
  */
 
 import { createAgent, createMiddleware, tool, HumanMessage } from "langchain";

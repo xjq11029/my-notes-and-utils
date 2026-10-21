@@ -34,7 +34,7 @@
 | `grep` | 按内容搜 | ❌（只讲用途） |
 | `execute` | 执行命令（取决于后端） | ❌（默认后端不提供） |
 
-清单看完，看干活的样子。**实测返回值的原样**（`deepagents` 0.7.18，示例 `15_filesystem.py` 一次 `invoke` 内四连调用）：
+清单看完，看干活的样子。**实测返回值的原样（节选：长路径与时间戳有截断）**（`deepagents` 0.7.18，示例 `15_filesystem.py` 一次 `invoke` 内四连调用）：
 
 ```text
 [write_file] Updated file /notes/todo.md
@@ -43,7 +43,7 @@
 [ls]         ['/notes/todo.md']
 ```
 
-三个返回值各藏一处设计意图：
+四个返回值各藏一处设计意图：
 
 - **`read_file` 的 `@@ lines 1-3 of 3 @@` 是分页头**：告诉模型「你看到的是第 1–3 行，全文 3 行」，长文件可翻页，模型也知道**自己有没有看全**（类比：像书页页脚的「第 1–3 页，共 3 页」）——这正是第 17 章「技能正文按需读、`limit=1000`」的前提。
 - **`edit_file` 的 `1 instance(s)` 是匹配计数**：没匹配上会是 `0 instance(s)`，比抛异常温和——模型能自己发现改失败了。
@@ -53,7 +53,7 @@
 
 工具这一层看完了，翻到「里」：文件到底存在哪。这是本章最需要记住的一条。默认后端 `StateBackend` 不碰磁盘、不碰外部存储，它把「文件」当成**图状态里的一个字段**（`state.files`）。
 
-一条文件记录长什么样？下面这段回答的问题是：**`state.files` 里的一条记录有哪几个键？**实测含四个键：
+一条文件记录长什么样？下面这段回答的问题是：**`state.files` 里的一条记录有哪几个键？** Python 侧实测含四个键（JS 侧是 `mimeType` 而不是 `encoding`，见 3.1 的对照）：
 
 ```text
 state['files'] = {
@@ -66,11 +66,16 @@ state['files'] = {
 }
 ```
 
-把文件塞进状态，换来一组明确的**好处与代价**：好处是文件**跟着线程走**，天然享受检查点（第 12 章）——可回放、可时间旅行、崩溃后能恢复；代价是**换 `thread_id` 就没了**，新线程打开是一张白纸。一句话：`StateBackend` 的文件是**线程级**的，不是**全局级**的。要跨线程，得换后端（见 2.5）。
+把文件塞进状态，换来一组明确的**好处与代价**：配了 checkpointer 时，文件**跟着线程走**、享受检查点（第 12 章）——可回放、可时间旅行、崩溃后能恢复；没配 checkpointer 时，状态只活一次 `invoke`。代价是**换 `thread_id` 就没了**，新线程打开是一张白纸。一句话：`StateBackend` 的文件是**线程级**的，不是**全局级**的。要跨线程，得换后端（见 2.5）。
 
 打个比方：`StateBackend` 像给每个线程发了一块小白板，检查点就是定时给白板拍照存档；换一块新白板（新 `thread_id`），原先写的字一概不算数（类比）。
 
 > 官方文档说默认写入「图状态中的本地文件系统」，与本机实测一致（`create_deep_agent` 源码里 `backend = backend if backend is not None else StateBackend()`）。
+
+最小例子（三步）：
+1. 默认后端就是 `StateBackend`；用 `create_deep_agent(model=...)` 创建 agent。
+2. 让模型调一次 `write_file`，返回 `Updated file /notes/todo.md`。
+3. 看 `state['files']`：文件内容、`created_at` / `modified_at` 都在里面。
 
 ### 2.3 FilesystemMiddleware 的实测签名
 
@@ -81,7 +86,7 @@ state['files'] = {
 | 参数 | 默认值（实测） | 作用 |
 |---|---|---|
 | `backend` | `None` → 落到 `StateBackend()` | 文件与执行的落点 |
-| `tools` | 全量 | **白名单**：只挂这里列出的文件工具 |
+| `tools` | 全部内置文件工具 | **白名单**：只挂这里列出的文件工具 |
 | `tool_token_limit_before_evict` | `20000` | 单个工具输出超过这个 token 数就**卸载到文件系统**（第 9 章的卸载机制） |
 | `human_message_token_limit_before_evict` | `50000` | 人类消息超过这个 token 数时的卸载阈值 |
 | `max_execute_timeout` | `3600` | `execute` 的最长执行秒数 |
@@ -142,13 +147,13 @@ state['files'] = {
 | `StoreBackend` | LangGraph Store | 跨线程持久；适合 `/memories/` 长期记忆 | `StoreBackend(*, namespace, store=None)` |
 | `FilesystemBackend` | 真实磁盘 | 直接读写本机文件；要小心权限 | `FilesystemBackend(root_dir=None, virtual_mode=True, max_file_size_mb=10)` |
 | `LocalShellBackend` | 本机 shell | 提供 `execute` 能力；生产环境慎用 | `LocalShellBackend(root_dir=None, *, virtual_mode=True, timeout=120, ...)` |
-| `LangSmithSandbox` | 托管沙箱 | 隔离执行；适合不信任的代码 | 从 `deepagents.backends.langsmith` 导入 |
+| `LangSmithSandbox` | 托管沙箱 | 隔离执行；适合不信任的代码 | 不在 `deepagents` 顶层；从 `deepagents.backends`（或 `deepagents.backends.langsmith`）导入 |
 | `CompositeBackend` | 按路径分流 | 如 `/memories/**` 走 Store，其余走 State | `CompositeBackend(default, routes, *, artifacts_root='/')` |
 
 两处必须记牢：
 
 - **`StoreBackend` 的 `namespace` 是个函数**，从运行时（Runtime）算出来，不是写死的字符串。示例里写成 `lambda rt: ("memories",)`。
-- **`LangSmithSandbox` 不在 `deepagents.backends` 顶层导出**，必须 `from deepagents.backends.langsmith import LangSmithSandbox`。这是本机实测（`deepagents` 0.7.18）确认的导入路径。
+- **`LangSmithSandbox` 不在 `deepagents` 顶层导出**；从 `deepagents.backends` 导入即可（`deepagents.backends.langsmith` 子模块也可）。它是本机实测（`deepagents` 0.7.18）确认的路径。
 
 ### 2.6 CompositeBackend：按路径分流
 
@@ -231,17 +236,24 @@ console.log(out.files);                 // 文件就在图状态里
 返回值看过，再看两个「配置类」对象实例化之后的样子。这一节回答的问题是：**一条权限规则、一个组合后端，构造出来长什么样？**Python 侧先构造一条权限规则看它的三个字段，再用 `CompositeBackend` 把长期记忆分流出去。
 
 ```python
-from deepagents import CompositeBackend, FilesystemPermission, StateBackend, StoreBackend
+from deepagents import FilesystemPermission
+from deepagents.backends import CompositeBackend, StateBackend, StoreBackend
 
 perm = FilesystemPermission(operations=["read", "write"], paths=["/workspace/**"], mode="allow")
 print(perm)   # operations=['read', 'write'] paths=['/workspace/**'] mode='allow'
+
+# 权限要挂到 agent 上才会生效；FilesystemMiddleware 的 _permissions 是内部参数
+agent = create_deep_agent(model=model, permissions=[perm])
 
 backend = CompositeBackend(
     default=StateBackend(),
     routes={"/memories/": StoreBackend(namespace=lambda rt: ("memories",))},
 )
 # agent 写 /memories/xxx → 落到 Store，跨线程持久；写别处 → 仍走图状态
+# 注意：StoreBackend 还需要 agent 配 store=InMemoryStore(...)（或在构造时传 store）
 ```
+
+只构造对象还不够：要让权限真的拦截，得把 `perm` 传给 `create_deep_agent(permissions=[...])` 再 `invoke`；要让 `StoreBackend` 真正落盘，还得给 agent 配 `store=`。示例只构造、不挂载，所以 2.3 节把权限规则标为**源码核对**——要观测拦截/放行，请自己补一次带 `permissions` 的 invoke。
 
 TypeScript 侧权限按**对象字面量**给出，后端工厂收到 `config` 再实例化；`StoreBackend` 的命名空间在 JS 侧走构造参数。
 
@@ -262,25 +274,25 @@ const backend = (config: any) =>
 
 以下九条，前八条是用法边界，最后一条圈定本章的未实测范围。
 
-1. **换 `thread_id` 文件就没了**。默认 `StateBackend` 是线程级的；要跨线程必须换 `StoreBackend` 或 `CompositeBackend`，别指望它自己持久。
+1. **配了 checkpointer 才谈“换 `thread_id` 文件就没了”**。默认 `StateBackend` 是线程级的；没配 checkpointer 时，连同一个线程的下一次 `invoke` 都不会保留 `files`。要跨线程必须换 `StoreBackend` 或 `CompositeBackend`，别指望它自己持久。
 2. **权限规则顺序写反等于没写**。`allow /workspace/**` 放前面，后面的 `deny /workspace/secrets/**` 永远不会命中——**具体规则在前、宽泛规则在后**。
 3. **`mode='interrupt'` 不是拒绝**。它会让图暂停等人审批，如果你没接人在回路（第 13 章）的处理逻辑，agent 会停在那里。
 4. **`LangSmithSandbox` 顶层导不出来**。必须从 `deepagents.backends.langsmith` 导入——这是实测确认的路径（`deepagents` 0.7.18）。
 5. **`LocalShellBackend` 会给模型 `execute` 能力**。默认 `StateBackend` 之所以不暴露 `execute`（第 14 章的「注册 9 可见 8」），就是因为默认后端没有执行能力；换上 shell 后端，这个工具就出现了——**生产环境慎用**。
-6. **`permissions` 与「能执行命令的后端」互斥**——这是本节最容易撞墙的一处。实测（`deepagents` 0.7.18）：`FilesystemMiddleware(backend=LocalShellBackend(), _permissions=[...])` 直接抛 `NotImplementedError: FilesystemMiddleware does not yet support permissions with backends that provide command execution (SandboxBackendProtocol)`。原因是权限只覆盖文件工具，**约束不到 `execute` 的 shell 命令**，官方选择「直接拒绝」而不是「假装安全」。另外官方明确警告：开了 shell 后 `root_dir` / `virtual_mode=True` **都不构成安全边界**（命令能访问系统任意路径）。所以「限制 agent 只能动某些目录」这件事，**在带执行能力的后端上目前做不到**——要隔离就得换真沙箱（`LangSmithSandbox` 之类）。
+6. **`permissions` 与「能执行命令的后端」互斥**——这是本节最容易撞墙的一处。实测（`deepagents` 0.7.18）：`create_deep_agent(permissions=[...], backend=LocalShellBackend(...))` 直接抛 `NotImplementedError: FilesystemMiddleware does not yet support permissions with backends that provide command execution (SandboxBackendProtocol)`（`LocalShellBackend` 从 `deepagents.backends` 导入）。原因是权限只覆盖文件工具，**约束不到 `execute` 的 shell 命令**，官方选择「直接拒绝」而不是「假装安全」。另外官方明确警告：开了 shell 后 `root_dir` / `virtual_mode=True` **都不构成安全边界**（命令能访问系统任意路径）。所以「限制 agent 只能动某些目录」这件事，**在带执行能力的后端上目前做不到**——要隔离就得换真沙箱（`LangSmithSandbox` 之类）。
 7. **`tools=` 是追加，不是替换**。砍内置文件工具要走 `FilesystemMiddleware(tools=...)` 白名单或 `HarnessProfile.excluded_tools`。
 8. **`FilesystemBackend` 直写真实磁盘**。务必用 `root_dir` 圈定范围，并配上 `FilesystemPermission`；它写的是你本机真实文件，不是沙箱。
 9. **真实模型下的行为未实测**。工具**返回值**是框架产生的、可复现；但「模型会不会在合适时机选 `grep` 而不是 `read_file`」这类**工具选择倾向**需 API Key，**未实测**；`execute` 在 `LocalShellBackend` 下的真实执行输出、`LangSmithSandbox` 的实际沙箱执行（需账号）**均未实测**。
 
 ## 五、关键结论
 
-1. **文件工具共 8 个**：7 个纯文件工具 + `execute`；第 14 章「注册 9 个」的第 9 个是委派用的 `task`。
-2. **返回值即反馈**：`read_file` 的 `@@ lines 1-3 of 3 @@` 是分页头、`edit_file` 的 `Successfully replaced 1 instance(s)` 是匹配计数——模型靠这些文本自我纠错。
-3. **默认 `StateBackend` 把文件存进图状态**（`state.files`，含 `content` / `encoding` / `created_at` / `modified_at`）：好处是跟线程走、享受检查点，代价是**换 `thread_id` 就没了**。
-4. **`FilesystemMiddleware` 控制着卸载阈值**：`tool_token_limit_before_evict=20000` / `human_message_token_limit_before_evict=50000` / `max_execute_timeout=3600` / `grep_max_count=1000`，以及 `tools` 白名单。
-5. **权限是三字段 + 三档 mode**：`operations` / `paths` / `mode`（`allow` / `deny` / **`interrupt`**），**按声明顺序首次匹配即生效，且未命中时默认 `allow`（放行）**；**例外是递归 `delete`**——deny 规则不受顺序约束，更靠后的 deny 照样拦得住。
-6. **后端决定「文件活多久、活在哪」**：`StateBackend`（线程）/ `StoreBackend`（跨线程）/ `FilesystemBackend`（真实磁盘）/ `LocalShellBackend`（带 `execute`）/ `LangSmithSandbox`（托管沙箱，导入路径在 `deepagents.backends.langsmith`）。
-7. **`CompositeBackend` 按路径分流**：一个 agent 里，草稿走状态、长期记忆走 Store，粒度是路径而非整个 agent。
+1. **返回值即反馈**：`read_file` 的 `@@ lines 1-3 of 3 @@` 是分页头、`edit_file` 的 `Successfully replaced 1 instance(s)` 是匹配计数——模型靠这些文本自我纠错。
+2. **默认 `StateBackend` 把文件存进图状态**（`state.files`，含 `content` / `encoding` / `created_at` / `modified_at`；TS 用 `mimeType`）：配了 checkpointer 时跟着线程走、享受检查点，代价是**换 `thread_id` 就没了**；没配 checkpointer 时只活一次 `invoke`。
+3. **权限是三字段 + 三档 mode**：`operations` / `paths` / `mode`（`allow` / `deny` / **`interrupt`**），**按声明顺序首次匹配即生效，且未命中时默认 `allow`（放行）**；**例外是递归 `delete`**——deny 规则不受顺序约束，更靠后的 deny 照样拦得住。
+4. **后端决定「文件活多久、活在哪」**：`StateBackend`（线程）/ `StoreBackend`（跨线程）/ `FilesystemBackend`（真实磁盘）/ `LocalShellBackend`（带 `execute`）/ `LangSmithSandbox`（托管沙箱，导入路径在 `deepagents.backends.langsmith`）。
+5. **`CompositeBackend` 按路径分流**：一个 agent 里，草稿走状态、长期记忆走 Store，粒度是路径而非整个 agent。
+
+> 口径：文件工具返回值、`StateBackend` 状态、权限判定为示例实测（`15_filesystem.*`）；`LocalShellBackend` / `LangSmithSandbox` 的真实执行未实测。
 
 ## 本章要点回顾
 

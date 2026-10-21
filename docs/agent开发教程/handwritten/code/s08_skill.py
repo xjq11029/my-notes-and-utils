@@ -70,7 +70,7 @@ agent = Agent(client=client, skills=skills)
 print("\n== 3. 对话：模型自己走完「读技能 → 调工具 → 按规范回答」==")
 agent.invoke("今天天气怎么样？")
 
-print("\n== 4. 完整轨迹（三次工具往返：load_skill → get_weather）==")
+print("\n== 4. 完整轨迹（3 轮模型调用 / 2 次工具调用：load_skill → get_weather）==")
 agent.session.print_friendly()
 
 print("\n== 5. 对照：没有 Skill 时，模型对「怎么播报」一无所知 ==")

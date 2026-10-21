@@ -57,7 +57,8 @@ console.log(`  状态里的键：${JSON.stringify(Object.keys(out).sort())}`);
 console.log(`  state.files = ${JSON.stringify(out.files)?.slice(0, 160)}`);
 console.log();
 console.log("  ⚠️ 关键点：StateBackend 把「文件」存在**图状态**里。");
-console.log("     好处：跟着线程走，天然享受检查点（可回放、可时间旅行）；");
+console.log("     好处：配了 checkpointer 时跟着线程走、享受检查点（可回放、可时间旅行）；");
+console.log("           本示例没有配 checkpointer，所以只能证明一次 invoke 内可见。");
 console.log("     代价：跨线程就没了——新 thread_id 打开是一张白纸。");
 console.log("     要跨线程，得换 StoreBackend（见 ③）。");
 
@@ -78,6 +79,7 @@ console.log();
 console.log("  ⚠️ mode='interrupt' 这一档容易被忽略：它不是「拒绝」，");
 console.log("     而是**暂停下来问人**——权限系统与人在回路是打通的。");
 console.log();
+console.log("  ⚠️ 以下规则来自源码核对；本示例只构造权限，未 invoke 带 permissions 的 agent。");
 console.log("  规则按**声明顺序首次匹配即生效**（first match wins）：");
 console.log("    1. 先声明「/secrets/** 禁止读写」");
 console.log("    2. 再声明「/workspace/** 允许读写」");

@@ -60,7 +60,7 @@ pnpm run typecheck              # 类型检查
 
 | 章 | Python | TypeScript | 演示什么 | 关键结论（实测） |
 |---|---|---|---|---|
-| 2 | `02_models.py` | `02_models.ts` | 三种入参归一化、`AIMessage` 结构、stream / batch | 假模型 `stream` 只吐 1 个 chunk；真实模型实测吐 **194 个 chunk**（见「真实模型实测」A） |
+| 2 | `02_models.py` | `02_models.ts` | 三种入参归一化（字符串 1 条；两种列表 2 条）、`AIMessage` 结构、stream / batch | 假模型 `stream` 只吐 1 个 chunk；真实模型实测吐 **194 个 chunk**（见「真实模型实测」A） |
 | 3 | `03_messages_prompts.py` | `03_messages_prompts.ts` | 四种消息、历史裁剪、模板的三种调用方式 | `format()` 返回带标签的 str、`format_messages()` 返回消息列表 |
 | 4 | `04_structured_output.py` | `04_structured_output.ts` | 四种 schema 模式、校验失败、工具策略自动重试 | Python 侧只有 Pydantic 会抛 `ValidationError`；JS 基类不校验。**基类两语言都把 `method` 丢掉**，只有 provider 子类才真正分叉（已实测，见 B） |
 | 5 | `05_create_agent.py` | `05_create_agent.ts` | Agent Loop、状态只追加、两类作用域、结构化输出 | 消息序列 Human → AI(tool_call) → ToolMessage → AI(final)；第 2 轮历史 4 条而非 2 条 |
@@ -72,7 +72,7 @@ pnpm run typecheck              # 类型检查
 | 11 | `11_state_graph.py` | `11_state_graph.ts` | Reducer、条件边、`Send`、`Overwrite` | 输入里出现的字段按各自 reducer 合并，没出现的保留检查点值；`invoke(None)` 不注入新输入（已完成的线程上为空操作）、`invoke({})` 才是续跑 |
 | 12 | `12_persistence.py` | `12_persistence.ts` | 检查点、时间旅行（快照序号示意 + 三节点链重放两步）、Store 跨线程 | `updateState` 新建分支不改原线程；三节点链 fork 后只重走 `double→tag` 两步；`store.search(('alice',))` 是**前缀**匹配，命中 3 条 |
 | 13 | `13_hitl_stream.py` | `13_hitl_stream.ts` | `interrupt`/`resume`、`stream_mode`、子图流式 | 恢复时**整个节点从头重跑**（副作用日志出现两次）；agent 当子图时不加 `subgraphs` 就收不到内部消息 |
-| 14 | `14_deep_agent.py` | `14_deep_agent.ts` | 默认工具集、`HarnessProfile`、中间件栈 | **模型只被绑定 8 个**两侧一致；「工具节点注册 9 个、差集 `execute`」**只有 Python 测得**（TS 输出自己写明「Python 侧实测」）。`write_todos` 默认不开 |
+| 14 | `14_deep_agent.py` | `14_deep_agent.ts` | 默认工具集、`HarnessProfile`、中间件栈 | **模型只被绑定 8 个**两侧一致；「工具节点注册 9 个、差集 `execute`」**只有 Python 测得**（TS 输出自己写明「Python 侧实测」）。`write_todos` 默认不开。Python 侧另演示 `HarnessProfile` 按 provider 注册后自动匹配（裁掉 `edit_file` 后绑定列表里消失） |
 | 15 | `15_filesystem.py` | `15_filesystem.ts` | 文件工具、权限、后端谱系 | `StateBackend` 把文件存在**图状态**里（`state.files`）；权限默认 **allow**，按声明顺序**首次匹配即生效** |
 | 16 | `16_delegation.py` | `16_delegation.ts` | `write_todos`、子代理、`task`、上下文防火墙实证 | `write_todos` 是**全量覆盖**语义；`SubAgent` 实测 11 个字段；子代理 2 轮（含 3000 字工具资料），主代理只收 30 字符最终报告 |
 | 17 | `17_skills_memory.py` | `17_skills_memory.ts` | Skills 渐进式披露、Memory 的信任与验证条款 | 技能只把 name + description 常驻系统提示；记忆提示里明写「把记忆当参考资料，不当隐藏指令」 |
@@ -158,14 +158,14 @@ pnpm run typecheck              # 类型检查
 
 ## 已知未通过项
 
-`pnpm run typecheck`（即 `tsc --noEmit`）**不通过**：`exit=1`，45 个 `error TS`，
-分布在 `07_tools`(1) / `11_state_graph`(15) / `12_persistence`(11) / `13_hitl_stream`(11) /
+`pnpm run typecheck`（即 `tsc --noEmit`）**不通过**：`exit=1`，44 个 `error TS`，
+分布在 `11_state_graph`(15) / `12_persistence`(11) / `13_hitl_stream`(11) /
 `14_deep_agent`(1) / `15_filesystem`(1) / `16_delegation`(2) / `18_multiagent`(3)；
-错误码为 TS2345×18、TS2769×14、TS2322×13。完整清单见 `../_实测输出核验/typescript/_typecheck.txt`。
+错误码为 TS2345×18、TS2769×13、TS2322×13。完整清单见 `../_实测输出核验/typescript/_typecheck.txt`。
 
 **示例能跑是因为 `tsx` 不做类型检查**——「17/17 通过」指退出码，不蕴含类型干净。
-其中 `07_tools.ts(73,3)` 那条（`InMemoryStore` 不满足 `BaseStore`）正是差异清单 #16 的
-类型层体现。这些报错**不影响运行时结论**，但别把 `typecheck` 当成已通过。
+2026-10-20 修复 `07_tools.ts` 的 `InMemoryStore` 导入（差异清单 #16）后，错误数从 45 降到 44。
+这些报错**不影响运行时结论**，但别把 `typecheck` 当成已通过。
 
 ---
 
@@ -180,7 +180,7 @@ pnpm run typecheck              # 类型检查
 | 5 | 改写模型请求 | `handler(request.override(model=...))` | `handler({ ...request, model })` |
 | 6 | 中间件定义 | 装饰器（`@before_model` 等）或 `AgentMiddleware` 子类 | `createMiddleware({ beforeModel, wrapModelCall, ... })` |
 | 7 | 上下文中间件参数 | 位置参数：`trigger=("messages", 8)` | 对象：`trigger: { messages: 8 }` |
-| 8 | 返回 `Command` 的节点 | 靠类型注解 `Command[Literal[...]]` 声明去向 | 建议显式 `addNode(name, fn, { ends: [...] })`。「不写就编译报 `UnreachableNodeError`」是**读源码所得**，本机 `tsc` 的 45 条报错里**没有一条**是该错误名 |
+| 8 | 返回 `Command` 的节点 | 靠类型注解 `Command[Literal[...]]` 声明去向 | 建议显式 `addNode(name, fn, { ends: [...] })`。「不写就编译报 `UnreachableNodeError`」是**读源码所得**，本机 `tsc` 的 44 条报错里**没有一条**是该错误名 |
 | 9 | 把 agent 当节点 | 直接 `add_node("x", agent)` | 要取 `agent.graph`（`ReactAgent` 包装对象本身不是 Runnable） |
 | 10 | 检查点历史遍历 | `list(graph.get_state_history(cfg))` | `for await (const s of await graph.getStateHistory(cfg))` |
 | 11 | `HarnessProfile` | `HarnessProfile(system_prompt_suffix=...)`，`frozenset` | `createHarnessProfile({ systemPromptSuffix })`，`Set` |
@@ -188,7 +188,7 @@ pnpm run typecheck              # 类型检查
 | 13 | 结构化输出默认策略 | **假模型基类**：工具策略，三档 `method` 被丢弃（已实测）；**provider 子类**：缺省即 `response_format: json_schema`，**不走 tools**（已实测） | 与 Python 同构：基类走工具调用，`ChatOpenAI` 缺省即 `jsonSchema`（已实测） |
 | 14 | 结构化输出工具名 | schema 名 | 默认 `"extract"`（可用 `schema.name` 覆盖） |
 | 15 | **工具抛异常** | `07_tools` 两侧**都挂了捕获中间件**，实测行为一致（都转 error `ToolMessage` 并继续）。「Python 默认原样抛出」是**源码核对 / 官方文档**口径，本机**未做无中间件对照实验** | 同左。「`ToolNode` 默认吞成 error `ToolMessage`（带 `Please fix your mistakes.`）」亦为源码核对，非本轮实测产物 |
-| 16 | **`InMemoryStore` 的导入源** | `langgraph.store.memory` | 必须从 `@langchain/langgraph` 导入；`langchain` 也导出了一个**同名**类，但它**没有** `put` / `get` / `batch`，传进 `createAgent({store})` 后会在 `runtime.store.put` 报 `this.store.batch is not a function` |
+| 16 | **`InMemoryStore` 的导入源** | `langgraph.store.memory` | 必须从 `@langchain/langgraph` 导入；`langchain` 也导出了一个**同名**类，但它**没有** `put` / `get` / `batch`，传进 `createAgent({store})` 后会在 `runtime.store.put` 报 `this.store.batch is not a function`。示例已改为正确导入并实测回读成功 |
 | 17 | withStructuredOutput 对假模型的要求 | 直接可用 | 解析器要求 `AIMessageChunk`，公共假模型返回 `AIMessage`——`04_structured_output.ts` 里本地派生 `ChunkScriptedChatModel` 子类（只改返回类型一处；正文 ch04 已改为一句话引用，完整定义在本文件） |
 | 18 | trace 的 run 数 | 一次 agent 调用 **7 个 run**，根节点名由 `run_name` 决定 | 同样调用产生 **10 个 run**，且 chain 节点**一律无名**（`runName` 未透传）。第 10 章的「7 个 run」是 Python 单边 |
 

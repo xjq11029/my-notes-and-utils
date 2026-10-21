@@ -1,6 +1,3 @@
-07_tools.ts(73,3): error TS2769: No overload matches this call.
-  The last overload gave the following error.
-    Type 'InMemoryStore<any>' is missing the following properties from type 'BaseStore': batch, get, search, put, and 4 more.
 11_state_graph.ts(32,31): error TS2345: Argument of type '{ default: () => number; }' is not assignable to parameter of type 'SingleReducer<number, number>'.
   Property 'value' is missing in type '{ default: () => number; }' but required in type '{ value: BinaryOperator<number, number>; default?: () => number; }'.
 11_state_graph.ts(42,17): error TS2769: No overload matches this call.

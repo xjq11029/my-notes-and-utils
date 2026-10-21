@@ -10,7 +10,7 @@
 <rect x="0" y="0" width="680" height="420" fill="#111721"/>
 
 <text x="34" y="38" font-family="system-ui, sans-serif" font-size="17" font-weight="700" fill="#dfe6ee">Agent Loop 与中间件的挂载点</text>
-<text x="34" y="62" font-family="system-ui, sans-serif" font-size="12" fill="#7d8b9c">循环本身只有五步；中间件的价值在于「在正确的时机插进正确的钩子」</text>
+<text x="34" y="62" font-family="system-ui, sans-serif" font-size="12" fill="#7d8b9c">循环判据只有四步；图中把「组装 prompt」与「解析输出」单列，所以画成五格</text>
 
 <!-- 五步 -->
 <rect x="34" y="96" width="112" height="52" rx="8" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.3"/>

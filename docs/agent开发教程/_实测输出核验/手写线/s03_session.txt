@@ -3,15 +3,15 @@
 == 2. 同一 Session 里的追问 ==
 
 == 3. 会话全文（print_friendly）==
-=== 会话 e3573a3d…（4 条消息）===
+=== 会话 b4fa746e…（4 条消息）===
 [用户] uv 是什么？
 [助手] uv 是 Astral 用 Rust 写的 Python 包管理器，极快。
 [用户] 如何安装？
 [助手] 接着上面的：Windows 用 powershell -c "irm https://astral.sh/uv/install.ps1 | iex" 安装。
 
-== 4. 已保存到 C:\Users\ADMINI~1\AppData\Local\Temp\agent-sessions\e3573a3db7b04e38a87d320040d006d7.json ==
-恢复后会话 e3573a3d… 共 4 条消息：
-=== 会话 e3573a3d…（4 条消息）===
+== 4. 已保存到 C:\Users\ADMINI~1\AppData\Local\Temp\agent-sessions\b4fa746ec0544c60b7674e75ba5a7acc.json ==
+恢复后会话 b4fa746e… 共 4 条消息：
+=== 会话 b4fa746e…（4 条消息）===
 [用户] uv 是什么？
 [助手] uv 是 Astral 用 Rust 写的 Python 包管理器，极快。
 [用户] 如何安装？

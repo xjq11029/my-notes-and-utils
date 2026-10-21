@@ -95,8 +95,9 @@ def schema(self) -> dict:
 
 def __call__(self, **kwargs) -> str:
     try:
-        validated = self.param_model(**kwargs)    # 校验 + 类型转换
-        kwargs = validated.model_dump()
+        if self.param_model is not None:          # MCP 工具等外部 schema 没有本地参数模型
+            validated = self.param_model(**kwargs)  # 校验 + 类型转换
+            kwargs = validated.model_dump()
         return str(self.func(**kwargs))           # 统一返回字符串
     except Exception:
         return "".join(traceback.format_exception(*sys.exc_info())).rstrip()
@@ -206,7 +207,7 @@ def invoke(self, message: dict) -> list[dict] | None:
 
 | 属性 | 来源 | 例子 |
 |---|---|---|
-| `tool.name` | 函数名（或装饰器/构造参数覆盖） | `write_file` |
+| `tool.name` | 函数名（或 `Tool(..., name=...)` 构造参数覆盖；`@tool` 装饰器本身只接收参数描述） | `write_file` |
 | `tool.description` | `inspect.getdoc(func)`，即 docstring | 「将内容写入文件」 |
 | `tool.param_model` | `create_params_model` 动态生成的 Pydantic 模型 | `write_file_params` |
 | `tool.schema()` | `param_model.model_json_schema()` 组装成 OpenAI 格式 | 见上面实测 |
@@ -279,7 +280,7 @@ registry.invoke 返回: [
 
 **坑一：忘写 docstring → description 为空 → 模型不选它。** `Tool.__init__` 里 `inspect.getdoc(func) or ""`，没有 docstring 就得到空描述。Schema 里 `description` 为空的工具，模型几乎无法判断它是干嘛的，表现通常是**永远不选它**，或者乱选。定义工具时把 docstring 当作必需品。
 
-**坑二：参数没写类型注解 → `Any` → Schema 弱化。** `create_params_model` 对没有注解的参数回退到 `Any`，生成的 Schema 里没有 `type` 字段。模型失去类型约束，传参自由发挥，校验也拦不住（Pydantic 对 `Any` 什么都放行）。给每个参数写注解，是工具质量的下限。
+**坑二：参数没写类型注解 → `Any` → Schema 弱化。** `create_params_model` 对没有注解的参数回退到 `Any`；但 `Tool.schema()` 会给缺失的 `type` 补一个 `"string"`，所以**不是“没有 type 字段”**。真正的损失在复杂类型：`list[str]` 的 `items`、`dict | None` 的 `anyOf` 都没有被透传，模型只看到 `type: array` / 缺少分支信息。给每个参数写清楚类型，是工具质量的下限。
 
 **坑三：Pydantic 默认 lax 模式的类型转换边界。** Pydantic v2 默认模式是宽容的：`"123"` 能转成 `int`，`123` 能转成 `str` 吗？实测不能（见 3.2 节的 `string_type` 错误）。数组和自定义类型的转换规则更复杂。**不要依赖隐式转换**——模型传什么就是什么，类型声明写准才是正道。
 

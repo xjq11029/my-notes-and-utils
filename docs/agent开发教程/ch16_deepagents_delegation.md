@@ -55,14 +55,14 @@ state['todos'] = [
 
 ### 2.2 规划要显式开启
 
-语义清楚了，接着问一个实操问题：这工具怎么没出现？`write_todos` **默认不在**绑定给模型的工具里（第 14 章「注册 9 个、模型可见 8 个」都不含它）。要开规划，必须显式加中间件：
+语义清楚了，接着问一个实操问题：这工具怎么没出现？`write_todos` **默认不在**绑定给模型的工具里（第 14 章「注册 9 个、模型可见 8 个」是 Python 侧实测，两个口径都不含它）。要开规划，必须显式加中间件：
 
 - Python：`from langchain.agents.middleware import TodoListMiddleware`，然后 `create_deep_agent(model=..., middleware=[TodoListMiddleware()])`
 - TypeScript：`import { todoListMiddleware } from "langchain"`，然后 `middleware: [todoListMiddleware()]`
 
 加与不加的差别，实测有两条。下表回答的问题是：**加不加 `TodoListMiddleware`，差别体现在哪两处？**
 
-| | 不加 `TodoListMiddleware` | 加了之后 |
+| 观测点 | 不加 `TodoListMiddleware` | 加了之后 |
 |---|---|---|
 | 模型被绑定的工具 | 8 个（无 `write_todos`） | 9 个（多出 `write_todos`） |
 | 状态里的键 | 无 `todos` | **多出 `todos`** |
@@ -78,12 +78,12 @@ state['todos'] = [
 | `name` | `name` | 子代理标识，`task` 的 `subagent_type` 用它指名 |
 | `description` | `description` | **主代理判断该不该派活的唯一依据**（见 2.4） |
 | `system_prompt` | `systemPrompt` | 子代理自己的系统提示 |
-| `tools` | `tools` | 子代理可用的工具 |
-| `model` | `model` | 子代理自己的模型（可用更便宜的） |
-| `middleware` | `middleware` | 子代理专属中间件 |
-| `interrupt_on` | `interruptOn` | 子代理内哪些工具调用前要人工审批 |
-| `skills` | `skills` | 子代理可加载的技能 |
-| `permissions` | `permissions` | 子代理的文件权限（第 15 章） |
+| `tools` | `tools` | 子代理可用的工具；**省略时继承主代理**，指定时用这一份（不再追加主代理的工具） |
+| `model` | `model` | 子代理自己的模型（可用更便宜的）；**省略时继承主代理** |
+| `middleware` | `middleware` | 在默认中间件栈**之后追加**的子代理专属中间件 |
+| `interrupt_on` | `interruptOn` | 子代理内哪些工具调用前要人工审批；**省略时继承父级**，生效需要 checkpointer |
+| `skills` | `skills` | 子代理可加载的技能（`fork` 模式下继承父级技能） |
+| `permissions` | `permissions` | 子代理的文件权限（第 15 章）；**省略时继承主代理，指定时整体替换**父级规则 |
 | `response_format` | `responseFormat` | 子代理的结构化输出 |
 | `mode` | `mode` | `isolated`（默认）或 `fork`（见 2.5） |
 
@@ -91,6 +91,11 @@ state['todos'] = [
 
 > **参考块｜「11 个字段」的口径**
 > ⚠️ 口径：这 11 个名字是 `16_delegation.py` 里**逐行 print 的字面量**（源码硬编码），不是从 `SubAgent` 类型上探测出来的；JS 输出里也自己写明「Python 侧实测 11 个，JS 侧为同名 camelCase」。所以**「11 个」是 Python 单边的读源码结论**，JS 侧的 `interruptOn` / `responseFormat` 等并未独立验证过。
+
+最小例子（三步）：
+1. 开启规划：`create_deep_agent(..., middleware=[TodoListMiddleware()])`。
+2. 定义子代理：`SubAgent(name="researcher", description="...", system_prompt="...")`，放进 `subagents=[...]`。
+3. 主代理调 `task(description, subagent_type="researcher")` 派活；返回的是最终报告。
 
 ### 2.4 description 是唯一依据，task 返回的是报告
 
@@ -272,11 +277,11 @@ await boss.invoke({ messages: [{ role: "user", content: "帮我调研一下检�
 
 1. **`write_todos` 是全量覆盖语义**：模型每次重写整张表，状态里的 `todos` 永远是最新快照，**规划列表不是 append-only**，漏写即丢失。
 2. **规划默认不开**：必须显式加 `TodoListMiddleware()` / `todoListMiddleware()`；加上后 `write_todos` 才绑定给模型，状态里多出 `todos` 键（每条含 `content` / `status`）。
-3. **`SubAgent` 本机核对 11 个字段**（Python 单边，见 2.3 节口径说明）：`name` / `description` / `system_prompt` / `tools` / `model` / `middleware` / `interrupt_on` / `skills` / `permissions` / `response_format` / `mode`——文档只列了前 6 个。
-4. **`description` 是子代理被用上的唯一依据**：主代理只看 `name` + `description`，写清「何时该派给我」而不是「我是谁」。
-5. **`task` 返回一份最终报告**，不是子代理的完整对话；中间过程留在子代理自己的上下文里。
-6. **`mode` 两档**：`isolated`（默认，干净上下文，省 token 但要写全背景）与 `fork`（继承主代理历史，省交接但一开始上下文就长）。
-7. **子代理的价值是上下文隔离，不是并行**：需要频繁来回对齐的任务别拆——路由开销与交接时的上下文损失经常被低估。
+3. **`description` 是子代理被用上的唯一依据**：主代理只看 `name` + `description`，写清「何时该派给我」而不是「我是谁」。
+4. **`mode` 两档**：`isolated`（默认，干净上下文，省 token 但要写全背景）与 `fork`（继承主代理历史，省交接但一开始上下文就长）。
+5. **子代理的价值是上下文隔离，不是并行**：需要频繁来回对齐的任务别拆——路由开销与交接时的上下文损失经常被低估。
+
+> 口径：`todos` 全量覆盖、规划开启、子代理字段与 `task` 报告为示例实测 / 本机核对（`16_delegation.*`）；子代理是否被正确选中、报告质量需真实模型，未实测。
 
 ## 本章要点回顾
 

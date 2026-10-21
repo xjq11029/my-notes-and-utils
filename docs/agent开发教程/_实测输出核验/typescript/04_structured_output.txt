@@ -32,7 +32,7 @@
   → 实测（@langchain/core 1.2.12）：基类只认 function calling——`jsonMode` 直接抛错，
      其余 method 值被忽略；默认工具名是 `extract`（可用 name 覆盖）。
      「JS 默认走 json_schema」说的是 **provider 子类**（如 ChatOpenAI）；
-     在纯 BaseChatModel 子类上，默认就是工具调用。**真实 provider 未实测。**
+     在纯 BaseChatModel 子类上，默认就是工具调用。**真实 provider 的请求体已实测（见 code/README B）。**
 
 ========================================================================
 ④ 类型校验：JS 基类不校验

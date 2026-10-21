@@ -39,6 +39,19 @@
 
 为什么这么分：**三者的差别不在「能不能用」，而在「能改哪一层」**。裸函数是「函数即工具」，一层都改不了；`@tool` 开了三个覆盖口（名字、描述、参数 schema），日常够用；`StructuredTool` 是底层类型——`@tool` 内部最终也是构造出它，需要把已有的 callable（比如第三方库函数）塞进工具列表时，走它最直接。
 
+最小例子（一个能算加法的工具）：
+
+```python
+from langchain.tools import tool
+
+@tool
+def add(a: int, b: int) -> int:
+    """两数相加。"""
+    return a + b
+
+print(add.invoke({"a": 2, "b": 3}))   # 5
+```
+
 三种方式本机实测（`langchain` 1.4.2）都成立：裸函数交给 `convert_to_openai_tool`（框架把工具翻译成 OpenAI 工具描述的函数）能正常产出 schema，描述取自 docstring；裸函数直接 `create_agent(tools=[fn])` 能跑通，因为 `create_agent` 会先把 callable 转成 `BaseTool` 再绑给模型（源码注释原话是 *"request.tools now only contains BaseTool instances (converted from callables)"*，即「此时 `request.tools` 里只剩 `BaseTool` 实例，callable 已被转换」）；`StructuredTool.from_function(func=..., name=..., description=...)` 与直接构造都能用，名字能被模型看到。
 
 一个观测陷阱要说明：本教程的假模型记「模型被给了哪些工具」时只读 `.name`，而裸函数只有 `__name__`——所以 `fake.bind_tools([裸函数])` 会记成空列表。**这是假模型的观测局限，不是框架不收裸函数**：真实模型走 `convert_to_openai_tool` 的 callable 分支，照样拿到 schema（已用 `ChatOpenAI` 的载荷核对，见下）。
@@ -328,7 +341,7 @@ const handleToolErrors = createMiddleware({
 
 ## 四、常见坑与边界条件
 
-- **JS 侧 `InMemoryStore` 的导入源**（实测）：`langchain` 也导出了一个同名 `InMemoryStore`，但它**没有** `batch` / `put`；传给 `createAgent({store})` 后，`runtime.store.put` 报 `TypeError: this.store.batch is not a function`。**修复办法是改从 `@langchain/langgraph` 导入**——但要注意：**示例代码至今仍是 `from "langchain"` 导入，所以「改完就回读成功」这一步在本机没有跑过**（属源码核对 + 推断）。要验就自己把 import 改掉再跑一遍 `07_tools.ts`。Python 侧从 `langgraph.store.memory` 导入。
+- **JS 侧 `InMemoryStore` 的导入源**（实测）：`langchain` 也导出了一个同名 `InMemoryStore`，但它**没有** `batch` / `put`；传给 `createAgent({store})` 后，`runtime.store.put` 报 `TypeError: this.store.batch is not a function`。**修复办法是改从 `@langchain/langgraph` 导入**——示例代码已按此修正，② 节的 `store 回读` 就是实测证据；错误导入的报错形态保留在差异清单 #16。Python 侧从 `langgraph.store.memory` 导入。
 - **不传 `store` 就没有 `runtime.store`**：JS 侧为 `undefined`，Python 侧为 `None`。工具里先判空，或构造 agent 时一定传入。
 - **返回 `Command` 忘了 `ToolMessage`**：`ToolNode` 抛 `ValueError`，两种语言都一样。
 - **工具异常的默认行为两语言不同**（**源码核对，未做对照实验**）：**Python 直接抛出**、整个调用失败（好处是 bug 藏不住，坏处是用户看到 500）；**JS 被 `ToolNode` 吞成一条 error `ToolMessage`**、流程继续（好处是不崩，坏处是**真正的 bug 被掩盖成一次「模型自己会纠错」**）。示例实测的部分是「**加了中间件后两侧行为一致**」。两边都建议在 `@wrap_tool_call` 里加日志。
@@ -338,21 +351,21 @@ const handleToolErrors = createMiddleware({
 
 ## 五、关键结论
 
-1. **模型只输出 tool call，执行永远由框架完成**；`id` ↔ `tool_call_id` 是整条链路的接缝。
-2. **schema 只有三样东西**：名称、描述、参数 schema。Python 从函数名 / docstring / 类型注解推导，JS 三样都必填。`config` 与 `runtime` 是保留参数名。
-3. **`ToolRuntime` 是工具访问环境的唯一入口**：`.state`（短期）/ `.context`（单次运行）/ `.store`（长期）/ `.stream_writer`（JS 为 `.writer`）/ `.execution_info` / `.tool_call_id`（JS camelCase）；它对模型隐藏。
-4. **旧注入模式已被取代**：`InjectedState` / `InjectedStore` / `get_runtime()` / `InjectedToolCallId` → 统一用 `runtime`（实测）。
-5. **返回值四类**：字符串 / 对象 / 多模态 / `Command`；只有 `Command` 会改状态，且必须自带匹配 `tool_call_id` 的 `ToolMessage`。
-6. **错误处理换写法**：v1 不再推荐 `ToolException` / `handle_tool_error`（**API 仍在包里**，只是 agent 路线换了入口），改用 `@wrap_tool_call` 或 `ToolErrorMiddleware`（JS 为 `toolErrorMiddleware`，实测签名 `{onError, tools?}`）。
-7. **MCP 让工具供给标准化**：`MCPAdapter` 按目标类型推断传输方式，工具经 `list_tools()` 发现后与本地工具混用。**需额外安装 `langchain[mcp]`，beta；未连真实服务器实测。**
+1. **模型只输出 tool call，执行永远由框架完成**；工具对模型可见的只有名称、描述、参数 schema——`config` 与 `runtime` 是保留参数名，`id` ↔ `tool_call_id` 是整条链路的接缝。
+2. **`ToolRuntime` 是工具访问环境的唯一入口**：`.state` / `.context` / `.store` / `.stream_writer`（JS 为 `.writer`）/ `.execution_info` / `.tool_call_id`（JS camelCase）；它对模型隐藏。旧的 `InjectedState` / `InjectedStore` / `get_runtime()` / `InjectedToolCallId` 已统一迁移到它。
+3. **返回值四类**：字符串 / 对象 / 多模态 / `Command`；只有 `Command` 会改状态，且必须自带匹配 `tool_call_id` 的 `ToolMessage`。
+4. **错误处理换写法**：v1 不再推荐 `ToolException` / `handle_tool_error`（API 仍在包里），改用 `@wrap_tool_call` 或 `ToolErrorMiddleware`（JS 为 `toolErrorMiddleware`）。
+5. **MCP 让工具供给标准化**：`MCPAdapter` 按目标类型推断传输方式，工具经 `list_tools()` 发现后与本地工具混用；需额外安装 `langchain[mcp]`，beta，未连真实服务器实测。
+
+> 口径：工具定义、`ToolRuntime` 注入、`Command` 状态更新与错误处理中间件为示例实测（`07_tools.*`）；`tool_choice` 只验证到载荷，真实语义未实测；MCP 未连真实服务器；其余源码 / 本机核对见各节。
 
 ## 本章要点回顾
 
 - 模型只「说」，框架才「做」——`tool_calls` 与 `ToolMessage` 靠 `id` / `tool_call_id` 缝合；工具对模型可见的只有 **名称 + 描述 + 参数 schema**，`config` / `runtime` 是保留参数名。
-- **`ToolRuntime` 一个参数管全部注入**：`state` / `context` / `store` / `stream_writer` / `execution_info` / `tool_call_id`（JS 侧 camelCase，`stream_writer` 在 JS 叫 `writer`）；迁移对照见 2.5 节。**其中只有 `state` / `context` / `tool_call_id` 是示例实测过的**，`store` 在 JS 侧实测到的是**失败**，`stream_writer` / `execution_info` 属源码核对。
+- **`ToolRuntime` 一个参数管全部注入**：`state` / `context` / `store` / `stream_writer` / `execution_info` / `tool_call_id`（JS 侧 camelCase，`stream_writer` 在 JS 叫 `writer`）；迁移对照见 2.5 节。**其中 `state` / `context` / `tool_call_id` 与 JS 侧的 `store` 回读均为示例实测**；`stream_writer` / `execution_info` 属源码核对。
 - 返回值四类：字符串 / 对象 / 多模态 / `Command`；**返回 `Command` 必须自带匹配 `tool_call_id` 的 `ToolMessage`**，否则 `ValueError`；`return_direct` 只在**整批工具**都设置时才短路循环。
 - 错误处理：v1 不再推荐 `ToolException` / `handle_tool_error`（**未删除**，只是换了入口），改用 `@wrap_tool_call` 或 `ToolErrorMiddleware`；**默认行为两语言相反**——Python 异常**原样抛出**、JS 才被 `ToolNode` 吞成 error `ToolMessage`（见 2.7 节对照表）。
-- JS 侧 `InMemoryStore` 要从 `@langchain/langgraph` 导入，否则 `runtime.store.put` 报 `this.store.batch is not a function`（实测）。
+- JS 侧 `InMemoryStore` 要从 `@langchain/langgraph` 导入，否则 `runtime.store.put` 报 `this.store.batch is not a function`（实测；示例已修正并回读成功）。
 - MCP：`MCPAdapter` + `langchain[mcp]`（beta，**未连真实服务器实测**）；外部知识怎么接（RAG）见第 8 章。
 - **定义工具不止 `@tool`**：裸函数（`tools=[fn]`，`create_agent` 会自动转成 `BaseTool`）与 `StructuredTool` 都行；三者的差别是「能改哪一层」。`@tool` 的三个参数 `description` / `name_or_callable` / `args_schema` 分别覆盖描述、名字、参数 schema，**`description` 压过 docstring，且两者必须有一个**（见 2.2 节）。
 - **`tool_choice` 决定模型有没有得选**：`"none"` / `"auto"` / `"required"` / 指定工具名；`"any"` 与 `True` 都等价 `"required"`，`None` 与 `False` **不写进载荷**。`create_agent` **没有** `tool_choice` 参数，预绑定会被它覆盖，只能在 `wrap_model_call` 里 `request.override(tool_choice=...)`；**真实模型下的实际效果未实测**（见 2.2 节）。

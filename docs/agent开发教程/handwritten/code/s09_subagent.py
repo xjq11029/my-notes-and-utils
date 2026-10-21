@@ -62,8 +62,12 @@ client = FakeClient([
         "match": lambda m: "DTO 与接口怎么设计" in user_text(m),
         "resp": {"tool_calls": [{"name": "read_file", "arguments": {"filepath": "docs/dto.md"}}]},
     },
-    {   # 子代理 2：结论
+    {   # 子代理 2：第二步，读 api.md
         "match": lambda m: "Pydantic" in tool_text(m) and "In/Out" in tool_text(m),
+        "resp": {"tool_calls": [{"name": "read_file", "arguments": {"filepath": "docs/api.md"}}]},
+    },
+    {   # 子代理 2：结论（读完 api.md，看到 FastAPI）
+        "match": lambda m: "FastAPI" in tool_text(m),
         "resp": {"content": "结论：Pydantic DTO 分层（In/Out），FastAPI 依赖注入校验，接口按资源分组。"},
     },
 ])
@@ -96,6 +100,11 @@ agent.invoke("调研数据层与 DTO/接口两个主题，汇总成结论给我�
 print("\n== 2. 主代理的完整轨迹（注意：主上下文只有 1 次工具调用）==")
 agent.session.print_friendly()
 print(f"主上下文消息数：{len(agent.session.messages)}")
+
+print("\n== 2b. 主代理收到的工具结果（全文：两个子代理的报告头）==")
+for msg in agent.session.messages:
+    if msg.get("role") == "tool":
+        print(msg["content"])
 
 print("\n== 3. 上下文防火墙效果 ==")
 print("两个子代理各自的调研往返（读文件、比对、汇总）全部发生在独立会话里，")

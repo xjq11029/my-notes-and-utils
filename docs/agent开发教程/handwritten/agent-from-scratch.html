@@ -255,7 +255,7 @@ figcaption b{color:var(--dim);font-weight:600}
 <p>眼熟吗？框架线第 3 章的 <code>SystemMessage</code> / <code>HumanMessage</code> / <code>AIMessage</code> / <code>ToolMessage</code> 四个类，一一对应这四种 role。区别在于：框架线用<strong>类</strong>包装，手写线<strong>刻意只用 dict</strong>——没有任何中间层，你在 IDE 里打印一下，看到的就是网络上跑的东西。这不是偷懒，是教学设计：先见到裸契约，再回头看框架的抽象，才知道框架到底替你做了什么。</p>
 <h4>2.2 响应侧：choices、usage 和 finish_reason</h4>
 <p>响应也是一份 JSON，顶层结构和每个字段的作用如下（<code>usage</code> 数值随提问而变）：</p>
-<div class="tw"><table><thead><tr><th>字段</th><th>作用</th></tr></thead><tbody><tr><td><code>id</code></td><td>本次调用的唯一 id，排障时用它对日志</td></tr><tr><td><code>object</code> / <code>model</code> / <code>created</code></td><td>类型标识、模型名、时间戳</td></tr><tr><td><code>choices</code></td><td>候选回复数组；默认只有一条，取 <code>choices[0]</code></td></tr><tr><td><code>choices[].message</code></td><td><strong>正文所在</strong>：<code>{role, content, …}</code></td></tr><tr><td><code>choices[].finish_reason</code></td><td>停止原因：<code>stop</code> 或 <code>tool_calls</code>（2.4 节）</td></tr><tr><td><code>usage</code></td><td>token 消耗：<code>prompt_tokens</code> / <code>completion_tokens</code> / <code>total_tokens</code></td></tr></tbody></table></div>
+<div class="tw"><table><thead><tr><th>字段</th><th>作用</th></tr></thead><tbody><tr><td><code>id</code></td><td>本次调用的唯一 id，排障时用它对日志</td></tr><tr><td><code>object</code> / <code>model</code> / <code>created</code></td><td>类型标识、模型名、时间戳</td></tr><tr><td><code>choices</code></td><td>候选回复数组；默认只有一条，取 <code>choices[0]</code></td></tr><tr><td><code>choices[].message</code></td><td><strong>正文所在</strong>：<code>{role, content, …}</code></td></tr><tr><td><code>choices[].finish_reason</code></td><td>停止原因：常见值有 <code>stop</code> / <code>length</code> / <code>tool_calls</code> 等；本章只演示 <code>stop</code> 与 <code>tool_calls</code>（判停实际不读该字段，见坑 1）</td></tr><tr><td><code>usage</code></td><td>token 消耗：<code>prompt_tokens</code> / <code>completion_tokens</code> / <code>total_tokens</code></td></tr></tbody></table></div>
 <p>下面是一个<strong>真实响应的结构摘录</strong>，来自《Agents底层逻辑》课程课件——Ollama 本地跑 <code>qwen3-vl</code> 的返回（取值有删节，字段结构原样）：</p>
 <div class="cb"><div class="hd"><span class="fn">json</span><button class="copy" type="button">复制</button></div><pre><code>{
   "id": "chatcmpl-…",
@@ -478,6 +478,7 @@ session = Session()
 session.add_message({"role": "user", "content": "你是谁"})
 resp = model.invoke(session)          # 非流式
 print(json.dumps(resp.message, ensure_ascii=False, indent=2))</code></pre></div>
+<div class="note"><span class="t">说明</span><p>读代码时可以先借这两个黑盒：<code>Session</code> 是消息列表 + 工具清单的容器（S3 展开），<code>Model</code> 继承的 <code>EventEmitter</code> 是事件广播器（S6 展开）。S1 只关心它们产出的 JSON 形状，不要求你现在就懂实现。</p></div>
 <p><code>invoke</code> 内部对非流式与流式分两条路径，但终点相同——一个归一化的 message dict：</p>
 <div class="cb"><div class="hd"><span class="fn">Python</span><button class="copy" type="button">复制</button></div><pre><code># agent/model.py（节选）
 def _invoke(self, session, **kwargs) -&gt; InvokeResult:
@@ -908,7 +909,8 @@ class Session:
 
     @classmethod
     def load(cls, path: str) -&gt; "Session":
-        data = json.load(open(path, encoding="utf-8"))
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
         session = cls.__new__(cls)
         session.id = data["id"]
         session.tools = data.get("tools", [])
@@ -1095,7 +1097,7 @@ model2.invoke(s, stream=True)                  # → 续答（历史里有 uv �
 <p>所以从模型自己的视角看，它并没有调用什么「工具接口」——它只是在一段很长的提示词里读到了一些「可用函数的签名」，然后在生成文本时写出了类似 <code>{"name": "write_file", "arguments": {...}}</code> 的<strong>标记</strong>。厂商的推理服务解析出这个标记，包装成响应里的 <code>tool_calls</code> 字段返回给你。</p>
 <p>「点菜」由此而来：模型读到菜单（Schema），写下一张订单（tool_calls）。订单是文本，菜没人做。<strong>下厨永远是客户端的事</strong>。</p>
 <h4>2.4 回填：role=tool 消息的格式</h4>
-<p>第 ⑤ 步的回填消息是契约里约定死的形状，四个字段一个不能少：</p>
+<p>第 ⑤ 步的回填消息是契约里约定死的形状：<code>role</code>、<code>tool_call_id</code>、<code>content</code> <strong>三项必填</strong>；<code>name</code> 可选（示例保留它便于排查，但 OpenAI 的类型定义不要求）：</p>
 <div class="cb"><div class="hd"><span class="fn">Python</span><button class="copy" type="button">复制</button></div><pre><code>session.messages.append({
     "role": "tool",            # 消息角色：工具结果
     "tool_call_id": tc["id"],  # 与请求配对的凭据
@@ -1344,8 +1346,9 @@ def read_file(filepath: str) -&gt; str:
 
 def __call__(self, **kwargs) -&gt; str:
     try:
-        validated = self.param_model(**kwargs)    # 校验 + 类型转换
-        kwargs = validated.model_dump()
+        if self.param_model is not None:          # MCP 工具等外部 schema 没有本地参数模型
+            validated = self.param_model(**kwargs)  # 校验 + 类型转换
+            kwargs = validated.model_dump()
         return str(self.func(**kwargs))           # 统一返回字符串
     except Exception:
         return "".join(traceback.format_exception(*sys.exc_info())).rstrip()</code></pre></div>
@@ -1420,7 +1423,7 @@ def __call__(self, **kwargs) -&gt; str:
 }</code></pre></div>
 <p><code>description</code> 的值「将内容写入文件」来自函数 docstring——<code>inspect.getdoc(func)</code> 一行拿走。</p>
 <p>一个 <code>Tool</code> 对象拿到手后，各属性的来源可以收进一张解剖表：</p>
-<div class="tw"><table><thead><tr><th>属性</th><th>来源</th><th>例子</th></tr></thead><tbody><tr><td><code>tool.name</code></td><td>函数名（或装饰器/构造参数覆盖）</td><td><code>write_file</code></td></tr><tr><td><code>tool.description</code></td><td><code>inspect.getdoc(func)</code>，即 docstring</td><td>「将内容写入文件」</td></tr><tr><td><code>tool.param_model</code></td><td><code>create_params_model</code> 动态生成的 Pydantic 模型</td><td><code>write_file_params</code></td></tr><tr><td><code>tool.schema()</code></td><td><code>param_model.model_json_schema()</code> 组装成 OpenAI 格式</td><td>见上面实测</td></tr><tr><td><code>tool(**kwargs)</code></td><td>先 <code>param_model(**kwargs)</code> 校验，再执行函数</td><td>见 3.2 节实测</td></tr><tr><td><code>tool.func</code></td><td>原始函数本体</td><td>你的 <code>write_file</code></td></tr></tbody></table></div>
+<div class="tw"><table><thead><tr><th>属性</th><th>来源</th><th>例子</th></tr></thead><tbody><tr><td><code>tool.name</code></td><td>函数名（或 <code>Tool(..., name=...)</code> 构造参数覆盖；<code>@tool</code> 装饰器本身只接收参数描述）</td><td><code>write_file</code></td></tr><tr><td><code>tool.description</code></td><td><code>inspect.getdoc(func)</code>，即 docstring</td><td>「将内容写入文件」</td></tr><tr><td><code>tool.param_model</code></td><td><code>create_params_model</code> 动态生成的 Pydantic 模型</td><td><code>write_file_params</code></td></tr><tr><td><code>tool.schema()</code></td><td><code>param_model.model_json_schema()</code> 组装成 OpenAI 格式</td><td>见上面实测</td></tr><tr><td><code>tool(**kwargs)</code></td><td>先 <code>param_model(**kwargs)</code> 校验，再执行函数</td><td>见 3.2 节实测</td></tr><tr><td><code>tool.func</code></td><td>原始函数本体</td><td>你的 <code>write_file</code></td></tr></tbody></table></div>
 <h4>3.2 校验失败的实测：错误变成了模型看得见的文本</h4>
 <p>给声明为 <code>str</code> 的 <code>filepath</code> 传一个 int（实测输出）：</p>
 <div class="cb"><div class="hd"><span class="fn">文本 / 输出</span><button class="copy" type="button">复制</button></div><pre><code>== 3. 参数校验：类型错误会得到可读的堆栈文本（而不是炸掉程序）==
@@ -1459,7 +1462,7 @@ registry.invoke 返回: [
 [助手] system.j2 的开头是角色设定：「你是运行在用户终端里的编码助手」。</code></pre></div>
 <h3 id="ch5-s4">四、常见坑与边界条件</h3>
 <p><strong>坑一：忘写 docstring → description 为空 → 模型不选它。</strong> <code>Tool.__init__</code> 里 <code>inspect.getdoc(func) or ""</code>，没有 docstring 就得到空描述。Schema 里 <code>description</code> 为空的工具，模型几乎无法判断它是干嘛的，表现通常是<strong>永远不选它</strong>，或者乱选。定义工具时把 docstring 当作必需品。</p>
-<p><strong>坑二：参数没写类型注解 → <code>Any</code> → Schema 弱化。</strong> <code>create_params_model</code> 对没有注解的参数回退到 <code>Any</code>，生成的 Schema 里没有 <code>type</code> 字段。模型失去类型约束，传参自由发挥，校验也拦不住（Pydantic 对 <code>Any</code> 什么都放行）。给每个参数写注解，是工具质量的下限。</p>
+<p><strong>坑二：参数没写类型注解 → <code>Any</code> → Schema 弱化。</strong> <code>create_params_model</code> 对没有注解的参数回退到 <code>Any</code>；但 <code>Tool.schema()</code> 会给缺失的 <code>type</code> 补一个 <code>"string"</code>，所以<strong>不是“没有 type 字段”</strong>。真正的损失在复杂类型：<code>list[str]</code> 的 <code>items</code>、<code>dict | None</code> 的 <code>anyOf</code> 都没有被透传，模型只看到 <code>type: array</code> / 缺少分支信息。给每个参数写清楚类型，是工具质量的下限。</p>
 <p><strong>坑三：Pydantic 默认 lax 模式的类型转换边界。</strong> Pydantic v2 默认模式是宽容的：<code>"123"</code> 能转成 <code>int</code>，<code>123</code> 能转成 <code>str</code> 吗？实测不能（见 3.2 节的 <code>string_type</code> 错误）。数组和自定义类型的转换规则更复杂。<strong>不要依赖隐式转换</strong>——模型传什么就是什么，类型声明写准才是正道。</p>
 <p><strong>坑四：返回值统一 <code>str()</code>，dict 返回值要先序列化。</strong> <code>Tool.__call__</code> 最后一行是 <code>str(self.func(**kwargs))</code>。如果你的工具返回 dict，<code>str()</code> 会得到 Python 字面量（单引号、<code>True</code>/<code>False</code> 大写），模型勉强能读但不规范；更好的做法是在函数内部就 <code>json.dumps(result, ensure_ascii=False)</code> 再返回。工具返回值永远面向模型阅读，字符串化是最后防线。</p>
 <p><strong>坑五：<code>registry</code> 是全局单例。</strong> 整个进程共享一个注册表（<code>agent/tool/__init__.py</code> 末尾 <code>registry = ToolRegistry()</code>）。两个含义：<strong>注册顺序影响 <code>schemas()</code> 的顺序</strong>（dict 保持插入序，实测 <code>['read_file', 'write_file']</code> 就是注册顺序），后注册的<strong>同名工具直接覆盖</strong>先注册的（<code>self._tools[tool.name] = tool</code>，无警告）。多次 import 或测试中重复注册时要心里有数；需要隔离时，另建一个 <code>ToolRegistry()</code> 实例即可。</p>
@@ -1932,7 +1935,7 @@ agent.invoke("AI 领域最近有什么新闻？")</code></pre></div>
 <p><strong>坑 3：<code>auto_builtin</code> 的重复注册是覆盖语义。</strong></p>
 <ul><li><strong>症状</strong>：你自定义的 <code>read_file</code> 行为悄悄变了。</li><li><strong>根因</strong>：registry 的 <code>register</code> 对同名工具是覆盖而非报错。创建两个 Agent、或先手动注册再让 Agent 自动注册同名内置工具，后者会无声顶掉前者。</li><li><strong>解法</strong>：给自定义工具起不同的名字；或传 <code>auto_builtin=False</code> 关掉自动注册，显式控制工具集。排查「我的工具怎么行为变了」时先查注册顺序。</li></ul>
 <p><strong>坑 4：system_prompt 缺省渲染依赖 cwd。</strong></p>
-<ul><li><strong>症状</strong>：模型拿着错误的路径调 <code>read_file</code>，返回「文件不存在」。</li><li><strong>根因</strong>：缺省系统提示词会把创建 Agent 时的当前工作目录注入「运行环境」节（见 3.2 实测输出）。如果脚本先 <code>os.chdir()</code> 再创建 Agent，注入的就是 chdir 后的目录——工具的工作路径与提示词声明不一致。</li><li><strong>解法</strong>：要么显式传 <code>system_prompt</code>，要么保证创建 Agent 之后再 chdir。</li></ul>
+<ul><li><strong>症状</strong>：模型拿着错误的路径调 <code>read_file</code>，返回「文件不存在」。</li><li><strong>根因</strong>：缺省系统提示词会把<strong>创建 Agent 时</strong>的当前工作目录注入「运行环境」节（见 3.2 实测输出）。如果创建 Agent 之后再 <code>os.chdir()</code>，提示词里还是旧目录，而工具执行用的是新目录——两边不一致。</li><li><strong>解法</strong>：要么显式传 <code>system_prompt</code>，要么在创建 Agent <strong>之前</strong>确定 cwd；创建之后不要再 chdir。</li></ul>
 <h3 id="ch7-s5">五、关键结论</h3>
 <ol><li><strong>Agent = 装进盒子的 while 循环</strong>。循环本体只有十行（2.3 节），组件化的收益全部来自组装入口、配置面与事件旁路。</li><li><strong>可观测性靠监听器，不靠 print</strong>。事件总线 + <code>ModelListener</code> 让打印/日志/UI/计费成为可插拔的外围组件，模型层零改动。</li><li><strong><code>max_turns</code> 返回而非抛异常</strong>：超限时保住中间状态，把「下一步怎么办」的决定权交给调用方。</li><li>这个约 200 行的 Agent 与框架线第 5 章 <code>create_agent</code> 的循环是<strong>同一件事</strong>——框架的价值在中间件与持久化，不在循环本身。理解了这一章，框架线的 <code>create_agent</code> 对你就是「换了名字的旧相识」。</li><li>循环里唯一的新钩子是 <code>skills</code> 参数——它通向 S8 的渐进式披露，下一章展开。</li></ol>
 <h3 id="ch7-s6">本章要点回顾</h3>
@@ -2113,7 +2116,7 @@ description: 天气查询场景的工作指引：如何调用天气工具、如�
 
 …</code></pre></div>
 <p>注意这段提示词还教会了模型<strong>使用姿势</strong>：先 <code>load_skill</code> 读全文，再按说明执行。清单节的模板逻辑是通用的（「与需求相关时先读全文」），具体技能名与描述由扫描结果填充——<strong>模板管流程，数据管内容</strong>，这正是提示词工程里最值得复用的拆分方式。</p>
-<h4>3.3 三轮工具往返：模型自己走完全流程（实测输出）</h4>
+<h4>3.3 三轮模型调用、两次工具调用：模型自己走完全流程（实测输出）</h4>
 <p>用户问「今天天气怎么样？」，<code>FakeClient</code> 按剧本驱动。剧本本身值得一看（摘自 <code>s08_skill.py</code>）——三段响应规格各自用匹配条件锁定一个轮次：</p>
 <div class="cb"><div class="hd"><span class="fn">Python</span><button class="copy" type="button">复制</button></div><pre><code>client = FakeClient([
     {   # 第 1 轮：模型看到技能清单，判断需要天气技能 → 先读全文
@@ -2133,7 +2136,7 @@ description: 天气查询场景的工作指引：如何调用天气工具、如�
 ])</code></pre></div>
 <p><code>tool_text</code> 是脚本里的辅助函数：把所有 tool 消息的文本拼起来供匹配——真实模型的决策机制与之类似（看上下文里有什么再决定下一步），只是判断发生在权重里而非 if 里。</p>
 <p>完整轨迹（会话 ID 与工作目录路径随运行变化）：</p>
-<div class="cb"><div class="hd"><span class="fn">文本 / 输出</span><button class="copy" type="button">复制</button></div><pre><code>== 4. 完整轨迹（三次工具往返：load_skill → get_weather）==
+<div class="cb"><div class="hd"><span class="fn">文本 / 输出</span><button class="copy" type="button">复制</button></div><pre><code>== 4. 完整轨迹（3 轮模型调用 / 2 次工具调用：load_skill → get_weather）==
 === 会话 748807d0…（7 条消息）===
 [系统] # 角色 你是运行在用户终端里的编码助手，通过工具完成实际操作。  ## 运行环境 - 工作目录：D:\ProjectCode\my-notes-and-uti…
 [用户] 今天天气怎么样？
@@ -2334,13 +2337,19 @@ agent.invoke("调研数据层与 DTO/接口两个主题，汇总成结论给我�
 [助手] 两个子代理已完成调研：数据层用 SQLAlchemy 2.0 + Alembic；DTO/接口用 Pydantic 分层 + FastAPI。
 主上下文消息数：5
 
+== 2b. 主代理收到的工具结果（全文：两个子代理的报告头）==
+【sub-orm】（3 轮调用，7 条消息，上下文独立）
+结论：用 SQLAlchemy 2.0 声明式模型 + Alembic 迁移，一个 migrations 目录按版本号递增。
+
+【sub-dto】（3 轮调用，7 条消息，上下文独立）
+结论：Pydantic DTO 分层（In/Out），FastAPI 依赖注入校验，接口按资源分组。
+
 == 3. 上下文防火墙效果 ==
 两个子代理各自的调研往返（读文件、比对、汇总）全部发生在独立会话里，
 主上下文只收到一段汇总文本——这就是子代理的价值。</code></pre></div>
 <p>把实测数字逐项读一遍：</p>
-<div class="tw"><table><thead><tr><th>观测点</th><th>实测值</th><th>含义</th></tr></thead><tbody><tr><td>主上下文消息数</td><td>5</td><td>系统 + 用户 + 助手调用 + 工具结果 + 汇总，一个不多</td></tr><tr><td>主代理工具调用次数</td><td>1</td><td>只有一次 <code>create_agent</code>，两个子任务在同一参数里派发</td></tr><tr><td>工具结果内容</td><td>两份报告拼接</td><td><code>【sub-orm】…【sub-dto】…</code>，结构化前缀清晰可辨</td></tr><tr><td>sub-orm 报告头</td><td>3 轮调用，7 条消息</td><td>读 <code>orm.md</code>、读 <code>migration.md</code>、给结论；1 用户 + 3 助手 + 3 工具</td></tr><tr><td>sub-dto 报告头</td><td>同样 7 条消息</td><td>读 <code>dto.md</code>、读 <code>api.md</code>、给结论</td></tr></tbody></table></div>
-<div class="note"><span class="t">说明</span><p>口径：<strong>sub-dto 这一行是源码核对，不在存盘输出里</strong>。<code>s09_subagent.txt</code> 的完整轨迹只打印了 <code>sub-orm</code> 那一段（输出被截断），<code>sub-dto</code> 的「同样 7 条」由两者共用同一套剧本结构推得——两个子代理走的是同一个 <code>create_agent</code> 工具、同样的「读两份资料 + 给结论」剧本。要自己验就把子会话的 <code>len(messages)</code> 也打出来。</p></div>
-<div class="tw"><table><thead><tr><th>子代理消息是否进主会话</th><th>否</th><th>主上下文的 5 条里没有一条是 <code>read_file</code> 的结果</th></tr></thead><tbody></tbody></table></div>
+<div class="tw"><table><thead><tr><th>观测点</th><th>实测值</th><th>含义</th></tr></thead><tbody><tr><td>主上下文消息数</td><td>5</td><td>系统 + 用户 + 助手调用 + 工具结果 + 汇总，一个不多</td></tr><tr><td>主代理工具调用次数</td><td>1</td><td>只有一次 <code>create_agent</code>，两个子任务在同一参数里派发</td></tr><tr><td>工具结果内容</td><td>两份报告拼接</td><td><code>【sub-orm】…【sub-dto】…</code>，结构化前缀清晰可辨</td></tr><tr><td>sub-orm 报告头</td><td>3 轮调用，7 条消息</td><td>读 <code>orm.md</code>、读 <code>migration.md</code>、给结论；1 用户 + 3 助手 + 3 工具</td></tr><tr><td>sub-dto 报告头</td><td>3 轮调用，7 条消息</td><td>读 <code>dto.md</code>、读 <code>api.md</code>、给结论</td></tr><tr><td>子代理消息是否进主会话</td><td>否</td><td>主上下文的 5 条里没有一条是 <code>read_file</code> 的结果</td></tr></tbody></table></div>
+<div class="note"><span class="t">说明</span><p>口径：存盘输出 <code>s09_subagent.txt</code> 的第 2b 节直接打印了两段报告头，两个子代理的 3 轮 / 7 条都可以逐字看到；示例剧本也显式补齐了 <code>api.md</code> 的读取。</p></div>
 <p>做个反事实推演：假如不用子代理，把两个子代理各自的 7 条消息直接搬进主会话，主上下文将变成 5 − 1 + 14 = 18 条——看似不多，但其中 <strong>12 条是 <code>read_file</code> 的文件内容</strong>，是纯粹的「干细节」。主代理后续每一轮都要为这 12 条付注意力与费用，而它们对「汇总结论」这个目标的边际价值是零。子任务再复杂一点（每个子代理 20 条消息），差距就是数量级的。</p>
 <p><strong>并发说明</strong>：教学实现里两个子代理串行执行——好处是输出确定、剧本匹配简单、便于对照理解。生产实现完全可以用线程池或异步并发，在<strong>一轮</strong> <code>create_agent</code> 调用里同时发出多个子任务，报告拼装逻辑不变。两个子任务本就相互独立，串行纯属教学取舍。</p>
 <p>与框架线第 16 章 Deep Agents 的 <code>task</code> 工具对照，派发有两种模式：</p>
@@ -2505,7 +2514,7 @@ except TypeError as e:
         "content": [{"type": "text", "text": f"参数错误：{e}"}],
         "isError": True,
     })</code></pre></div>
-<p>区分两级错误：<strong>协议错误</strong>（方法不存在、JSON 不合法）走 JSON-RPC <code>error</code>；<strong>业务错误</strong>（参数不对、工具执行失败）走 <code>isError</code> 标记的正常响应。前者是「我们没说同一种话」，后者是「话说明白了，但事情没办成」——模型的参数填错了该重试，通道坏了该重连，不能混为一谈。</p>
+<p>区分两级错误：<strong>协议错误</strong>（方法不存在、JSON 不合法）走 JSON-RPC <code>error</code>；<strong>本示例里的参数错误</strong>（<code>TypeError</code>、未知工具）走 <code>isError</code> 标记的正常响应。注意 <code>isError</code> 不是万能的：<code>add("1", "2")</code> 在 Python 里会返回 <code>"12"</code>，不会触发 <code>TypeError</code>——业务层该做的类型校验不能省。模型填错参数该重试，通道坏了该重连，不能混为一谈。</p>
 <p><strong>日志纪律</strong>：所有运行信息（启动提示、非法行警告）一律走 <strong>stderr</strong>——如果混进 stdout，客户端会把日志当协议消息解析，JSON 解析立刻失败，整个通道错乱。<code>json.JSONDecodeError</code> 时选择「忽略脏行继续」而不是崩溃，也是对脏环境的容忍。</p>
 <p><strong>两个工具的设计意图</strong>：<code>get_current_time</code> 返回<strong>动态结果</strong>（时间随运行变化），<code>add</code> 返回<strong>确定性结果</strong>（<code>123 + 456 = 579</code> 永远不变）。一个验证「协议活着」，一个可精确复现——写协议示例时，确定性工具是验证的金标准。</p>
 <h4>2.4 传输层走读：StdioRpc 与 id 配对</h4>
@@ -2598,12 +2607,12 @@ call_tool(get_current_time) → 2026-10-12 11:54:31 CST （时间值随运行时
 <h4>3.4 Skill vs MCP：谁来做，与怎么做</h4>
 <p>MCP 与 Skill 最容易被混为一谈，实际定位互补（参考《Agents底层逻辑》课件第 28 章）：</p>
 <div class="note"><span class="t">说明</span><p><strong>MCP 告诉模型「谁来做」（确定性能力），Skill 告诉模型「怎么做」（流程知识）。</strong></p></div>
-<div class="tw"><table><thead><tr><th>维度</th><th>MCP 工具</th><th>Skill</th></tr></thead><tbody><tr><td>定位</td><td>能力：可执行的操作</td><td>知识：操作的方法论</td></tr><tr><td>上下文消耗（未命中）</td><td>工具 schema 每轮都在（几十 token/个）</td><td>清单几十 token/技能</td></tr><tr><td>上下文消耗（命中）</td><td>返回结果一次性入上下文</td><td>全文加载后常驻（无卸载，S8 坑 4）</td></tr><tr><td>接入成本</td><td>实现协议三步（或接现成 Server）</td><td>写一个 SKILL.md</td></tr><tr><td>确定性</td><td>高：同一输入同一输出</td><td>低：模型按指引自由发挥</td></tr><tr><td>越权风险</td><td>有：工具真执行，需权限管控</td><td>无：只有文字，不落地</td></tr></tbody></table></div>
+<div class="tw"><table><thead><tr><th>维度</th><th>MCP 工具</th><th>Skill</th></tr></thead><tbody><tr><td>定位</td><td>能力：可执行的操作</td><td>知识：操作的方法论</td></tr><tr><td>上下文消耗（未命中）</td><td>工具 schema 每轮都在（几十 token/个）</td><td>清单几十 token/技能</td></tr><tr><td>上下文消耗（命中）</td><td>返回结果一次性入上下文</td><td>全文加载后常驻（无卸载，S8 坑 4）</td></tr><tr><td>接入成本</td><td>实现协议三步（或接现成 Server）</td><td>写一个 SKILL.md</td></tr><tr><td>确定性</td><td>取决于工具实现：<code>add</code> 确定，时间/网络类不确定</td><td>低：模型按指引自由发挥</td></tr><tr><td>越权风险</td><td>有：工具真执行，需权限管控</td><td>无：只有文字，不落地</td></tr></tbody></table></div>
 <p><strong>最佳实践</strong>：用 MCP 定义底层工具（文件、命令、搜索、接口调用），用 Skill 定义业务流程（怎么订票、怎么退货——流程里可以引用 MCP 工具）。两者叠加才是完整形态：<strong>Skill 指挥，MCP 落地</strong>。以「帮用户订一张明天的机票」为例，两者在同一个循环里的分工：</p>
 <div class="tw"><table><thead><tr><th>步骤</th><th>由谁驱动</th><th>内容</th></tr></thead><tbody><tr><td>1</td><td>Skill（<code>flight-booking</code> 全文）</td><td>指引：先问出发地，再查航班，最后确认价格才能下单</td></tr><tr><td>2</td><td>MCP 工具（<code>flight__search</code>）</td><td>真正查询航班数据</td></tr><tr><td>3</td><td>MCP 工具（<code>flight__book</code>）</td><td>真正下单（权限管控在这层做）</td></tr><tr><td>4</td><td>Skill</td><td>指引：按公司模板生成订票确认话术</td></tr></tbody></table></div>
 <p>抽掉 Skill，模型有工具却不知道流程顺序与确认红线；抽掉 MCP，模型背得出台词却办不成一件实事。</p>
 <h3 id="ch10-s4">四、常见坑与边界条件</h3>
-<p><strong>坑 1：子进程 stdout 混入日志 → JSON 解析失败。</strong>手写 server 最大的坑。任何 <code>print()</code> 默认走 stdout，而 stdout 是协议通道——一行日志混进去，客户端按 JSON 解析立刻失败。两条防线：<strong>日志纪律</strong>（一律 <code>file=sys.stderr</code>，见 2.3 节）+ <strong>客户端容忍脏行</strong>（2.4 节的读循环里，解析失败的行忽略而不是崩溃，服务端主循环同样如此）。第三库尤其危险：import 时顺带打印 banner、依赖库往 stdout 写警告，都可能炸掉通道——接别人的 MCP server 前先跑一遍裸协议确认 stdout 干净。</p>
+<p><strong>坑 1：子进程 stdout 混入日志 → JSON 解析失败。</strong>手写 server 最大的坑。任何 <code>print()</code> 默认走 stdout，而 stdout 是协议通道——一行日志混进去，客户端按 JSON 解析立刻失败。两条防线：<strong>日志纪律</strong>（一律 <code>file=sys.stderr</code>，见 2.3 节）+ <strong>客户端容忍脏行</strong>（2.4 节的读循环里，解析失败的行忽略而不是崩溃，服务端主循环同样如此）。第三方库尤其危险：import 时顺带打印 banner、依赖库往 stdout 写警告，都可能炸掉通道——接别人的 MCP server 前先跑一遍裸协议确认 stdout 干净。</p>
 <p><strong>坑 2：Windows 上 zoneinfo 缺 tzdata。</strong><code>get_current_time</code> 用的 <code>zoneinfo</code> 是标准库，但在 Windows 上没有系统时区数据库，<code>ZoneInfo("Asia/Shanghai")</code> 会抛异常。实测环境踩过这个坑：<code>requirements.txt</code> 里已加 <code>tzdata</code> 包。跨平台分发 MCP 服务器时，别假设「标准库就一定开箱能用」——标准库也可能依赖平台数据。</p>
 <p><strong>坑 3：官方 SDK 是 asyncio 的，Jupyter / 同步代码里不能直接跑。</strong>官方 Python SDK 基于 asyncio + <code>ClientSession</code>，在 Jupyter 或纯同步代码里直接 await 会遇到「事件循环已在运行」或「无法嵌套」。课件的做法是起一个<strong>独立线程跑事件循环</strong>再桥接。本教程的同步手写实现天然规避了这个问题——教学场景下这是手写版的真实优势，不只是「为了教学而教学」。代价是 2.4 节说的：没有超时、没有并发读。</p>
 <p><strong>坑 4：HTTP 传输未实现，但协议是同一套。</strong><code>client.py</code> 遇到非 stdio 类型会显式报错（「手写客户端只实现了 stdio 传输」），留作练习。动手前先明确：<strong>传输换 HTTP 时三步协议的消息一个字节都不用变</strong>——变的只是「一行 JSON」变成「一个 HTTP 请求体」。协议与传输解耦，是 MCP 设计里最值得体会的一笔。</p>
@@ -2627,7 +2636,7 @@ call_tool(get_current_time) → 2026-10-12 11:54:31 CST （时间值随运行时
 <p>这五个「好不好」也不是本书的私人发明，而是业界在 Agent 实践中沉淀下来的<strong>方法论分层</strong>——《Agents底层逻辑》课程第 30–34 章将它们命名为五个 Engineering：<strong>Prompt、Context、Harness、Loop、Graph</strong>。本章逐一拆解，并把每一维映射回本书手写线的章节与框架线章节。</p>
 <p>它们的出场方式也很能说明问题：课程把五维安排在全部实现性内容（1–29 章）<strong>之后</strong>讲——方法论的命名总是晚于方法的实践，就像「面向对象」这个词出现在大量面向对象代码之后。本教程的手写线也是同样的顺序：先写出来，再回头看写的是什么。</p>
 <p>为什么值得专门用一章做这件事？因为不收拢就会遗忘。学完 S1–S10 你手里有十几块积木，但如果没有一张全景图，下次遇到「我的 Agent 效果不好」时，你不会知道该从哪块积木查起。五个维度就是那张全景图：<strong>任何 Agent 问题，都能定位到其中一维或几维的缺口。</strong></p>
-<p>还有一个自然的追问：<strong>为什么恰好是五个，不是三个或八个？</strong> 因为五个维度各自对应一类独立失效模式，两两之间既不可互相替代、也无法合并：Prompt 错了 Context 救不了（指令自相矛盾，历史再多也没用）；Loop 不可收敛时 Harness 再稳也白搭（工具再好，循环停不下来就等于零）；而 Graph 解决的「多任务编排」在单任务系统里根本不会出现。五个问题彼此正交，又恰好覆盖「从一句话到一套系统」的全部层级——这大概就是它被业界普遍接受的原因。</p>
+<p>还有一个自然的追问：<strong>为什么恰好是五个，不是三个或八个？</strong> 因为五个维度各自对应一类独立失效模式，两两之间既不可互相替代、也无法合并：Prompt 错了 Context 救不了（指令自相矛盾，历史再多也没用）；Loop 不可收敛时 Harness 再稳也白搭（工具再好，循环停不下来就等于零）；而 Graph 解决的「多任务编排」在单任务系统里根本不会出现。但<strong>职责正交不等于效果独立</strong>——它们会互相放大或抵消（见第二节的放大/抵消关系）。</p>
 <h3 id="ch11-s2">二、机制与原理</h3>
 <p>五个维度可以排成一条<strong>抽象阶梯</strong>：越靠前越贴近模型本身，越靠后越贴近系统结构。</p>
 <figure id="fig11"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 420" width="680" height="420" role="img">
@@ -2703,7 +2712,7 @@ call_tool(get_current_time) → 2026-10-12 11:54:31 CST （时间值随运行时
 <p>维度之间还存在<strong>放大与抵消</strong>关系，这是「逐项对照」比「依次专精」更有效的原因：</p>
 <ul><li><strong>Context 放大 Loop</strong>：历史失控让每轮输入变长变脏，模型更容易在噪声里做出错误工具调用，循环被拖向死循环——反过来，干净的历史让每一轮决策更果断，轮数下降；</li><li><strong>Harness 放大 Prompt</strong>：工具描述写得好，模型对「什么时候用什么工具」的理解就准，系统提示里的任务描述压力也随之减轻——工具 schema 本身就是提示词的一部分；</li><li><strong>Graph 抵消 Context 压力</strong>：S9 的防火墙本质上是 Graph 结构（主 + 子拓扑）替 Context 维度扛住了膨胀；</li><li><strong>Loop 抵消 Graph 风险</strong>：每个子循环各自带安全阀，才敢放心把任务拆成拓扑——没有 Loop 兜底的 Graph 是把风险乘以节点数。</li></ul>
 <p>用一张映射表把前十章放到五维坐标系里（框架线对应章见第三节总表）：</p>
-<div class="tw"><table><thead><tr><th>章节</th><th>主要落点维度</th><th>次要落点维度</th></tr></thead><tbody><tr><td>S2 系统提示词</td><td>Prompt</td><td>—</td></tr><tr><td>S3 会话</td><td>Context</td><td>—</td></tr><tr><td>S4 工具包</td><td>Harness</td><td>Prompt（工具描述）</td></tr><tr><td>S5 错误回喂</td><td>Loop</td><td>Context（错误进历史）</td></tr><tr><td>S6 ReAct 循环</td><td>Loop</td><td>—</td></tr><tr><td>S7 事件系统与安全阀</td><td>Harness + Loop</td><td>Context（轨迹可回放）</td></tr><tr><td>S8 技能</td><td>Context（渐进式披露）</td><td>Prompt（清单注入）</td></tr><tr><td>S10 MCP</td><td>Harness（工具生态）</td><td>—</td></tr><tr><td>S9 子代理</td><td>Graph + Loop</td><td>Context（防火墙）</td></tr></tbody></table></div>
+<div class="tw"><table><thead><tr><th>章节</th><th>主要落点维度</th><th>次要落点维度</th></tr></thead><tbody><tr><td>S2 系统提示词</td><td>Prompt</td><td>—</td></tr><tr><td>S3 会话</td><td>Context</td><td>—</td></tr><tr><td>S4 工具协议</td><td>Harness</td><td>Prompt（工具描述）</td></tr><tr><td>S5 工具封装与错误回喂</td><td>Harness + Loop</td><td>Context（错误进历史）</td></tr><tr><td>S6 ReAct 循环</td><td>Loop</td><td>—</td></tr><tr><td>S7 事件系统与安全阀</td><td>Harness + Loop</td><td>Context（轨迹可回放）</td></tr><tr><td>S8 技能</td><td>Context（渐进式披露）</td><td>Prompt（清单注入）</td></tr><tr><td>S10 MCP</td><td>Harness（工具生态）</td><td>—</td></tr><tr><td>S9 子代理</td><td>Graph + Loop</td><td>Context（防火墙）</td></tr></tbody></table></div>
 <p>两个容易误解的地方需要提前澄清。</p>
 <p><strong>误解一：维度之间是学习顺序。</strong> 并非「先学好 Prompt 再学 Graph」——它们更像体检指标，应当<strong>逐项对照、整体改善</strong>。实践中最常见的组合拳是 Context 治理（裁剪历史）与 Loop 收敛（安全阀）同时做，因为两者互相放大：历史失控会把循环拖向死循环，循环失控又让历史疯长。</p>
 <p><strong>误解二：维度与代码量正相关。</strong> Graph Engineering 听起来最「高级」，但它的最小实现（S9 的子代理）只有 30 行；Prompt Engineering 听起来最「基础」，做好它需要的迭代次数往往最多。<strong>维度的高度衡量的是抽象层级，不是难度或工作量。</strong></p>
@@ -2711,11 +2720,11 @@ call_tool(get_current_time) → 2026-10-12 11:54:31 CST （时间值随运行时
 <h3 id="ch11-s3">三、五个维度逐一拆解</h3>
 <p>每个维度按统一结构展开：<strong>回答什么问题 → 核心手段 → 本书哪里实践了它 → 框架线哪里对应</strong>，末尾附一条反模式与三问自查清单——读完可以直接拿去对照自己的项目。</p>
 <h4>1. Prompt Engineering——让模型听懂</h4>
-<ul><li><strong>回答什么问题</strong>：模型听懂了吗？同样的底层能力，指令写法不同，表现可以差出一个量级。</li><li><strong>核心手段</strong>：<ul><li><strong>精简</strong>——删掉不产生行为差异的话，每一句都在争夺模型的注意力预算；</li><li><strong>自洽</strong>——指令之间不互相打架（「要详细」与「要简短」同时出现，模型只能掷硬币）；</li><li><strong>全局约束</strong>——放系统提示一次生效，而不是每轮对话里重复叮嘱；</li><li><strong>静态</strong>——用模板渲染，运行时只换变量，提示词主体不随对话漂移；</li><li><strong>结构化</strong>——角色 / 环境 / 规则 / 输出格式分节，让模型的「阅读理解」有路标。</li></ul></li><li><strong>本书哪里实践了它</strong>：S2 提炼的<strong>系统提示词五原则</strong>正是这套手段的落地；S7 的默认提示词模板（<code>agent/prompt.py</code> 渲染角色与工具清单）是「静态 + 结构化」的实例；S4 的工具描述字符串也在这个维度里——工具 schema 就是写给模型看的「提示词」。</li><li><strong>框架线哪里对应</strong>：框架线第 3 章的 ChatPromptTemplate 把「模板 + 变量注入」工业化，支持 few-shot 槽位、消息列表拼装与角色模板。</li><li><strong>反模式</strong>：提示词越写越长、互相矛盾、把示例和规则混在一起——典型症状是「改一句、坏三处」。</li><li><strong>上手自查</strong>：<ul><li>系统提示里有没有互相打架的指令？删掉一遍再读一遍；</li><li>工具描述是否说清了「什么时候该用、什么时候不该用」；</li><li>每轮对话里是否在重复系统提示已有的话？</li></ul></li></ul>
+<ul><li><strong>回答什么问题</strong>：模型听懂了吗？同样的底层能力，指令写法不同，表现可以差出一个量级。</li><li><strong>核心手段</strong>：<ul><li><strong>精简</strong>——删掉不产生行为差异的话，每一句都在争夺模型的注意力预算；</li><li><strong>自洽</strong>——指令之间不互相打架（「要详细」与「要简短」同时出现，模型只能掷硬币）；</li><li><strong>全局约束</strong>——放系统提示一次生效，而不是每轮对话里重复叮嘱；</li><li><strong>静态</strong>——用模板渲染，运行时只换变量，提示词主体不随对话漂移；</li><li><strong>结构化</strong>——角色 / 环境 / 规则 / 输出格式分节，让模型的「阅读理解」有路标。</li></ul></li><li><strong>本书哪里实践了它</strong>：S2 提炼的<strong>系统提示词五原则</strong>正是这套手段的落地；S7 的默认提示词模板（<code>agent/prompt.py</code> 渲染角色、运行环境、行为规则与技能清单）是「静态 + 结构化」的实例；工具清单由 <code>session.tools</code> 单独传给模型，不在系统提示里。S4 的工具描述字符串也在这个维度里——工具 schema 就是写给模型看的「提示词」。</li><li><strong>框架线哪里对应</strong>：框架线第 3 章的 ChatPromptTemplate 把「模板 + 变量注入」工业化，支持 few-shot 槽位、消息列表拼装与角色模板。</li><li><strong>反模式</strong>：提示词越写越长、互相矛盾、把示例和规则混在一起——典型症状是「改一句、坏三处」。</li><li><strong>上手自查</strong>：<ul><li>系统提示里有没有互相打架的指令？删掉一遍再读一遍；</li><li>工具描述是否说清了「什么时候该用、什么时候不该用」；</li><li>每轮对话里是否在重复系统提示已有的话？</li></ul></li></ul>
 <h4>2. Context Engineering——让上下文够用且不膨胀</h4>
 <ul><li><strong>回答什么问题</strong>：上下文够用吗？够用之后，会不会无限膨胀？</li><li><strong>核心手段</strong>：<ul><li><strong>会话历史管理</strong>——记什么、记多久、什么时候压缩；</li><li><strong>两条纪律</strong>——<strong>只追加</strong>（消息一经写入不改写，保证工具调用与结果配对完整）与<strong>保思维链</strong>（assistant 的推理过程不丢，它是后续决策的依据）；</li><li><strong>渐进式披露</strong>——先给目录，需要时再加载全文，别把整本书塞进第一轮；</li><li><strong>压缩与卸载</strong>——摘要、裁剪、缓存前缀，给历史降温而不丢关键事实。</li></ul></li><li><strong>本书哪里实践了它</strong>：S3 的 <code>Session</code> 落实了只追加与思维链保全；S8 的 Skill 用「清单进提示词、正文按需 <code>load_skill</code>」实现了渐进式披露；S9 的子代理是最激进的上下文治理——细节整体不出防火墙。</li><li><strong>框架线哪里对应</strong>：框架线第 9 章给出摘要压缩、历史裁剪、缓存前缀三条生产级路线。</li><li><strong>反模式</strong>：历史只进不出、把大文件全文塞上下文、压缩时把思维链一起压掉——模型在后续轮次会重复犯已修正过的错。</li><li><strong>上手自查</strong>：<ul><li>长会话的第 50 轮，最初的任务目标还「够得着」吗；</li><li>有没有渐进式披露的机会——哪些大块内容可以先给目录；</li><li>压缩 / 裁剪前，是否先划出了不可丢弃区（系统提示、思维链、关键结论）。</li></ul></li></ul>
 <h4>3. Harness Engineering——模型之外的一切</h4>
-<ul><li><strong>回答什么问题</strong>：模型之外还缺什么？裸模型只会生成文本，让它「做事」的一切都在 harness 里。</li><li><strong>核心手段</strong>：<ul><li><strong>工具供给</strong>——schema 设计与描述质量决定模型会不会用、用得对不对；</li><li><strong>权限护栏</strong>——危险操作的白名单、确认机制与最小权限装配；</li><li><strong>可观测</strong>——事件流让每一次模型调用与工具执行有迹可循，出问题能回放。</li></ul></li><li><strong>本书哪里实践了它</strong>：S5 的工具包与 registry 是工具供给；S7 的事件系统与监听器是可观测的最小实现；<code>registry.invoke</code> 对未授权工具返回 None 是最朴素的护栏；S10 的 MCP 把工具供给扩展成生态接入。</li><li><strong>框架线哪里对应</strong>：框架线第 6 章的中间件是它的工业化形态——六个钩子把「模型之外的一切」变成可插拔的切面。原理篇 <code>docs/harness/</code> 与本维度全面呼应：<strong>Agent = Model + Harness</strong>，以及 harness 必须回答的五个必然问题。</li><li><strong>反模式</strong>：只有工具、没有护栏与可观测——等于给模型发了枪却不装保险、不留弹道记录，出事时连是哪次调用闯的祸都查不到。</li><li><strong>上手自查</strong>：<ul><li>每个工具的副作用等级标注了吗？写类 / 执行类工具有没有确认机制；</li><li>一次失败的工具调用，能否从事件流里回放出「当时模型看到了什么」；</li><li>子代理（如 S9 的工厂）装配的工具集是否按需最小化。</li></ul></li></ul>
+<ul><li><strong>回答什么问题</strong>：模型之外还缺什么？裸模型只会生成文本，让它「做事」的一切都在 harness 里。</li><li><strong>核心手段</strong>：<ul><li><strong>工具供给</strong>——schema 设计与描述质量决定模型会不会用、用得对不对；</li><li><strong>权限护栏</strong>——危险操作的白名单、确认机制与最小权限装配；</li><li><strong>可观测</strong>——事件流让每一次模型调用与工具执行有迹可循，出问题能回放。</li></ul></li><li><strong>本书哪里实践了它</strong>：S5 的工具包与 registry 是工具供给；S7 的事件系统与监听器是可观测的最小实现；<code>registry.invoke</code> 对未知工具返回一条带错误文本的 tool 消息（<code>None</code> 只表示没有 tool_calls）是最朴素的错误可见性，<strong>不是权限护栏</strong>；S10 的 MCP 把工具供给扩展成生态接入。</li><li><strong>框架线哪里对应</strong>：框架线第 6 章的中间件是它的工业化形态——六个钩子把「模型之外的一切」变成可插拔的切面。原理篇 <code>docs/harness/</code> 与本维度全面呼应：<strong>Agent = Model + Harness</strong>，以及 harness 必须回答的五个必然问题。</li><li><strong>反模式</strong>：只有工具、没有护栏与可观测——等于给模型发了枪却不装保险、不留弹道记录，出事时连是哪次调用闯的祸都查不到。</li><li><strong>上手自查</strong>：<ul><li>每个工具的副作用等级标注了吗？写类 / 执行类工具有没有确认机制；</li><li>一次失败的工具调用，能否从事件流里回放出「当时模型看到了什么」；</li><li>子代理（如 S9 的工厂）装配的工具集是否按需最小化。</li></ul></li></ul>
 <h4>4. Loop Engineering——让循环可靠收敛</h4>
 <ul><li><strong>回答什么问题</strong>：循环可靠收敛吗？ReAct 循环默认没有出口，收敛性必须被设计。</li><li><strong>核心手段</strong>：<ul><li><strong>终止条件设计</strong>——<code>registry.invoke</code> 返回 None（模型不再请求工具）是唯一自然出口，工具集合的「可完成性」决定了出口是否存在；</li><li><strong><code>max_turns</code> 安全阀</strong>——防死循环的强制止损，S9 的坑 4 提醒我们它按代理独立计数；</li><li><strong>工具异常回喂</strong>——报错作为 tool 消息还给模型让它自己修正，而不是让循环崩溃；</li><li><strong>多步任务拆解</strong>——一个大循环拆成多个短循环，每个都容易收敛（S9 的防火墙一石二鸟）。</li></ul></li><li><strong>本书哪里实践了它</strong>：S5 的错误回喂、S7 的 <code>max_turns</code> 安全阀、S9 的子代理拆解，正好覆盖这四条手段。</li><li><strong>框架线哪里对应</strong>：框架线第 13 章的 interrupt / resume 是人在回路对循环的接管——把「何时继续、何时停下」的决定权部分交还给人类。</li><li><strong>反模式</strong>：只设安全阀不管终止条件（每单都烧满 max_turns 才停）、异常直接抛出杀掉循环、把多步任务硬塞进单循环硬扛。</li><li><strong>上手自查</strong>：<ul><li>每个工具集合是否存在「模型永远无法给出最终回答」的死局；</li><li><code>max_turns</code> 触发时有告警或日志吗，还是静默吞掉（S7 里它只打到 stderr）；</li><li>工具抛异常时，错误信息是否以 tool 消息形态回喂（S5），且模型拿到的报错足以自我修正。</li></ul></li></ul>
 <h4>5. Graph Engineering——复杂任务的结构化编排</h4>

@@ -10,7 +10,7 @@
 <rect x="0" y="0" width="680" height="400" fill="#111721"/>
 
 <text x="34" y="38" font-family="system-ui, sans-serif" font-size="17" font-weight="700" fill="#dfe6ee">一次 agent 调用产生的 trace 树</text>
-<text x="34" y="62" font-family="system-ui, sans-serif" font-size="12" fill="#7d8b9c">实测 7 个 run。能逐层下钻，才可能查清「agent 为什么走了这一步」</text>
+<text x="34" y="62" font-family="system-ui, sans-serif" font-size="12" fill="#7d8b9c">实测 7 个 run（Python 侧；JS 10）。能逐层下钻，才可能查清「agent 为什么走了这一步」</text>
 
 <!-- 树 -->
 <rect x="34" y="82" width="612" height="216" rx="9" fill="#1b2532" stroke="#3a4a5e" stroke-width="1"/>

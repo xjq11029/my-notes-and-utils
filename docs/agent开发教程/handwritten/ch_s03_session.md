@@ -204,7 +204,8 @@ class Session:
 
     @classmethod
     def load(cls, path: str) -> "Session":
-        data = json.load(open(path, encoding="utf-8"))
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
         session = cls.__new__(cls)
         session.id = data["id"]
         session.tools = data.get("tools", [])

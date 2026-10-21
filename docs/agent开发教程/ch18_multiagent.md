@@ -42,7 +42,7 @@
 
 ### 2.2 把 agent 当节点：supervisor 的搭法
 
-三种拓扑里 supervisor 最常用，先搭它。它的搭法建立在一个可能反直觉的事实上：`create_agent` / `createAgent` 返回的不是「一个组件」，而是**一张已编译的图**。在 LangGraph 里，**已编译的图可以直接当节点**塞进父图——于是「一个 agent」和「一个普通节点」在图里没有区别。
+三种拓扑里 supervisor 最常用，先搭它。它的搭法建立在一个关键区别上：Python 的 `create_agent` 返回 `CompiledStateGraph`，可以直接当节点；JS 的 `createAgent` 返回 `ReactAgent` 包装对象，要先取 `.graph` 才能当节点。两者都不是「普通组件」，但落到父图里的方式不同。
 
 supervisor 拓扑于是就是：父图里放一个 `supervisor` 节点做路由，再放若干 agent 节点做具体工作，用条件边把调度结果连过去。实测两个结论：
 
@@ -51,6 +51,11 @@ supervisor 拓扑于是就是：父图里放一个 `supervisor` 节点做路由�
 
 两边的写法有一处硬差异：**Python 侧可以直接 `add_node("db", db_agent)`；JS 侧 `createAgent` 返回的是包装对象，必须取 `.graph`**（实测）。
 
+最小例子（三步，supervisor）：
+1. 把 agent 当节点：`builder.add_node("db", db_agent)`。
+2. supervisor 节点返回下一个 agent 的名字，用条件边路由过去。
+3. 每个 agent 完成后回到 supervisor；supervisor 返回 `END` 结束。
+
 ### 2.3 handoff：用 `Command` 交棒
 
 supervisor 里，控制权由外部的调度者节点收回；如果场景就是「一次分流、各管各的」，不需要收回——那就是 handoff。它的交棒动作不发生在任何调度节点里，而是发生在**节点内部**：节点返回 `Command(goto=...)`，控制权直接跳到目标节点，且**不会再回来**。
@@ -58,7 +63,7 @@ supervisor 里，控制权由外部的调度者节点收回；如果场景就是
 - Python：`from langgraph.types import Command`，节点返回 `Command(goto=target, update={...})`。
 - TypeScript：`import { Command } from "@langchain/langgraph"`，返回 `new Command({ goto: target, update: {...} })`。
 
-这里有一条 JS 侧的约束：**返回 `Command` 的节点应在 `addNode` 的第三个参数里用 `ends` 声明可能的去向**，否则**编译期**报错。但要说清口径：「报的就是 `UnreachableNodeError`」是**源码核对**——本机 `tsc --noEmit` 跑出的 45 条错误里**没有一条**是该错误名（`18_multiagent.ts` 实际报的是 TS2345 / TS2769 类型的返回值不匹配）。Python 侧靠类型注解 `Command[Literal[...]]` 表达同一件事（示例实测可跑通）。
+这里有一条 JS 侧的约束：**返回 `Command` 的节点应在 `addNode` 的第三个参数里用 `ends` 声明可能的去向**，否则**编译期**报错。但要说清口径：「报的就是 `UnreachableNodeError`」是**源码核对**——本机 `tsc --noEmit` 跑出的 44 条错误里**没有一条**是该错误名（`18_multiagent.ts` 实际报的是 TS2345 / TS2769 类型的返回值不匹配）。Python 侧靠类型注解 `Command[Literal[...]]` 表达同一件事（示例实测可跑通）。
 
 还有一个容易混的点：**`Command(goto=...)` 只能在节点内部返回，不能当 `invoke` 的输入**；能当输入用的只有 `Command(resume=...)`（第 13 章）。handoff 属于前者。
 
@@ -211,6 +216,8 @@ console.log(out.owner);        // billing
 1. **三种拓扑的差别是「控制权怎么流」**：supervisor 有调度者、交完能收回；handoff 交棒不回头；swarm 没有中心、互相转移。
 2. **`create_agent` 返回的就是已编译的图，可以直接当节点**——agent 与普通节点在图里没有区别。副作用是它变成子图，流式需 `subgraphs=True`。
 3. **务必给每个 agent 起 `name=`**，否则 trace 分不清是谁在跑（第 10 章）。
+
+> 口径：三种拓扑与 agent 当节点的行为为示例实测（`18_multiagent.*`）；swarm 只讲机制与风险，未跑示例；真实模型下的调度质量未实测。
 
 ## 本章要点回顾
 

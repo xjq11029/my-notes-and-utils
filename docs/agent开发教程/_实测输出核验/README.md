@@ -12,7 +12,7 @@
 |---|---|
 | `python/*.txt` | 17 个 Python 示例（02–18）的原始 stdout+stderr，逐个 `exit=0` |
 | `typescript/*.txt` | 17 个 TypeScript 示例（02–18）的原始 stdout+stderr，逐个 `exit=0` |
-| `typescript/_typecheck.txt` | `npx tsc --noEmit` 的完整报错（**exit=1，45 个 error TS**） |
+| `typescript/_typecheck.txt` | `npx tsc --noEmit` 的完整报错（**exit=1，44 个 error TS**；2026-10-20 复审修复 `07_tools.ts` 导入后由 45 降为 44，见 §6） |
 | `ch02_kwargs_构造层核对.*` | **2026-10-19 追加**：ch02 §2.2 与坑 2 / 坑 3 的构造层核对——`init_chat_model` 真实签名、**未知 kwargs 不报错只静默进 `model_kwargs`**、无凭据时构造期是否失败（OpenAI 系会 / Anthropic 不会）、字段本名与 alias。只构造不发请求，**不需要 Key** |
 | `真实模型/00_connectivity.*` | 智谱 key 的连通性与可用模型探测 |
 | `真实模型/01_verify_untested_claims.*` | 文档标注「未实测」的 5 项声明（A–E）真实模型验证 |
@@ -45,7 +45,7 @@ rm "docs/agent开发教程/code/.secrets.log"
 但有一处 README 没说、也跑不出来：**`pnpm run typecheck` 失败**。
 
 ```
-npx tsc --noEmit   →  exit=1，45 个 error TS
+npx tsc --noEmit   →  exit=1，45 个 error TS（2026-10-20 复审后为 44 个，见 §6）
   07_tools.ts        1     14_deep_agent.ts    1
   11_state_graph.ts 15     15_filesystem.ts    1
   12_persistence.ts 11     16_delegation.ts    2
@@ -184,3 +184,50 @@ npx tsc --noEmit   →  exit=1，45 个 error TS
 **没有做的事**：没有为了让 §3.3 的条目「名副其实」去补写实验（`InvalidUpdateError`、`UnreachableNodeError`、权限拦截、`tool_choice` 真实语义等）——它们仍标着「源码核对 / 未实测」。**这是诚实的标注，不是遗漏**：读者若需要这些结论，得自己补那一脚。
 
 **改动面**：**27 个 Markdown**（含全部 19 章正文 + `code/README.md` + 教程 `README.md` + `docs/README.md` + 根 `README.md` + `AGENTS.md` + `CONVENTIONS.md` + `_写作大纲与来源登记.md` + 本报告）与 **1 个 HTML**（`agent-frameworks-deep-dive.html`）。示例代码（`.py` / `.ts`）**一行未动**，34 个示例仍全部 `exit=0`。
+
+---
+
+## 6. 2026-10-20 全量复审补修
+
+对本教程做了一次逐章复审（含实跑、签名核对与源码抽查），确认并修复了上一轮未覆盖或修得不彻底的问题。`_写作大纲与来源登记.md` 登记的「已全部修复」在下列位置并不成立，本轮逐条落地：
+
+| 类别 | 修复 |
+|---|---|
+| **API 误用** | ch14 `create_deep_agent(profile=...)` 改为「按 provider 注册、自动匹配」并补可运行演示；`excluded_middleware` 必需项改为「构造期抛 `ValueError`」；ch15 后端导入改 `deepagents.backends`；`LangSmithSandbox` 导入说明纠正；ch19 三步顺序去掉「state 必须 TypedDict」并重排 |
+| **事实错误** | 手写线 S9 剧本补齐 `api.md` 读取（sub-dto 实测 3 轮 / 7 条）；S5「无注解参数无 type」改为「补 `string`、复杂类型丢 `items`」；S7 cwd 坑方向修正；S11 registry / 提示词映射修正；S10 子进程注入 UTF-8 环境变量，修复中文 Windows 下 `UnicodeDecodeError` |
+| **口径矛盾** | ch04「provider 已实测 vs 未实测」统一；ch05 默认策略改为 `AutoStrategy`；ch11 `.graph` 结论改为「Python 直传 / JS 取 `.graph`」；ch13 `tasks` 不需要 checkpointer；ch02 真实输出改为 `glm-4.5-air` 并纠正 `initChatModel` 构造行为；ch08/ch09/ch10/ch12 的切分器、假嵌入、`trimMessages`、run 数、Store 语义逐条订正 |
+| **过期声明** | 教程 README 版本表同步为 1.6.11 / 1.7.2 / 1.7.6 与 JS 版本；删除「本机无 API Key」；「已知限制」增 TypeScript typecheck 未通过 |
+| **引用与工程** | ch06 节号 3.x→2.x；4 个 TS 文件头旧运行命令修正；`09_context` 两语言输出的章节号修正；ch19 示例补第 11 行映射并重跑；手写线 2b 节展示两个子代理报告 |
+
+**同步产物**：17 + 17 框架示例、S1–S10 全部重跑 `exit=0`（手写线在中文 Windows 默认编码下也不再需要外部环境变量），`_实测输出核验/python|typescript|手写线/` 全部更新；两份 HTML 精读版重跑并连续两次 md5 一致。
+
+## 7. 2026-10-21 第十轮图文码一致性补修
+
+| 项 | 修复 |
+|---|---|
+| 参数表 | ch02 §2.2「本机核对」列名改为「口径 / 依据」；列内同时有示例实测、源码核对与未实测，原列名与内容不同义 |
+| 图 3 | 去掉「唯一会变的量」的单变量说法，改为「谁选类 + 模型在哪」；`ChatOllama` 只归角度 3，正文同步说明 |
+| 图 4 | 输出框由固定的 `[SystemMessage, HumanMessage]` 改为「消息序列（条数随输入）」，并注明「字符串 1 条；列表 2 条」；正文与代码输出字符串同步纠正 |
+| 示例输出 | 02 示例 Python / TS 重跑 `exit=0`；`python/02_models.txt`、`typescript/02_models.txt` 已更新为修正后的输出 |
+
+**同步产物**：两张 SVG 重渲染为 2× PNG（1360×920 / 1360×840）；`agent-frameworks-deep-dive.html` 连跑两次 md5 一致。
+
+## 8. 2026-10-21 最小例子抽测
+
+分批补最小例子时，对可离线运行的片段做了抽测（`code/python/.venv`，Python 3.14.2）：
+
+| 章节 | 片段 | 结果 |
+|---|---|---|
+| ch01 | 版本检查 | 1.4.2 / 1.2.12 / 0.7.18 |
+| ch03 | `ChatPromptTemplate` | `SystemMessage, HumanMessage` |
+| ch04 | Pydantic `age="30"` | `age=30` |
+| ch05 | 假模型 `create_agent` | `你好，我是假模型。` |
+| ch06 | `@before_model` 定义 | 装饰成功 |
+| ch07 | `@tool` 加法 | `5` |
+| ch08 | Document + Splitter | 2 个 chunk，metadata 保留 |
+| ch09 | `trim_messages` | 8 → 4 |
+| ch10 | `BaseCallbackHandler` 定义 | 类定义成功 |
+| ch11 | 单节点 `StateGraph` | `{'n': 2}` |
+| ch14 | `create_deep_agent` + 假模型 | `你好，我是 Deep Agent。` |
+
+ch02 / ch12 / ch13 / ch15 / ch16 / ch17 / ch18 / ch19 的最小例子是三步说明或依赖前文对象，不单独运行。

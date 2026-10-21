@@ -35,6 +35,9 @@ class StdioRpc:
             stderr=subprocess.DEVNULL,  # 服务器日志走 stderr；示例中丢弃以保持输出干净
             text=True,
             encoding="utf-8",
+            # 中文 Windows 下子进程 stdin/stdout 默认走 cp936；
+            # 父进程已按 UTF-8 解码，必须让子进程也写 UTF-8。
+            env={**os.environ, "PYTHONIOENCODING": "utf-8", "PYTHONUTF8": "1"},
             bufsize=1,  # 行缓冲：写一行立刻可被对方读到
         )
         self._closed = False

@@ -7,15 +7,15 @@ tools/call  → {"content": [{"type": "text", "text": "579"}]}
 [time] get_current_time：获取指定时区的当前时间
 [time] add：计算两个整数的和（确定性工具，用于验证协议）
 call_tool(add) → 579
-call_tool(get_current_time) → 2026-10-19 10:12:08 CST （时间值随运行时刻变化）
+call_tool(get_current_time) → 2026-10-20 11:09:34 CST （时间值随运行时刻变化）
 
 == 3. Agent 接入 MCP ==
 注册表现有工具: ['time__get_current_time', 'time__add']
-=== 会话 41dfe4dd…（7 条消息）===
+=== 会话 13b89d7e…（7 条消息）===
 [系统] # 角色 你是运行在用户终端里的编码助手，通过工具完成实际操作。  ## 运行环境 - 工作目录：D:\ProjectCode\my-notes-and-uti…
 [用户] 现在几点了？顺便算一下 123 + 456
 [助手] 请求调用工具: time__get_current_time
-[工具](time__get_current_time) 2026-10-19 10:12:08 CST
+[工具](time__get_current_time) 2026-10-20 11:09:34 CST
 [助手] 请求调用工具: time__add
 [工具](time__add) 579
 [助手] 现在是上海时间（见工具返回）；另外 123 + 456 = 579。

@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 420" width="680" height="420" role="img">
 <title>stream_mode 的七种投影</title>
-<desc>values 给完整状态，updates 给增量，messages 给 token，custom 给自定义事件，checkpoints 与 tasks 需要 checkpointer，debug 是合并。</desc>
+<desc>values 给完整状态，updates 给增量，messages 给 token，custom 给自定义事件；checkpoints 需要 checkpointer，tasks 不需要；debug 是合并。</desc>
 
 <rect x="0" y="0" width="680" height="420" fill="#111721"/>
 
@@ -41,7 +41,7 @@
 <rect x="34" y="250" width="612" height="26" rx="4" fill="#1b2532" stroke="#3a4a5e" stroke-width="0.5"/>
 <text x="48" y="267" font-family="system-ui, sans-serif" font-size="10" fill="#c9b8ff">tasks</text>
 <text x="180" y="267" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">任务开始 / 结束（含结果与错误）</text>
-<text x="430" y="267" font-family="system-ui, sans-serif" font-size="9.5" fill="#f0655f">需要 checkpointer</text>
+<text x="430" y="267" font-family="system-ui, sans-serif" font-size="9.5" fill="#7fe3cd">不需要（实测）</text>
 
 <rect x="34" y="278" width="612" height="26" rx="4" fill="#111721" stroke="#3a4a5e" stroke-width="0.5"/>
 <text x="48" y="295" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">debug</text>

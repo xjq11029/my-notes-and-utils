@@ -12,11 +12,11 @@
 2. 两类中间件（node-style / wrap-style）能力差在哪；
 3. 官方预置了哪些中间件，各自属于哪个包。
 
-**本章回答：中间件是什么、挂在哪、怎么排队、能干什么、现成的有哪些、自己怎么写。**顺序是：先用一次真实轮次把六个钩子的触发顺序打出来（3.1），再按能力把钩子分成 node-style / wrap-style 两类（3.2），然后看官方预置的六大能力域（3.3），最后落到两种语言各自怎么写（3.4）。学完这一章，「循环之外的需求」就都有了统一的插法。
+**本章回答：中间件是什么、挂在哪、怎么排队、能干什么、现成的有哪些、自己怎么写。**顺序是：先用一次真实轮次把六个钩子的触发顺序打出来（2.1），再按能力把钩子分成 node-style / wrap-style 两类（2.2），然后看官方预置的六大能力域（2.3），最后落到两种语言各自怎么写（2.4）。学完这一章，「循环之外的需求」就都有了统一的插法。
 
 ## 二、机制与原理
 
-### 3.1 六个钩子与它们的实测触发顺序
+### 2.1 六个钩子与它们的实测触发顺序
 
 第 5 章的循环图上留了一排挂载点（见第 5 章 2.1 节图 8），这一节回答三个问题里的第一个：**这六个钩子挂在循环的哪些位置、一次含工具调用的轮次里按什么顺序触发。**顺序空口争不出来，直接看实测。
 
@@ -49,19 +49,19 @@
 
 看到「`before_model` 出现两次」不要以为是 bug——**钩子的触发次数取决于这一轮调了几次模型，而不是调用了几次 agent**。这条认知能解释一大半「我的钩子为什么跑了两次」的疑问。
 
-### 3.2 node-style 与 wrap-style：两类中间件
+### 2.2 node-style 与 wrap-style：两类中间件
 
 顺序问题解决了，接着问能力：**同样是钩子，为什么有的只能读写状态，有的却能拦下整个模型调用？**六个钩子分成两类，能力完全不同。
 
 下表回答的问题是：**我这个需求该用哪一类钩子？**
 
-| | node-style（`before_*` / `after_*`） | wrap-style（`wrap_model_call` / `wrap_tool_call`） |
+| 维度 | node-style（`before_*` / `after_*`） | wrap-style（`wrap_model_call` / `wrap_tool_call`） |
 |---|---|---|
 | 钩子 | `before_agent`、`before_model`、`after_model`、`after_agent` | `wrap_model_call`、`wrap_tool_call` |
 | 函数签名 | `(state, runtime)` | `(request, handler)` |
 | 能否改写请求 | **不能直接改 `request` 对象**；但返回状态更新**可以改变模型看到的输入**（如改 `messages`） | **能**，改完 `request` 再交给 `handler` |
 | 能否拦截响应 | 不能 | **能**，可以选择不调 `handler` 直接返回 |
-| 组合方式 | 多个中间件按注册顺序**依次执行** | 层层**包裹**（洋葱模型），注册靠前的在外层 |
+| 组合方式 | 多个中间件：`before_*` 按注册顺序执行，`after_*` 反向执行 | 层层**包裹**（洋葱模型），注册靠前的在外层 |
 | 典型用途 | 审计、记账、往状态里注入数据、消息裁剪 | 换模型、重试、超时、脱敏、缓存、工具错误兜底 |
 
 一句话判据：**只想「看」和「改状态」→ node-style；想「改请求」或「拦结果」→ wrap-style。**
@@ -73,7 +73,7 @@ wrap-style 的名字来源就是它的形态：`handler` 是「链条剩下的�
 「node-style 不能改 request，但能改变模型看到的输入」这半句容易读成空话，看一个 3 行的最小示意就明白了——`before_model` 钩子里**返回状态更新**，而不是碰 `request`：
 
 ```python
-from langchain_core.messages import SystemMessage   # 与 3.4 节示例同一环境
+from langchain_core.messages import SystemMessage   # 与 2.4 节示例同一环境
 
 @before_model
 def inject_notice(state, runtime):
@@ -82,7 +82,7 @@ def inject_notice(state, runtime):
 
 模型下一轮看到的 `messages` 里多了这条系统消息——请求没被「改」，但请求的**原料**（状态）变了。这就是「绕一层」的路径：node-style 改状态，wrap-style 改请求。（此段为写法示意；「返回状态更新可改变模型输入」这一行为的实测证据见第 9 章 `SummarizationMiddleware`——它正是走 `before_model` 写回状态实现的。）
 
-### 3.3 六大能力域 × 预置中间件
+### 2.3 六大能力域 × 预置中间件
 
 两类钩子的能力边界清楚了，下一个问题自然是：**日常那几种循环之外的需求，官方有没有现成的件？**有——而且已经按能力域铺成了一张地图。
 
@@ -91,7 +91,7 @@ def inject_notice(state, runtime):
 | 能力域 | 预置中间件 | 归属包 | 详见 |
 |---|---|---|---|
 | 上下文治理 | `SummarizationMiddleware`、`ContextEditingMiddleware`（配合 `ClearToolUsesEdit`） | `langchain.agents.middleware` | 第 9 章 |
-| 模型调用治理 | `PatchToolCallsMiddleware` | 默认装入 agent 图 | 本章 |
+| 模型调用治理 | `PatchToolCallsMiddleware` | **`deepagents`**（默认装入 Deep Agent 图） | 第 14 章 |
 | 工具执行治理 | `ToolErrorMiddleware` | `langchain.agents.middleware` | 第 7 章 |
 | 人在回路 | `HumanInTheLoopMiddleware` | `langchain.agents.middleware` | 第 13 章（LangGraph `interrupt` 路线；该中间件本书不展开） |
 | 规划与委派 | `TodoListMiddleware` / `SubAgentMiddleware` | `langchain.agents.middleware` / **`deepagents`** | 第 16 章 |
@@ -104,13 +104,25 @@ def inject_notice(state, runtime):
 
 另外提醒：本矩阵只列**本教程后续章节会真正用到**的预置件。实测该包在 1.4.2 有 64 个导出，完整清单以你所用版本的 `__all__` 为准——不要在教程里背清单，要在代码里查。
 
-### 3.4 自定义中间件：两种语言两种形态
+### 2.4 自定义中间件：两种语言两种形态
 
 预置件覆盖的是常见需求，每个项目却都有自己的规矩——比如「消息数变多就换更强模型」。自己写中间件不难，难在两种语言的形态处处不一样，对照着写最稳。
 
+最小例子（在每次模型调用前打印消息数）：
+
+```python
+from langchain.agents.middleware import before_model
+
+@before_model
+def log_messages(state, runtime):
+    print("模型调用前，消息数:", len(state["messages"]))
+```
+
+把这个函数放进 `create_agent(..., middleware=[log_messages])` 即可生效；完整版见第三节。
+
 下表回答的问题是：**同一种自定义中间件，Python 与 TypeScript 各自怎么写？**
 
-| | Python | TypeScript |
+| 维度 | Python | TypeScript |
 |---|---|---|
 | 装饰器 / 工厂 | `@before_model`、`@after_model`、`@wrap_tool_call` … | `createMiddleware({ beforeModel, wrapModelCall, ... })` |
 | 类 / 对象 | 继承 `AgentMiddleware`，覆写同名方法 | 传一个对象字面量，字段名用 camelCase |
@@ -255,10 +267,11 @@ wrap_* 钩子能改写请求：动态切换模型
 
 1. **中间件是 harness 在 v1 里的落点**：循环之外的一切——提示词、工具、行为塑造——都从这里插进去。
 2. **实测触发顺序（`langchain` 1.4.2）**：`before_agent → before_model → wrap_model_call → after_model → wrap_tool_call → before_model → wrap_model_call → after_model → after_agent`。
-3. **`before_agent` / `after_agent` 各一次**；`before_model → wrap_model_call → after_model` **每次模型调用走一遍**；`wrap_tool_call` 夹在两次模型调用之间。
-4. **两类中间件**：node-style 只能读写状态（要影响模型输入得绕一层——改状态里的 `messages`）；wrap-style 能直接改请求、能拦结果、能短路（不调 `handler`）。
-5. **六大能力域**：上下文治理、模型调用治理、工具执行治理、人在回路、规划与委派、文件系统与记忆；后两域的主要实现**在 `deepagents` 包里**。
-6. **改写模型请求**：Python `handler(request.override(model=...))`，JS `handler({ ...request, model })`；都不要直接改 `request`。
+3. **两类中间件**：node-style 只能读写状态（要影响模型输入得绕一层——改状态里的 `messages`）；wrap-style 能直接改请求、能拦结果、能短路（不调 `handler`）。
+4. **六大能力域**：上下文治理、模型调用治理、工具执行治理、人在回路、规划与委派、文件系统与记忆；后两域的主要实现**在 `deepagents` 包里**。
+5. **改写模型请求**：Python `handler(request.override(model=...))`（直接改 `request.model` 也能跑但不推荐），JS `handler({ ...request, model })`（没有 `override()`，必须展开）。
+
+> 口径：钩子顺序与 `wrap_model_call` 换模型为示例实测（`06_middleware.*`）；归属包与直接改 `request.model` 的边界为本机 / 源码核对；真实模型下的重试、超时、缓存未实测。
 
 ## 本章要点回顾
 
@@ -266,7 +279,7 @@ wrap_* 钩子能改写请求：动态切换模型
 - **实测顺序（1.4.2）**：`before_agent → before_model → wrap_model_call → after_model → wrap_tool_call → before_model → wrap_model_call → after_model → after_agent`。
 - **钩子次数跟着模型调用次数走**：`before_model` 在一轮里出现两次是正常的。
 - **两类中间件**：node-style（`(state, runtime)`，只能改状态，间接影响模型输入）/ wrap-style（`(request, handler)`，可直接改请求、可拦截、可短路）。
-- **改写请求两语言写法不同**：Python `request.override(model=...)` / JS `handler({ ...request, model })`；**不要直接改 `request`**。
+- **改写请求两语言写法不同**：Python 推荐 `request.override(model=...)`（直接改 `request.model` 也能跑）；JS 没有 `override()`，必须 `handler({ ...request, model })` 展开。
 - **归属包**：`FilesystemMiddleware`、`SubAgentMiddleware`、`MemoryMiddleware` 在 `deepagents`；`SkillsMiddleware` 从 `deepagents.middleware` 导入。
-- **预置清单别背**：实测 `langchain.agents.middleware` 在 1.4.2 有 64 个导出，以你所用版本的 `__all__` 为准。
+- **预置清单别背**：`langchain.agents.middleware` 在 1.4.2 的 `__all__` 是 46 项、公开名 64 个；以你所用版本的 `__all__` 为准。
 - **自定义中间件**：Python 用装饰器或 `AgentMiddleware` 子类；JS 用 `createMiddleware({...})`。

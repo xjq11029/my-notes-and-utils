@@ -49,12 +49,14 @@
 ==============================================================================
 ④ HarnessProfile：声明式裁剪内置能力
 ==============================================================================
-  profile.excluded_tools = frozenset({'execute'})
+  profile.excluded_tools = frozenset({'edit_file'})
   profile.system_prompt_suffix = '回答一律用中文。'
   profile.tool_description_overrides = {'grep': '在本项目源码里搜索。'}
-  已注册 profile：'my-openai-profile'
+  已注册 profile：provider='scriptedchatmodel'
+  应用后模型可见工具：['delete', 'glob', 'grep', 'ls', 'read_file', 'task', 'write_file']
+  edit_file 是否可见：False
 
-  HarnessProfile 的全部字段（实测签名）：
+  HarnessProfile 的全部字段（本机核对签名）：
     · base_system_prompt
     · system_prompt_suffix
     · tool_description_overrides
@@ -64,5 +66,5 @@
     · general_purpose_subagent
 
   ⚠️ 官方文档只提到了 excluded_tools 与 excluded_middleware 两个字段，
-     实测 HarnessProfile 一共 7 个——按实测为准。
+     本机核对签名一共 7 个；示例只逐行打印字段名，不做反射。
      用 profile 而不是「自己拼中间件」的好处：内置能力升级时你不用跟着改。

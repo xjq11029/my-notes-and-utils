@@ -31,11 +31,16 @@
 | 运行时注入 | `InjectedState` / `InjectedStore` | `runtime: ToolRuntime` | `runtime` 参数 |
 | 链式拼装 | LCEL 的 `|` 管道 | `StateGraph` 的 `add_node` / `add_edge` | `StateGraph` 的 `addNode` / `addEdge` |
 | 扩展点 | 自定义 Agent / 继承 | middleware 的六个钩子 | middleware 的六个钩子 |
-| 流式节点名 | 编译图里 agent 节点叫 `agent` | 改叫 `model`（按节点名过滤流式事件时受影响） | 改叫 `model_request`（节点名两语言本就不同：Python 侧叫 `model`、JS 侧叫 `model_request`，中间件节点名也各有一套大小写，完整对照见 [`code/README.md`](code/README.md) 的双语言差异清单） |
+| 流式节点名 | 编译图里 agent 节点叫 `agent`（旧 `create_react_agent` 路径） | 改叫 `model`（按节点名过滤流式事件时受影响） | 改叫 `model_request`（节点名两语言本就不同：Python 侧叫 `model`、JS 侧叫 `model_request`，中间件节点名也各有一套大小写，完整对照见 [`code/README.md`](code/README.md) 的双语言差异清单） |
 
 这张表里有两行是**机制替换**，不是「换了个名字」：**工具错误**（v1 的 agent 路线**不再推荐** `ToolException` / `handle_tool_error`——注意这两个 API **仍在包里**，只是入口换成了中间件，实测结论）与**运行时注入**（`InjectedState` / `InjectedStore` 统一收口到 `runtime: ToolRuntime`，实测结论）。这两处照抄旧代码在 v1 上都不成立，得改写法。
 
 > ⚠️ **「旧版写法」一列未在本机重跑**：本机只装了 v1（`langchain` 1.4.2 / `langgraph` 1.2.12），旧版 LCEL / `AgentExecutor` 环境没有安装，这一列来自官方迁移文档与示例中的对照表，**不是实测结论**；v1 侧那一列是实测的。
+
+最小例子（迁移三步）：
+1. 建 agent：`AgentExecutor(agent=..., tools=...)` → `create_agent(model=..., tools=...)`。
+2. 输入：`{"input": "..."}` → `{"messages": [{"role": "user", "content": "..."}]}`。
+3. 输出：`{"output": "..."}` → `result["messages"][-1].content`。
 
 ### 2.2 迁移的心智转变与三步顺序
 
@@ -48,15 +53,15 @@
 
 心智变了，顺序也就有了——**三步建议顺序**（一次全改，出了问题分不清是哪一步引入的）：
 
-1. **先换 `AgentExecutor` → `create_agent`**。这一步**只动构造与调用形态，不动流程结构**——但**不是「行为等价」**：对照 2.1 的映射表，输入从 `input` 变成 `messages`、输出不再有 `output` 字段、hook 要搬进 middleware、state 必须改成 `TypedDict`、流式节点名从 `agent` 变成 `model`（Python）/ `model_request`（JS）。把它当成一次**接口迁移**来做，改完先确认功能没变，再往下走。
-2. **再改 LCEL → `StateGraph`**。这一步才真正动结构，是风险最大的一步。
-3. **最后把自定义逻辑收进 middleware**。前两步稳定之后，再把横切逻辑（日志、限流、错误处理）从业务代码里抽出来。
+1. **先换 `AgentExecutor` → `create_agent`**。这一步**只动构造与调用形态，不动流程结构**——但**不是「行为等价」**：对照 2.1 的映射表，输入从 `input` 变成 `messages`、输出不再有 `output` 字段、流式节点名从 `agent` 变成 `model`（Python）/ `model_request`（JS）。把它当成一次**接口迁移**来做，改完先确认功能没变，再往下走。
+2. **再改 LCEL → `StateGraph`**。这一步才真正动结构，是风险最大的一步；只有你要自定义状态字段时，才需要把 state 写成 `TypedDict`/`StateSchema`，默认 `AgentState` 不需要。
+3. **最后把 hook 与自定义逻辑收进 middleware**。前两步稳定之后，再把横切逻辑（日志、限流、错误处理）从业务代码里抽出来。
 
 ### 2.3 两种部署形态
 
 代码迁完了，下一个问题是「跑在哪儿」——agent 最终要跑到某个地方。两种形态的差别不只是部署位置，更是「哪些事平台替你管、哪些事你自己扛」。这张表回答「托管还是自托管」。
 
-| | 托管（Agent Server） | 自托管 |
+| 维度 | 托管（Agent Server） | 自托管 |
 |---|---|---|
 | 持久化 | 服务端自动提供（checkpointer / store 不用自己配） | 自己接 Postgres 等 |
 | 可观测 | 自带 trace、评测、人工审批 UI | 自己接观测后端 |
@@ -96,6 +101,8 @@
 3. **三步顺序**：先 `AgentExecutor` → `create_agent`（**接口迁移，非行为等价**），再 LCEL → `StateGraph`（动结构），最后收进 middleware。
 4. **部署两形态**：托管省持久化与 UI，代价是绑定平台；自托管自由但持久化必须一开始就做对。
 5. **上线前必查三件事**：检查点持久化、调用次数上限、高风险操作的人在回路。
+
+> 口径：迁移映射与三步顺序来自官方 v1 迁移文档 + 本教程实测（v1 侧）；旧版写法未在本机重跑；部署形态与检查项为工程建议，托管 / 自托管的实际部署未实测。
 
 ## 本章要点回顾
 

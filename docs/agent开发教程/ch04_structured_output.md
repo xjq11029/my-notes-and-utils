@@ -19,7 +19,7 @@
 
 本章的实测环境：Python `langchain` 1.4.2 / `langchain-core` 1.6.11 / `pydantic` 2.14.1；JS `langchain` 1.5.11 / `@langchain/core` 1.2.12 / `zod` 4.6.5。示例仍用脚本化假模型，**跑示例不需要 API Key**。
 
-> 2026-10-16 起，本章原先标「未实测」的 provider 子类行为**已用智谱端点实测**（Python 与 JS 双侧抓取真实上线的 HTTP 请求体），结论见 2.4 节末与 `code/README.md` 的「真实模型实测」B。
+> 2026-10-16 起，本章原先标「未实测」的 provider 子类行为**已用智谱端点实测**（Python 与 JS 双侧抓取真实上线的 HTTP 请求体），结论见 2.3 节的请求体表与 `code/README.md` 的「真实模型实测」B。
 
 ## 二、机制与原理
 
@@ -81,6 +81,18 @@ console.log(person.name, person.age);
 
 > 先对齐一个概念：**Pydantic** 是 Python 最常用的数据校验库——用「类 + 字段类型注解」声明结构，拿到数据时自动校验、自动转换。看不懂 `class P(BaseModel)` 这个形态没关系，把它理解成「带校验的结构体」即可，本章所有结论都不依赖你熟悉 Pydantic。
 
+最小例子（Pydantic 在运行时真的会校验和转换）：
+
+```python
+from pydantic import BaseModel
+
+class Person(BaseModel):
+    name: str
+    age: int
+
+print(Person(name="张三", age="30"))   # age='30' → 30
+```
+
 LangChain 接受四种写法。下表回答的问题是：**描述一个结构，有哪几种写法，各自的代价是什么？**
 
 | 模式 | 写法 | 返回 | 类型校验 | 能力边界 |
@@ -115,7 +127,7 @@ LangChain 接受四种写法。下表回答的问题是：**描述一个结构�
 
 | Python | TypeScript | 说明 |
 |---|---|---|
-| Pydantic `BaseModel` | **`zod` schema** | 唯一带运行时校验能力的写法（但要配 agent 侧策略才生效，见 2.4） |
+| Pydantic `BaseModel` | **`zod` schema**（TS 的 schema 定义与校验库，作用类比 Pydantic） | 唯一带运行时校验能力的写法（但要配 agent 侧策略才生效，见 2.6） |
 | JSON Schema dict | **JSON Schema dict** | 同样支持，工具名同样默认 `"extract"` |
 | `TypedDict` | **无等价物** | TS 的 `interface` / `type` 编译后即被擦除，运行时拿不到字段信息 |
 | `@dataclass` | **无等价物** | 同上；要「轻量结构」只能写 `interface` + 自己校验 |
@@ -418,7 +430,7 @@ const out: any = await agent.invoke({ messages: [new HumanMessage("张三是一�
 console.log(out.structuredResponse);                // {"name":"张三","age":30,...}
 ```
 
-两个示例的真实运行输出（2026-09-29）：
+两个示例的实跑输出（2026-10-16 复核；为可读性做了折叠，完整逐字输出见 `_实测输出核验/`）：
 
 ```text
 ======== Python：04_structured_output.py ========
@@ -474,13 +486,13 @@ console.log(out.structuredResponse);                // {"name":"张三","age":30
   附：{"title":"订单未发货","urgency":"高"} / assignee = undefined
 ```
 
-Python 输出里的第 ④ 节有两行值得单独看：`TypedDict 字段名全错 → {'title1': ...}` 说明**非 Pydantic 模式不校验**；而 `脚本回吐 Person，但 schema 是 PersonDict → None` 说明**工具名对不上时 Python 是静默的**。TS 输出里对应的那一步则是直接抛错——这是本章最后一条双语言差异，见第 4 节第 6 条。
+Python 输出里的第 ④ 节有两行值得单独看：`TypedDict 字段名全错 → {'title1': ...}` 说明**非 Pydantic 模式不校验**；而 `脚本回吐 Person，但 schema 是 PersonDict → None` 说明**工具名对不上时 Python 是静默的**。TS 侧按基类解析器源码会抛 `No tool call found...`，但本示例没有跑这一档，属**源码核对**；详见第 4 节第 6 条。
 
 ## 四、常见坑与边界条件
 
 下面八条覆盖两个 API 与两门语言；最后一条划出本章的未实测范围。
 
-**1. 工具名对不上，后果在两边不同。** Python 侧静默返回 `None`（实测），TS 侧抛 `No tool call found with name extract.`（实测）。所以在 Python 里换 schema 时要格外小心：**`None` 不是「模型没输出」，是「解析器没找到这条 tool_call」**。工具名的来源见 2.2 节的表。
+**1. 工具名对不上，后果在两边不同。** Python 侧静默返回 `None`（实测），TS 侧按基类解析器源码会抛 `No tool call found with name extract.`（**源码核对**；本示例没有跑这一档）。所以在 Python 里换 schema 时要格外小心：**`None` 不是「模型没输出」，是「解析器没找到这条 tool_call」**。工具名的来源见 2.2 节的表。
 
 **2. `Optional[X]` 不等于「有默认值」。** `Optional[int]` 只是允许 `None`，字段本身仍然必填——模型不给就抛 `missing`。要真正的默认值必须写 `Field(default=...)` 或 `Field(30, ...)`。另外**不同 provider 对 `default` 的支持不一致**（同一段代码在不同 provider 上给出的结果不同），这一条**属真实模型行为，本教程未实测**，只提醒你别把默认值当成跨 provider 的保证。
 
@@ -490,29 +502,28 @@ Python 输出里的第 ④ 节有两行值得单独看：`TypedDict 字段名全
 
 **5. 四种模式的「支持差异」集中在三处。** 一是**返回类型**（只有 Pydantic 是实例）；二是**是否校验**（只有 Pydantic 校验）；三是**工具名来源**（类名 vs `title` vs 默认 `"extract"`）。这三处差异合起来解释了大量「明明绑了 schema 却拿到 `None` / 拿到 dict」的困惑。
 
-**6. 工具名不匹配在 Python 是 `None`，在 JS 是抛错——这是双语言差异，不是版本差异。** 实测：Python 的解析器是 `JsonOutputKeyToolsParser(first_tool_only=True)`，找不到 key 就返回 `None`；JS 的基类解析器显式 `throw new Error("No tool call found with name ...")`。同一件事两个语言一个静默一个报错，是排查时最容易走错方向的地方。
+**6. 工具名不匹配在 Python 是 `None`，在 JS 按源码会抛错——这是双语言差异，不是版本差异。** 实测证据只有 Python：解析器是 `JsonOutputKeyToolsParser(first_tool_only=True)`，找不到 key 就返回 `None`；JS 的基类解析器源码里显式 `throw new Error("No tool call found with name ...")`，但本示例没有跑这一档，属**源码核对**。同一件事两个语言一个静默一个报错，是排查时最容易走错方向的地方。
 
 **7. JS 侧用 `withStructuredOutput` 需要 `AIMessageChunk`。** 这是实测踩到的：解析器第一步就检查 `AIMessageChunk.isInstance(input)`，而本教程的假模型返回 `AIMessage`（父子类，不是同一个类）。本章示例因此在 `04_structured_output.ts` 里本地派生了一个只改这一处的子类——**没有改公共假模型**。用真实 provider 时不会遇到这个问题（它们本来返回 chunk），但这条实现细节解释了「为什么有些模型接上去就报 `Input is not an AIMessageChunk`」。
 
-**8. 未实测范围。** `method="json_schema"` 在真实 provider 上的行为、provider 子类的默认策略、`default` 字段的跨 provider 差异、真实模型对复杂嵌套 schema 的遵从度——**全部需要真实模型，本教程未实测**。本章的实测结论均来自脚本化假模型 + 上述版本。
+**8. 仍未实测的范围。** `default` 字段的跨 provider 差异、真实模型对复杂嵌套 schema 的遵从度、以及智谱之外供应商的行为——**未实测**。`method="json_schema"` 的真实请求体与 provider 子类缺省策略已于 2026-10-16 实测（见 2.3），不在未实测之列。
 
 ## 五、关键结论
 
-1. **结构化输出把四环压成一次调用**：schema 声明一次，绑定、约束、解析、校验由框架完成；`description` 直接成为提示词的一部分。
+1. **结构化输出把四环压成一次调用**：schema 声明一次，绑定、约束、解析、校验由框架完成；`description` 直接成为提示词的一部分。输出解析器 API 仍在，但约束留在提示词里、失败在链级别、还多花 token，v1 路线不再推荐。
 2. **四种 schema 模式的分界线是「运行时有没有类型信息」**：只有 Pydantic 返回实例并做校验，`TypedDict` / `@dataclass` / JSON Schema 都返回未经校验的 dict。
-3. **两种策略在基类上不可区分**——Python 基类 `with_structured_output` 直接丢掉 `method` 参数，永远走 `bind_tools`；JS 基类只支持 `functionCalling`，`jsonMode` 直接抛错。**`json_schema` 的真实差别由 provider 子类实现**。
-4. **「JS 默认走 json_schema」要改成「provider 子类可能走 json_schema」**：纯 `BaseChatModel` 子类（含假模型）两边默认都是工具调用。
-5. **Python 侧校验只属于 Pydantic**；**JS 基类完全不校验**，坏数据静默通过——这是双语言最危险的一处差异。
-6. **工具名对不上：Python 静默 `None`，JS 抛错**。换 schema 时先确认工具名。
-7. **输出解析器 API 仍在但不再推荐**：约束留在提示词里、失败是链级别的、还多花 token。
-8. **`with_structured_output` 管一次调用，agent 侧 `response_format` 管循环的最后一步**；后者多了「校验失败写回 `ToolMessage` 让模型重试」，且 JS 的 `providerStrategy()` **不重试**。
+3. **两种策略在基类上不可区分**——Python 基类 `with_structured_output` 直接丢掉 `method` 参数，永远走 `bind_tools`；JS 基类只支持 `functionCalling`。所谓「JS 默认走 json_schema」只对 provider 子类成立；纯 `BaseChatModel`（含假模型）两边默认都是工具调用。
+4. **Python 侧校验只属于 Pydantic**；**JS 基类完全不校验**，坏数据静默通过——这是双语言最危险的一处差异。
+5. **`with_structured_output` 管一次调用，agent 侧 `response_format` 管循环的最后一步**；后者多了「校验失败写回 `ToolMessage` 让模型重试」，且 JS 的 `providerStrategy()` **不重试**。
+
+> 口径：本章示例实测来自 `code/python|typescript/04_structured_output.*`；provider 子类请求体为 2026-10-16 真实模型实测；跨 provider 的 `default` 与嵌套遵从度、JS 失败态未实测；源码结论见 2.3 / 2.5。
 
 ## 本章要点回顾
 
 - **本章解决**：结构怎么描述（四种 schema 模式）、怎么交给模型（两种策略）、谁校验（只有 Pydantic）、JS 为什么不同。
 - **四种模式**：Pydantic（实例 + 校验）/ `TypedDict`（dict）/ JSON Schema（dict）/ `@dataclass`（dict）；见 2.2 节表与**图 7**。
-- **工具名来源**：Pydantic / `TypedDict` / `@dataclass` 取类名，JSON Schema 取 `title`，**JS 侧默认 `"extract"`**；对不上时 Python 返回 `None`、JS 抛错。
-- **两种策略**：`function_calling`（包成工具）与 `json_schema`（provider 原生）。**Python 基类把 `method` 丢掉**（实测），JS 基类只认 `functionCalling`；真实 provider 行为**未实测**。
+- **工具名来源**：Pydantic / `TypedDict` / `@dataclass` 取类名，JSON Schema 取 `title`，**JS 侧默认 `"extract"`**；对不上时 Python 返回 `None`（实测）、JS 按源码会抛错（本示例未跑这一档）。
+- **两种策略**：`function_calling`（包成工具）与 `json_schema`（provider 原生）。**Python 基类把 `method` 丢掉**（实测），JS 基类只认 `functionCalling`；provider 子类的请求体与缺省策略已于 2026-10-16 实测，跨 provider 的 `default` 与嵌套遵从度仍未实测。
 - **校验差异**：Python 抛 `ValidationError`（`int_parsing` / `missing`）；**JS 基类不校验**，原样返回。`include_raw=True` 时 Python 给 `{raw, parsed, parsing_error}`，**JS 只有 `{raw, parsed}`**。
 - **输出解析器**（Python `PydanticOutputParser` / `JsonOutputParser`、JS `StructuredOutputParser`）**不推荐，但 API 仍在**；v1 路线是 `with_structured_output`。
 - **与 agent 侧的分工**：`with_structured_output` 是一次调用，`response_format` 是循环的最后一步；agent 侧的工具策略（Python `ToolStrategy` / JS `toolStrategy()`）**默认会把校验错误写回 `ToolMessage` 让模型重试**，详见第 5 章 `create_agent` 与 Agent Loop。

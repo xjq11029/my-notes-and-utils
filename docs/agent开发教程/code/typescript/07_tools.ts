@@ -8,11 +8,11 @@
  *   3. 工具返回 Command —— 直接修改图状态
  *   4. 工具抛异常时，用 wrapToolCall 把它变成模型能读懂的 ToolMessage
  *
- * 运行：pnpm run 04_tools
+ * 运行：pnpm run 07_tools
  */
 
-import { createAgent, createMiddleware, tool, ToolMessage, HumanMessage, InMemoryStore } from "langchain";
-import { Command } from "@langchain/langgraph";
+import { createAgent, createMiddleware, tool, ToolMessage, HumanMessage } from "langchain";
+import { Command, InMemoryStore } from "@langchain/langgraph"; // ⚠️ InMemoryStore 必须从这里导入
 import { z } from "zod";
 import { ScriptedChatModel, reply, show, toolCall } from "./_fakeModel";
 

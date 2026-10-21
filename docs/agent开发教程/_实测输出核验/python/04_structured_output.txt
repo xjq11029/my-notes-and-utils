@@ -33,7 +33,7 @@
   → 实测（langchain 1.4.2）：在**基类**实现里 method 被直接丢掉，
      三条路径都走 bind_tools + tool_choice；假模型上三者输出完全一致。
      method="json_schema" 的真实差别由 provider 子类实现（如 ChatOpenAI 会改用
-     response_format 的 json_schema 模式）——**需真实模型，本教程未实测**。
+     response_format 的 json_schema 模式）——真实请求体已由独立探针实测，见 code/README B。
 
 ========================================================================
 ④ 类型校验：什么时候抛错、抛什么

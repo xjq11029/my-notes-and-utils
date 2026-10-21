@@ -9,7 +9,7 @@
  *   · 状态里的消息数：result.messages 有多少条
  *   · 模型收到的消息数：从假模型那一侧记录的实际输入
  *
- * 运行：pnpm run 05_context
+ * 运行：pnpm run 09_context
  */
 
 import {
@@ -100,7 +100,7 @@ console.log("  summarizationMiddleware");
 console.log("    实现方式：before_model 钩子，返回一条摘要消息，**写回图状态**");
 console.log("    后果    ：状态与模型输入一起变小；原文从当前状态消失");
 console.log("              ⚠️「永久丢失」要加前提：**不配 checkpointer** 才是；");
-console.log("                 配了 checkpointer 时，摘要前那个检查点仍保有原文（第 7 章）");
+console.log("                 配了 checkpointer 时，摘要前那个检查点仍保有原文（第 12 章）");
 console.log("    适用    ：对话很长、旧轮次的细节确实不再需要");
 console.log();
 console.log("  contextEditingMiddleware");
@@ -114,4 +114,4 @@ console.log("  ⚠️ 两者都会造成**静默失败**：清理和压缩本身
 console.log("     只是关键信息悄悄没了，后面的回答开始变差——不报错的失败最难查。");
 console.log();
 console.log("  第四种手段「外部存储」不在本章演示：把长内容写进虚拟文件系统或 Store，");
-console.log("  上下文里只留一句「已保存到 /xxx」——见第 11 章与第 13 章。");
+console.log("  上下文里只留一句「已保存到 /xxx」——见第 15 章（虚拟文件系统）、第 12 章（Store）、第 17 章（Skills）。");

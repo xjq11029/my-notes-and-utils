@@ -176,6 +176,7 @@ rows = [
     ("运行时注入", "InjectedState / InjectedStore", "runtime: ToolRuntime"),
     ("链式拼装", "LCEL 的 `|` 管道", "StateGraph 的 add_node / add_edge"),
     ("扩展点", "自定义 Agent / 继承", "middleware 的六个钩子"),
+    ("流式节点名", "agent", "Python: model / JS: model_request"),
 ]
 print(f"  {'能力':<12} {'旧版写法':<38} {'v1 写法'}")
 print("  " + "-" * 92)

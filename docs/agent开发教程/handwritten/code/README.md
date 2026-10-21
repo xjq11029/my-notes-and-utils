@@ -28,7 +28,7 @@ python s01_model_contract.py
 | `s05_tool_package.py` | `@tool` 装饰器、动态参数模型、注册表 | Schema 与校验输出 |
 | `s06_react.py` | 事件流 + 手写 ReAct 循环（读→写→答三轮） | summary.txt |
 | `s07_agent.py` | Agent 组装、行车记录仪、max_turns 安全阀 | 完整轨迹 |
-| `s08_skill.py` | SKILL.md 扫描、清单注入、load_skill 全文加载 | 三次工具往返 |
+| `s08_skill.py` | SKILL.md 扫描、清单注入、load_skill 全文加载 | 3 轮模型调用 / 2 次工具调用 |
 | `s09_subagent.py` | 子代理派发与上下文防火墙 | 主/子上下文对比 |
 | `s10_mcp.py` | 手写 MCP 服务器 + 手写客户端 + Agent 接入 | 协议交互 JSON |
 
@@ -72,6 +72,8 @@ python s01_model_contract.py
 | 模型（补测） | **智谱 OpenAI 兼容端点** `glm-4-plus` / `glm-4.5-air`，经 `OPENAI_API_KEY` / `OPENAI_BASE_URL` / `OPENAI_MODEL` 注入，走 `Model()` 的默认 client |
 
 **复核轮结果**：`s01`–`s10` **10/10 `exit=0`**，无落盘污染（产物全在临时目录）。原始 stdout 与真实模型实测记录存档在 `../../_实测输出核验/手写线/`。
+
+**2026-10-20 复审**：`StdioRpc` 为子进程注入 `PYTHONIOENCODING=utf-8` / `PYTHONUTF8=1`，修复中文 Windows（cp936）下 S10 的 `UnicodeDecodeError`；`s09` 新增第 2b 节，直接打印两个子代理的完整报告头（各 3 轮 / 7 条消息）。10 个脚本仍全部 `exit=0`。
 
 > **读正文引文前必知**：示例输出里有三类值**每次运行都不同**——会话 id（`uuid4().hex`，`session.py:22`）、临时目录名（`tempfile.mkdtemp`，形如 `agent-s04-xxxxxxxx`）、时间戳。正文引用的这些值**不会**与你的输出逐字相同，这不是 bug 也不是版本差异。S3 / S4 / S7 已在引文旁注明；其余章节按此理解。
 >

@@ -42,7 +42,7 @@
 <text x="600" y="257" font-family="system-ui, sans-serif" font-size="9" fill="#6b7a8d">首次</text>
 
 <rect x="34" y="266" width="612" height="22" rx="4" fill="#1b2532" stroke="#3a4a5e" stroke-width="0.5"/>
-<text x="46" y="281" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">第 2 次　null</text>
+<text x="46" y="281" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">第 2 次　None / null</text>
 <text x="250" y="281" font-family="system-ui, sans-serif" font-size="9.5" fill="#ff9d99">1（没变）</text>
 <text x="440" y="281" font-family="system-ui, sans-serif" font-size="9.5" fill="#ff9d99">没变</text>
 <text x="600" y="281" font-family="system-ui, sans-serif" font-size="9" fill="#f0655f">空操作</text>
@@ -69,5 +69,5 @@
 <rect x="34" y="370" width="612" height="58" rx="8" fill="#2a2320" stroke="#e8a34b" stroke-width="1.2"/>
 <text x="50" y="390" font-family="system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#f3c47a">三条实测结论（Python 与 JS 一致）</text>
 <text x="50" y="406" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">① 输入里出现的字段 → 按该字段的 reducer 合并　　② 输入里没出现的字段 → 保留检查点里的值</text>
-<text x="50" y="421" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">③ invoke(null) 是空操作；invoke({}) 才是「从检查点续跑」——这两个容易搞混</text>
+<text x="50" y="421" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">③ invoke(None/null) 是空操作；invoke({}) 才是「从检查点续跑」——这两个容易搞混</text>
 </svg>

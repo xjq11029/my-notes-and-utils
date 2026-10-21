@@ -143,18 +143,26 @@ print("=" * 78)
 
 profile = HarnessProfile(
     system_prompt_suffix="回答一律用中文。",
-    excluded_tools=frozenset({"execute"}),  # 不要执行能力
+    excluded_tools=frozenset({"edit_file"}),  # 裁掉默认可见的工具；execute 默认本来就不可见
     tool_description_overrides={"grep": "在本项目源码里搜索。"},
 )
 print(f"  profile.excluded_tools = {profile.excluded_tools}")
 print(f"  profile.system_prompt_suffix = {profile.system_prompt_suffix!r}")
 print(f"  profile.tool_description_overrides = {profile.tool_description_overrides}")
 
-register_harness_profile("my-openai-profile", profile)
-print("  已注册 profile：'my-openai-profile'")
+# profile 不是 create_deep_agent 的参数：按 provider / provider:model 注册，创建模型时自动匹配。
+# 假模型 _get_ls_params 报出的 provider 是 scriptedchatmodel；真实项目换成 "openai" 等。
+register_harness_profile("scriptedchatmodel", profile)
+print("  已注册 profile：provider='scriptedchatmodel'")
+
+probe = ScriptedChatModel(script=[reply("好")])
+probe_agent = create_deep_agent(model=probe)
+probe_agent.invoke({"messages": [HumanMessage("试试")]})
+print(f"  应用后模型可见工具：{tool_names(probe)}")
+print(f"  edit_file 是否可见：{'edit_file' in tool_names(probe)}")
 
 print()
-print("  HarnessProfile 的全部字段（实测签名）：")
+print("  HarnessProfile 的全部字段（本机核对签名）：")
 for f in (
     "base_system_prompt",
     "system_prompt_suffix",
@@ -168,5 +176,5 @@ for f in (
 
 print()
 print("  ⚠️ 官方文档只提到了 excluded_tools 与 excluded_middleware 两个字段，")
-print("     实测 HarnessProfile 一共 7 个——按实测为准。")
+print("     本机核对签名一共 7 个；示例只逐行打印字段名，不做反射。")
 print("     用 profile 而不是「自己拼中间件」的好处：内置能力升级时你不用跟着改。")

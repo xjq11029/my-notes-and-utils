@@ -18,11 +18,11 @@
 
 ### 2.1 三个初始化角度
 
-「初始化一个模型」这件事里，唯一会变的量是：**谁替你决定用哪个类**。按这个变量切，就得到三个角度——
+「初始化一个模型」这件事里，先看两个问题：**谁替你决定用哪个类**、**模型部署在哪**。日常入口可以归成三个角度——
 
 - **角度 1｜模型提供商库**：你自己选类（`langchain-openai` 的 `ChatOpenAI`、`langchain-deepseek` 的 `ChatDeepSeek`）。控制最细，但参数名跟着厂商走。
 - **角度 2｜统一入口 `init_chat_model()`**：你写 `"provider:model"` 字符串，框架按前缀去注册表里查该用哪个类。换模型只改字符串。
-- **角度 3｜本地 Ollama（`ChatOllama`）**：模型不在云端，就在本机。前两个角度问的是「用哪家的 API」，这一个问的是「模型部署在哪」。
+- **角度 3｜本地 Ollama（`ChatOllama`）**：模型不在云端，就在本机。前两个角度问的是「用哪家的 API」，这一个问的是「模型部署在哪」。（`ChatOllama` 同样是你自己选类，但本节按部署位置把它单列为角度 3；图 3 只把它放在角度 3。）
 
 为什么这么分？因为这三种写法的**失效方式完全不同**：角度 1 换平台要改代码；角度 2 拼错前缀会在构造时就报错（见 2.2）；角度 3 服务没起、模型没 `pull`，构造能过但一调用就连接失败。分清楚你用的是哪一条路，就知道出错时该查什么。
 
@@ -31,7 +31,7 @@
 
 ### 2.2 `init_chat_model` 的常用参数
 
-2.1 的三个角度里，角度 2（统一入口）是日常默认路径，本节把它展开。先明确一件事：**`init_chat_model()` 返回的是一个模型对象**——但**两语言返回的具体类型不同（示例实测）**：Python 侧是 `ChatOpenAI` 实例，**JS 侧是 `ConfigurableModel`**（`initChatModel` 的通用包装，内部才持有真正的 provider 类）。而且 JS 侧返回的是 **`Promise`**，少一个 `await` 拿到的是 Promise 而不是模型。2.3 起要讲的 `invoke` 等方法，都是这个对象上的方法。造它正是为了调它。
+2.1 的三个角度里，角度 2（统一入口）是日常默认路径，本节把它展开。先明确一件事：**`init_chat_model()` 返回的是一个模型对象**——但**两语言返回的具体类型不同（示例实测）**：Python 侧是 `ChatOpenAI` 实例（例外：声明了 `configurable_fields`、或干脆没传 `model`，返回的是 `_ConfigurableModel`，见本节表后那段），**JS 侧是 `ConfigurableModel`**（`initChatModel` 的通用包装，内部才持有真正的 provider 类）。而且 JS 侧返回的是 **`Promise`**，少一个 `await` 拿到的是 Promise 而不是模型。2.3 起要讲的 `invoke` 等方法，都是这个对象上的方法。造它正是为了调它。
 
 「明明设了 `temperature=0`，输出还是飘」——这类「设了却不生效」的困惑，排查起点就在造模型的那一行。用 `init_chat_model` 只需要搞清楚一件事：**你写进去的参数，哪些归它自己管，哪些它原样转手给了别人？** 这条界线一清楚，后面所有坑都有了着落。
 
@@ -42,7 +42,16 @@ init_chat_model(model=None, *, model_provider=None,
                 configurable_fields=None, config_prefix=None, **kwargs)
 ```
 
-对着签名数：**它自己的参数只有四个**——就是上面签名里那四个：`model` / `model_provider` 管「造哪个类的哪个模型」，`configurable_fields` / `config_prefix` 管「运行时能不能改」。除此之外你写的一切（`temperature` / `api_key` / `base_url` / `max_tokens` 是最常用的几个）都落进 `**kwargs`，**原样转发**给底层那个 `ChatXxx` 类的构造函数。
+先跑一个最小例子（Python，只构造、不发请求）：
+
+```python
+from langchain.chat_models import init_chat_model
+
+model = init_chat_model("openai:gpt-4o", api_key="sk-placeholder")
+print(type(model).__name__)   # ChatOpenAI
+```
+
+对着签名数：**它自己的参数只有四个**——就是上面签名里那四个：`model` / `model_provider` 管「造哪个类的哪个模型」，`configurable_fields` / `config_prefix` 管「运行时改哪几个字段、用哪个键名改」——**前者是白名单，后者是键名前缀**。**传了 `model` 又不声明 `configurable_fields` 时**，模型就是固定的：运行时在 `config` 里写什么都不生效，也不报错（没传 `model` 是另一条分支，见下表）。除此之外你写的一切（`temperature` / `api_key` / `base_url` / `max_tokens` 是最常用的几个）都落进 `**kwargs`，**原样转发**给底层那个 `ChatXxx` 类的构造函数。
 
 打个比方：`init_chat_model` 像总机，只认四个转接规则；你说的其他任何话，它都原封不动传给分机那边的专人——而每个分机（每家集成）听懂的词并不一样。这就是下一段「钥匙」的由来。
 
@@ -53,16 +62,34 @@ init_chat_model(model=None, *, model_provider=None,
 
 下表回答的问题是：**这个函数到底能配哪些东西，哪些是它自己的参数、哪些只是转发？**
 
-| 参数 | 作用 | 谁在管 | 本机核对 |
+| 参数 | 作用 | 谁在管 | 口径 / 依据 |
 |---|---|---|---|
 | `model` | 模型名，或 `"provider:model"` 形式 | `init_chat_model`（用来自动选类） | 示例实测 |
 | `model_provider` | 提供商名，等价于 `model` 里的前缀 | `init_chat_model`（用来自动选类） | 示例实测 |
-| `configurable_fields` | 声明哪些参数能在运行时经 `config["configurable"]` 覆盖（见 2.6）。**显式传了 `model` 时默认 `None`；没传 `model` 时默认 `("model", "model_provider")`** | `init_chat_model` | 源码核对（docstring），未实测 |
-| `config_prefix` | 给上面那些运行时键加前缀（`{prefix}_{param}`），用于一个应用里并存多个可配置模型 | `init_chat_model` | 源码核对（docstring），未实测 |
+| `configurable_fields` | 运行时覆盖的**白名单**。**传了 `model` 时**：不传（`None`，默认）= 固定模型，运行时写什么都不生效；`"any"` = 全部字段可改（含 `api_key` / `base_url`，等于能把请求改道，**别对不可信配置开**）；列出字段名 = 只有这些能改，**名单外的键静默丢弃**。**没传 `model` 时**：默认 `("model", "model_provider")`——模型名本身得靠运行时给 | `init_chat_model` | 源码核对（docstring / `_ConfigurableModel` 实现），运行时覆盖未实测 |
+| `config_prefix` | 只给白名单里的字段**改运行时键名**：设 `"a"` 就用 `config["configurable"]["a_model"]` 覆盖，不设就用 `config["configurable"]["model"]`；`"a"` 与 `"a_"` 等价（缺下划线内部会补）。它**不决定能不能改**——**传了 `model` 但没传 `configurable_fields`** 时，单传它只会拿到一条 `UserWarning` 和一个固定模型；连 `model` 也没传时，框架会默认放开 `model` / `model_provider`，前缀照常生效 | `init_chat_model` | 同上 |
 | `temperature` | 采样温度，越高越随机 | 转发给底层类 | 默认值已核对（见下），示例未传 |
 | `api_key` | 密钥；不传则从环境变量读 | 转发给底层类 | 示例实测 |
 | `base_url` | 请求地址 | 转发给底层类（**参数名随集成变**） | 示例实测 |
 | `max_tokens` | 输出 token 上限 | 转发给底层类 | 字段存在已核对，示例未传 |
+
+`configurable_fields` 还有一个比它自己更容易漏的副作用：**只要它非空（`"any"` 或一串字段名），`init_chat_model` 返回的就不再是 `ChatXxx`**，而是 `_ConfigurableModel` 包装对象——真正的模型类延迟到**每次调用**才按「构造时的默认值 + 这次 `config` 的覆盖」现场组装（源码核对：`_model()` / `_model_params()`）。这带来两个连带结果：一是 `isinstance(m, ChatOpenAI)` 从声明那一刻起就是 `False`——后面凡按类做判断、按类取属性的写法都会在这里断；二是两语言的默认值并不对称——JS 的 `initChatModel` **总是**返回 `ConfigurableModel`，不显式传 `configurableFields` 时默认放开 `model` / `modelProvider`（源码核对，JS `langchain` 1.5.11），Python 侧传了 `model` 就默认全关。**同样是 `openai:gpt-4o`，JS 那边运行时能换模型，Python 这边不能。**
+
+两个参数的配合只有一种形状——**先声明白名单，再决定键名**。例如初始化时：
+
+```python
+m = init_chat_model("openai:gpt-4o", configurable_fields=["model", "temperature"],
+                    config_prefix="a")
+```
+
+运行时：
+
+```text
+config_prefix="a"   →  config={"configurable": {"a_model": "openai:gpt-4o-mini", "a_temperature": 0.2}}
+不传 config_prefix   →  config={"configurable": {"model": "openai:gpt-4o-mini", "temperature": 0.2}}
+```
+
+`configurable_fields` 里写的是**不带前缀的裸字段名**（写 `"model"`，不写 `"a_model"`）；键名对不上前缀的，等同于没传。上例若把 `temperature` 从白名单里去掉，`a_temperature` 就会被静默丢弃。
 
 一个容易忽略的转发细节：`api_key` / `base_url` 在 `ChatOpenAI` 上是**别名**，字段本名分别是 `openai_api_key` / `openai_api_base`（示例 ① 打印的就是 `compat.openai_api_base`），`max_tokens` 的别名则是 `max_completion_tokens`（本机核对 `langchain-openai` 1.7.2 的 `model_fields`）。两种写法构造出的是同一个对象，但读源码、看请求体时看到的是本名。
 
@@ -76,7 +103,7 @@ init_chat_model(model=None, *, model_provider=None,
 
 ### 2.3 `invoke` 的三种入参形态
 
-不管 2.1 走哪个角度、2.2 配了哪些参数，拿到的都是**同一个模型对象**：`init_chat_model()` 返回的，就是 2.1 角度 1 里直接选类的那个 `ChatXxx` 实例。从这里开始讲「用」——**`invoke` 是这个模型对象的核心方法**：给它输入，还你一个 `AIMessage`（字段结构见 2.4）。
+不管 2.1 走哪个角度、2.2 配了哪些参数，拿到的都是**同一个模型对象**：Python 的 `init_chat_model()` 返回 2.1 角度 1 里直接选类的那个 `ChatXxx` 实例（声明了 `configurable_fields` 时是包装对象，见 2.2）；JS 的 `initChatModel()` 返回 `ConfigurableModel` 包装对象（它把真实模型类延迟到调用时组装）。从这里开始讲「用」——**`invoke` 是这个模型对象的核心方法**：给它输入，还你一个 `AIMessage`（字段结构见 2.4）。
 
 `invoke` 接受三种写法。下表回答的问题是：**这三种写法真的等价吗，为什么要有三种？**
 
@@ -110,10 +137,11 @@ init_chat_model(model=None, *, model_provider=None,
 前三个字段是「模型说了什么」，后四个是「这次调用花了什么代价」。**`response_metadata` 和 `usage_metadata` 由 provider 驱动填**——本教程的假模型不产生它们（示例实测：Python `response_metadata = {}`、`usage_metadata = None`；JS 同为空对象 / `undefined`），真实 provider 才会填。真实 provider 下的完整长相（**2026-10-16 已用智谱端点实测**）：
 
 ```text
-content='2 + 3 * 2 = **8**'
-response_metadata={'model_name': 'gpt-5.4-mini-2026-03-17',
-                   'finish_reason': 'stop', 'model_provider': 'openai', ...}
-usage_metadata={'input_tokens': 16, 'output_tokens': 15, 'total_tokens': 31, ...}
+content='（回答正文，随提示词变化）'
+response_metadata={'model_name': 'glm-4.5-air',
+                   'finish_reason': 'stop', ...}
+usage_metadata={'input_tokens': 18, 'output_tokens': 128, 'total_tokens': 146,
+                'input_token_details': {'cache_read': 4}, ...}
 ```
 
 `finish_reason` 有两个常见取值：`stop`（正常结束）与 `length`（撞到 `max_tokens` 被截断）。看到「回答说到一半没了」，先查这个字段，再看 `max_tokens`。agent 语境下还有第三个关键取值 `tool_calls`（模型决定调工具、把话筒交给框架）——LangChain 会把它转成 `AIMessage` 的 `tool_calls` 字段，正是第 5 章 Agent Loop「继续转还是停」的判据。
@@ -131,7 +159,7 @@ usage_metadata={'input_tokens': 16, 'output_tokens': 15, 'total_tokens': 31, ...
 
 这四个方法不是四套实现，而是两个维度的组合：**要不要等**（同步 / 异步）× **怎么收**（整条 / 流式 / 一批）。Python 把两个维度都做成了独立方法，所以有 6 个（`invoke` / `stream` / `batch` 与各自的 `a` 版本）；JS 只保留了「怎么收」那一维——因为 JS 的这三个方法本来就返回 `Promise`，`await` 一下就是异步版，不需要第二套名字。这是双语言最容易记混的一处。
 
-`stream` 的 chunk 语义必须说清楚：**chunk 是「增量」，不是「片段」**。真实模型逐 token 产出，一条几百字的回答会分成多个 chunk（具体个数取决于模型与供应商，本教程**未实测**），要靠循环拼接。本教程的假模型**只吐 1 个 chunk**（一次给整条消息），而且类型是 `AIMessage` 而不是真实模型会用的 `AIMessageChunk`（Python 侧实测）——这两点都是为了让输出可复现，不是真实行为。所以「假模型 stream 只有 1 个 chunk」只能用来验证「框架的流式管道通了」，不能用来验证「分块粒度」；写 `isinstance(chunk, AIMessageChunk)` 这类判断时更要小心。
+`stream` 的 chunk 语义必须说清楚：**chunk 是「增量」，不是「片段」**。真实模型逐 token 产出，一条几百字的回答会分成多个 chunk（**2026-10-16 已用 `glm-4.5-air` 实测 194 个 chunk**；具体个数仍取决于模型与供应商），要靠循环拼接。本教程的假模型**只吐 1 个 chunk**（一次给整条消息），而且类型是 `AIMessage` 而不是真实模型会用的 `AIMessageChunk`（后者为源码核对，示例只打印数量与内容）——这两点都是为了让输出可复现，不是真实行为。所以「假模型 stream 只有 1 个 chunk」只能用来验证「框架的流式管道通了」，不能用来验证「分块粒度」；写 `isinstance(chunk, AIMessageChunk)` 这类判断时更要小心。
 
 `batch` 也有两条纪律：**返回顺序与输入顺序一致**（实测 `["第一", "第二", "第三"]`），以及它的价值在真实网络下才体现——框架并发发出请求，比 `for` + `invoke` 少很多往返等待。想限制并发数，在 `config` 里传 `max_concurrency`（见 2.6）。
 
@@ -149,7 +177,7 @@ init_chat_model('openai:gpt-4o').profile（节选）
 
 两条边界：**① 画像存在与否取决于 LangChain 有没有为这个模型声明过**——声明过就是一个 dict（`gpt-4o` 本机核对有 25 个键；示例只打印了其中 4 个键的节选），没声明就是 `None`（本机核对 `openai:zzz-unknown-model`）；假模型继承基类，Python 侧是 `None`、JS 侧是 `{}`。**② 画像描述的是「构造出来的那个对象」，不是「服务端真的这么干」**，它适合做运行时判断，不适合当契约。
 
-**`config` 是「这一次调用的记账方式」**，不改模型行为。下表回答的问题是：**config 里能放什么，各自影响什么？**
+**`config` 是「这一次调用的配置单」**——它不只记账，也能改变执行（见下表后三项）。下表回答的问题是：**config 里能放什么，各自影响什么？**
 
 | 配置项 | 作用 | 本教程实测 |
 |---|---|---|
@@ -159,9 +187,9 @@ init_chat_model('openai:gpt-4o').profile（节选）
 | `callbacks` | 回调处理器 | 触发 `on_chat_model_start` |
 | `max_concurrency` | `batch` 的最大并发数 | 未实测 |
 | `recursion_limit` | 图执行的递归深度上限 | 未实测（LangGraph 执行期生效：agent 编译成图后循环轮数超限会拦截执行，不绑定某一章） |
-| `configurable` | 运行时覆盖模型参数 | 未实测；需初始化时声明 `configurable_fields`（可选 `config_prefix`，见 2.2 表） |
+| `configurable` | 运行时覆盖模型参数——**只对初始化时的 `configurable_fields` 白名单生效**（没传 `model` 时默认 `model` / `model_provider`，见 2.2），名单外的键静默忽略 | 未实测（声明方式为源码核对） |
 
-前四项的用途集中在**可观测**上：它们不进消息、不影响模型输出，只在追踪系统（如 LangSmith）里可见。第 10 章 可观测与评测会接着用它们。实测还发现框架会往 `metadata` 里**自动补**几个键：`ls_provider`、`ls_model_type`、`ls_integration`、`lc_versions`（JS 侧叫 `versions`）——这些不是你写的，是给追踪用的。
+前四项的用途集中在**可观测**上：它们不进消息、不影响模型输出，只在回调与追踪系统（如 LangSmith）里可见。第 10 章 可观测与评测会接着用它们。实测还发现框架会往 `metadata` 里**自动补**几个键：`ls_provider`、`ls_model_type`、`ls_integration`、`lc_versions`（JS 侧叫 `versions`）——这些不是你写的，是给追踪用的。
 
 后三项属于另一类：**它们真的会影响执行**——`max_concurrency` 改并发度，`recursion_limit` 改递归上限，`configurable` 改这次调用实际用的模型参数。所以这张表按「只记账 / 真影响执行」分两半，读的时候要分清。
 
@@ -229,8 +257,8 @@ import { ScriptedChatModel, reply } from "./_fakeModel";
 // ① 三个初始化角度（只构造，不发请求）
 // ⚠️ JS 的 initChatModel 是**异步**的，必须 await
 const unified = await initChatModel("openai:gpt-4o", { apiKey: "sk-placeholder" });
-// 本机未装 @langchain/openai，这一行会抛（中译：无法导入 @langchain/openai）：
-//   Error: Unable to import @langchain/openai. Please install with `pnpm install @langchain/openai`
+// 本机未装 @langchain/openai：构造不会失败，返回 ConfigurableModel；
+// 真正 invoke 时才会报缺包（实测输出见 code/typescript/02_models.ts 的 ①）
 await initChatModel("qwen-plus");   // 抛 Unable to infer model provider（中译：推断不出模型提供商）
 
 // ② 三种入参形态 → 归一化（用 seen 看模型实际收到什么）
@@ -316,7 +344,7 @@ await new ScriptedChatModel({ script: [reply("收到。")] }).invoke("你好", {
     返回对象类型 = RunnableBinding（不再是 ScriptedChatModel）
 ```
 
-第 ② 节的三行「模型收到 N 条」就是本章最核心的证据：**三种写法在模型这一侧看起来完全一样**。第 ③ 节里 `response_metadata = {}`、`usage_metadata = None` 是假模型的产物，不是框架漏填。
+第 ② 节的三行「模型收到 N 条」就是本章最核心的证据：**两种列表写法在模型这一侧完全一样；字符串写法只产生一条 `HumanMessage`**——三种写法的差别只在客户端封装，模型侧最终都只看到消息对象。第 ③ 节里 `response_metadata = {}`、`usage_metadata = None` 是假模型的产物，不是框架漏填。
 
 ## 四、常见坑与边界条件
 
@@ -346,20 +374,20 @@ await new ScriptedChatModel({ script: [reply("收到。")] }).invoke("你好", {
 
 **7. `with_config()` 之后对象类型就变了。** 实测 Python 与 JS 都返回 `RunnableBinding`，`isinstance(obj, ChatOpenAI)` / `obj instanceof ChatOpenAI` 都会是 `False`。它照样能 `invoke`，但如果你后面写了类型判断或按类取属性，就会在这一步断掉；要拿回原对象用 `.bound`。
 
-**8. 本章的未实测范围。** 真实 provider 的 `invoke` / `stream` 真实分块 / token 计费**已于 2026-10-16 用智谱 OpenAI 兼容端点补测**（194 个 chunk、`usage_metadata` 与 `cached_tokens` 齐全，见 2.5 节与第四节坑 5，以及 `code/README.md`「真实模型实测」）。**仍未实测**的是：`langchain-deepseek`、`langchain-ollama` 的参数细节（本机未装、无本地 Ollama）——所以坑 2 里「`ChatDeepSeek` 的地址参数叫 `api_base`」只有官方 reference 背书；`configurable_fields` / `config_prefix` 的运行时覆盖行为（2.2 表里那两行只是**源码核对（docstring）**）；以及**模型质量类**表现（回答准确性、指令遵从度）——本轮只测了协议层与框架机制，没做质量评测。本章的「实测」结论分三类：**构造层实测**（不发请求，如 `init_chat_model` 的类映射、`profile` 内容、坑 2 与坑 3 的参数名和凭据行为——跨集成对照用的是本机已装的 `langchain-openai` 1.7.2 与 `langchain-anthropic` 1.7.6）、**字段核对**（`model_fields` 的默认值与 alias）、**假模型实测**（调用链路）。
+**8. 本章的未实测范围。** 真实 provider 的 `invoke` / `stream` 真实分块 / token 计费**已于 2026-10-16 用智谱 OpenAI 兼容端点补测**（194 个 chunk、`usage_metadata` 与 `cached_tokens` 齐全，见 2.5 节与第四节坑 5，以及 `code/README.md`「真实模型实测」）。**仍未实测**的是：`langchain-deepseek`、`langchain-ollama` 的参数细节（本机未装、无本地 Ollama）——所以坑 2 里「`ChatDeepSeek` 的地址参数叫 `api_base`」只有官方 reference 背书；`configurable_fields` / `config_prefix` 的运行时覆盖行为（2.2 表里那两行是**源码核对（docstring / `_ConfigurableModel` 实现）**，真正发请求的覆盖未跑）；以及**模型质量类**表现（回答准确性、指令遵从度）——本轮只测了协议层与框架机制，没做质量评测。本章的「实测」结论分三类：**构造层实测**（不发请求，如 `init_chat_model` 的类映射、`profile` 内容、坑 2 与坑 3 的参数名和凭据行为——跨集成对照用的是本机已装的 `langchain-openai` 1.7.2 与 `langchain-anthropic` 1.7.6）、**字段核对**（`model_fields` 的默认值与 alias）、**假模型实测**（调用链路）。
 
 ## 五、关键结论
 
-1. **三个初始化角度按「谁决定用哪个类」切**：提供商库（自己选类）、`init_chat_model`（前缀选类）、本地 Ollama（模型在本机）——三种写法的失效方式完全不同，分清楚走的是哪条路，出错时才知道该查什么。
-2. **`init_chat_model` 自己的参数只有四个**（`model` / `model_provider` / `configurable_fields` / `config_prefix`），其余全是 `**kwargs` 转发——**转发意味着这一层不校验参数名**，而写错名字**不报错、只静默失效**（实测见坑 2）。这才是「明明设了却不生效」类问题的根源，比「报错」更难查。
+1. **三个初始化角度不是按「厂商」切，而是按「谁选类 / 模型在哪」切**——三种写法的失效方式完全不同，分清楚走的是哪条路，出错时才知道该查什么。
+2. **`init_chat_model` 的参数分两类：自己的四个 vs 原样转发的 `**kwargs`**——**转发意味着这一层不校验参数名**，而写错名字**不报错、只静默失效**（实测见坑 2）。这才是「明明设了却不生效」类问题的根源，比「报错」更难查。
 3. **`AIMessage` 要读两层**：「模型说了什么」是 `content` / `tool_calls`；「花了什么代价」是 `response_metadata` / `usage_metadata`（由 provider 驱动填，假模型为空）——只读 `content`，会把 token 账和工具调用意图全丢掉。
-4. **`stream` 的 chunk 是「增量」不是「片段」**：要靠循环拼接；假模型只吐 1 个 chunk 是**可复现性取舍**，别用它推断真实分块粒度。
-5. **`profile` 与 `config` 分工**：前者是模型的能力画像（声明过才有，未知模型是 `None`），后者是单次调用的记账方式（只透传给回调，不进消息）。
+4. **`stream` 的 chunk 是「增量」不是「片段」**：要靠循环拼接，别用假模型的 chunk 数推断真实分块粒度。
+5. **`profile` 与 `config` 分工**：前者是模型的能力画像（声明过才有，未知模型是 `None`）；后者是单次调用的配置入口——`tags` / `metadata` / `run_name` / `callbacks` 只记账，`max_concurrency` / `recursion_limit` / `configurable` 分别改并发、递归上限与实际模型参数。
 
 ## 本章要点回顾
 
 - **三个初始化角度**见**图 3**：提供商库 / `init_chat_model` / 本地 Ollama。
-- **`init_chat_model` 只有四个自己的参数**——`model` / `model_provider` / `configurable_fields` / `config_prefix`；`temperature` / `api_key` / `base_url` / `max_tokens` 都是转发的 `**kwargs`。实测 `ChatOpenAI` 的 `temperature` 默认是 `None`（**与官方文档参数表的 0.7 不一致，以实测为准**）。
+- **`init_chat_model` 只有四个自己的参数**——`model` / `model_provider` 选类，`configurable_fields` / `config_prefix` 是运行时覆盖的**白名单**与**键名前缀**（传了 `model` 又不声明就是固定模型）；`temperature` / `api_key` / `base_url` / `max_tokens` 都是转发的 `**kwargs`。实测 `ChatOpenAI` 的 `temperature` 默认是 `None`（**与官方文档参数表的 0.7 不一致，以实测为准**）。
 - **转发不校验参数名**：给 `ChatOpenAI` 传 `api_base`、或把 `temperature` 拼错，**构造全部成功**，值静默落进 `model_kwargs`，只有一条 `UserWarning`（基类 pydantic 是 `extra='ignore'`）——「设了不生效」先 `print(m.openai_api_base, m.temperature, m.model_kwargs)` 对照。`api_key` / `base_url` 在 OpenAI 与 Anthropic 集成里都是别名（本名 `openai_api_base` / `anthropic_api_url`），DeepSeek 的地址参数则是 `api_base`（官方 reference，未实测）。
 - **实测 provider 列表 28 个**（官方文档列的是旧集合），且会随版本变——拼错时框架会把全表打给你。
 - **`invoke` 三种入参归一化一致**见**图 4**：字符串 → 1 条 `HumanMessage`，`dict` 列表 / 消息对象列表 → 2 条（System + Human）；**单条 dict 直接报错**。

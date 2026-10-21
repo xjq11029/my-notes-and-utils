@@ -15,3 +15,5 @@ node_modules/
 # WorkBuddy internal data (not version-controlled)
 .workbuddy/
 .workbuddy-ai/
+# IDE 配置不入库
+.vscode/

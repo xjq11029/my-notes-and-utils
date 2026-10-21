@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 420" width="680" height="420" role="img">
 <title>invoke 的三种入参到 AIMessage 结构</title>
-<desc>字符串、字典列表、消息对象列表三种入参经归一化后都变成消息序列；模型返回的 AIMessage 分两组字段：模型说了什么，以及这次调用花了什么代价。</desc>
+<desc>字符串、字典列表、消息对象列表三种入参经归一化后都变成消息序列（字符串为 1 条 HumanMessage，两种列表为 2 条 System + Human）；模型返回的 AIMessage 分两组字段：模型说了什么，以及这次调用花了什么代价。</desc>
 <defs>
 <marker id="ar1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
 <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
@@ -30,13 +30,14 @@
 <path d="M174 225L214 225" fill="none" stroke="#6b7a8d" stroke-width="1.6" marker-end="url(#ar1)"/>
 
 <rect x="200" y="256" width="140" height="48" rx="6" fill="#241f38" stroke="#a78bfa" stroke-width="1.2"/>
-<text x="212" y="276" font-family="system-ui, sans-serif" font-size="11" fill="#c9b8ff">[SystemMessage,</text>
-<text x="212" y="293" font-family="system-ui, sans-serif" font-size="11" fill="#c9b8ff"> HumanMessage]</text>
+<text x="246" y="276" font-family="system-ui, sans-serif" font-size="12" fill="#c9b8ff">消息序列</text>
+<text x="230" y="293" font-family="system-ui, sans-serif" font-size="10" fill="#c9b8ff">（条数随输入）</text>
 
 <path d="M270 240L270 252" fill="none" stroke="#6b7a8d" stroke-width="1.6" marker-end="url(#ar1)"/>
 <path d="M340 280L366 280" fill="none" stroke="#6b7a8d" stroke-width="1.6" marker-end="url(#ar1)"/>
 
 <text x="200" y="326" font-family="system-ui, sans-serif" font-size="10.5" fill="#6b7a8d">模型侧只认消息对象</text>
+<text x="200" y="342" font-family="system-ui, sans-serif" font-size="9.5" fill="#6b7a8d">字符串 1 条；列表 2 条</text>
 
 <!-- 右：AIMessage -->
 <rect x="370" y="96" width="276" height="294" rx="10" fill="#1b2532" stroke="#3a4a5e" stroke-width="1.4"/>

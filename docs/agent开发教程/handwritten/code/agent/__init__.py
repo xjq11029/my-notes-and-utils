@@ -1,7 +1,7 @@
 """从零手写的 Agent 包：最终形态。
 
 模块演进对应各章：
-    s01 模型接口契约 →（无代码，本包尚未出现）
+    s01 模型接口契约 → 使用 Model / Session 演示契约（实现分别从 S2/S3 展开）
     s02 系统提示词   → config / model / prompt(+prompt/system.j2)
     s03 会话         → session
     s04 tools        →（裸协议演示，不进包）

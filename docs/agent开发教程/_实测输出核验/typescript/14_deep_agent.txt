@@ -43,9 +43,9 @@
 ==============================================================================
 ④ HarnessProfile：声明式裁剪内置能力
 ==============================================================================
-  profile.excludedTools = ["execute"]
+  profile.excludedTools = ["edit_file"]
   profile.systemPromptSuffix = "回答一律用中文。"
-  已注册并回读 profile：excludedTools = ["execute"]
+  已注册并回读 profile：excludedTools = ["edit_file"]
 
   ⚠️ 与 Python 的三处差异（实测）：
      ① JS 的工厂函数叫 createHarnessProfile，Python 直接 new HarnessProfile(...)；

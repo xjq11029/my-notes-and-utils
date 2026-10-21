@@ -16,7 +16,7 @@
   状态快照（get_state）：
     values = {'n': 101, 'trail': ['step→1', 'step→2', 'step→101']}
     next   = ()    ← 空元组表示已跑完，没有待执行节点
-    config = {'thread_id': 'order-2026', 'checkpoint_ns': '', 'checkpoint_id': '1f1c9428-cd81-668a-8007-eafeb2b5e485'}
+    config = {'thread_id': 'order-2026', 'checkpoint_ns': '', 'checkpoint_id': '1f1cc334-e4a6-6d37-8007-ce78c470ff5f'}
 
   检查点历史（get_state_history）：
     共 9 个检查点：
@@ -44,7 +44,7 @@
       snapshots[ 7]（倒数第 2）  step= 0  n=0
       snapshots[ 8]（倒数第 1）  step=-1  n=None
   选中的历史检查点：snapshots[-2] → step=0, n=0
-  改写后的新分支 config：1f1c9428-cd84-6760-8...
+  改写后的新分支 config：1f1cc334-e4a9-6b5f-8...
   重放结果：n = 101, trail = ['人工改写：从 100 开始', 'step→101']
   → update_state 会**新建一个分支**，原线程的历史不受影响。
     这是调试 agent 的利器：把某一步的状态改一改，看后面会怎么走。

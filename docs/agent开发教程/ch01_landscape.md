@@ -10,7 +10,7 @@ LangChain、LangGraph、Deep Agents 这三个名字在彼此的文档里反复�
 2. 它们**怎么叠起来**，一次请求从入口到落盘经过哪些层；
 3. **版本锚点**在哪，两套语言 SDK 的入口分别叫什么。
 
-本章**不含代码示例**，因此第三节不是代码节，而是安装与环境。它是全书的地图，不是第一段程序。
+本章**不展开本章机制的代码示例**，因此第三节不是代码节，而是安装与环境（含一段最小验证）。它是全书的地图，不是第一段程序。
 
 ## 二、机制与原理
 
@@ -111,7 +111,7 @@ LangChain、LangGraph、Deep Agents 这三个名字在彼此的文档里反复�
 | 5 | 中间件定义 | 装饰器（`@before_model` 等）或 `AgentMiddleware` 子类 | `createMiddleware({ beforeModel, wrapModelCall, ... })` |
 | 6 | 改写模型请求 | `handler(request.override(model=...))` | `handler({ ...request, model })` |
 | 7 | `HarnessProfile` | `HarnessProfile(system_prompt_suffix=...)`，集合用 `frozenset` | `createHarnessProfile({ systemPromptSuffix })`，集合用 `Set` |
-| 8 | 结构化输出默认策略 | 工具策略，工具名取类名 / title | 同为工具策略，工具名取 schema 的 `title`（无 title 为 `extract-N`）；「provider 原生 JSON schema」只对 provider 子类成立（未实测） |
+| 8 | 结构化输出默认策略 | 工具策略，工具名取类名 / title；真实 provider 由 `AutoStrategy` 按 profile 选择 | 同为 `AutoStrategy`：假模型落工具策略，provider 子类支持时落原生 JSON schema（2026-10-16 已实测，见第 4 章 2.3） |
 
 命名规律很清楚：**Python 用 snake_case 的参数与函数名，JS 用 camelCase**（`response_format` / `responseFormat`、`context_schema` / `contextSchema`）。完整差异清单见 [`code/README.md`](code/README.md)——那里面还包含几条只有踩过才知道的坑（比如节点名的大小写、返回 `Command` 时 JS 必须显式声明 `ends`）。
 
@@ -149,7 +149,17 @@ pip install langchain-text-splitters langchain-community pypdf   # Python
 pnpm add @langchain/textsplitters @langchain/classic @langchain/community d3-dsv   # JS
 ```
 
-装完跑一段最小验证，确认「循环 + 工具 + 模型」这条链路真的通了。Python 侧：
+要复现本教程结论，请用 `code/python/requirements.txt` 与 `code/typescript/package.json` 里的锁定版本；上面是最小安装命令，不锁版本，装到新版本可能与正文行为不一致。
+
+先做一次不花钱的最小例子——版本验证（不需要 Key）：
+
+```python
+import langchain, langgraph, deepagents
+from importlib.metadata import version
+print(version("langchain"), version("langgraph"), version("deepagents"))
+```
+
+能打印出三个版本号，就说明包都装上了。再跑一段真实链路验证（需要 Key）。Python 侧：
 
 ```python
 from langchain.agents import create_agent
@@ -177,7 +187,7 @@ const result: any = await agent.invoke({
 console.log(result.messages[result.messages.length - 1].content);
 ```
 
-能打印出模型回复，就说明「循环 + 工具 + 模型」这条最小链路是通的。注意这段验证代码**需要真实 API Key**，属于本教程「未实测」的部分——本机没有 Key，`code/` 下的示例一律用假模型。
+能打印出模型回复，就说明「循环 + 工具 + 模型」这条最小链路是通的。注意这段验证代码**需要真实 API Key**；教程里的 17 组示例仍用假模型离线跑，真实模型的协议层探针另见 `_实测输出核验/`，两者不是一回事。
 
 ## 四、常见坑与边界条件
 
@@ -185,13 +195,13 @@ console.log(result.messages[result.messages.length - 1].content);
 
 **1. 版本漂移是常态，节点名尤其不可信。** 三个框架迭代很快，`deepagents` 两个语言的版本号还不同步（Python 0.7.x / JS 1.x）。更要命的是：**图节点名是内部实现细节**——同一个中间件，Python 里叫 `PatchToolCallsMiddleware.before_agent`（P 大写），JS 里叫 `patchToolCallsMiddleware.before_agent`（p 小写）。要判断「装了哪些能力」，看工具列表或中间件清单，**不要硬编码节点名**。
 
-**2. 「注册了」不等于「模型看得见」。** 这是全书反复出现的坑：Deep Agents 的工具节点里注册了 9 个工具，但**绑定给模型的只有 8 个**——因为默认后端不提供执行能力，`execute` 不向模型暴露。排查「模型为什么不用某个工具」时，先确认它到底有没有被绑定。
+**2. 「注册了」不等于「模型看得见」。** 这是全书反复出现的坑：Python 侧实测，Deep Agents 的工具节点里注册了 9 个工具，但**绑定给模型的只有 8 个**——因为默认后端不提供执行能力，`execute` 不向模型暴露；JS 输出只验证了绑定侧的 8 个，没有节点注册数的证据。排查「模型为什么不用某个工具」时，先确认它到底有没有被绑定。
 
 **3. 包归属容易记混。** 官方文档把 `FilesystemMiddleware`、`SubAgentMiddleware` 列在 LangChain 的 middleware 清单里，但实测（1.4.2）**`langchain.agents.middleware` 没有这两个类**，它们在 `deepagents` 里；`SkillsMiddleware` 也从 `deepagents.middleware` 导入，而不是 `deepagents` 顶层。按包归属去翻文档，比按概念翻更快。
 
 **4. 两个「文档有、默认没装」的依赖。** MCP 接入需要额外装 `langchain[mcp]`；`SqliteSaver` 需要额外装 `langgraph-checkpoint-sqlite`。不装就是 `ModuleNotFoundError`，与代码写错无关。
 
-**5. 本章的未实测范围。** 真实模型端到端（工具选择倾向、提示词遵从度、真实 token 计费）、LangSmith 上报、MCP 真实服务器连接，均**不在实测范围内**，正文会逐处标注。
+**5. 本章的未实测范围。** 真实模型的协议层探针已于 2026-10-16 补测（流式分块、token / 缓存字段、结构化输出请求体），但**工具选择倾向、提示词遵从度、模型质量**仍未评测；LangSmith 上报与 MCP 真实服务器连接也仍未实测。正文会逐处标注。
 
 ## 五、关键结论
 
@@ -199,8 +209,7 @@ console.log(result.messages[result.messages.length - 1].content);
 2. **分层**：基础层（模型 / 消息 / 提示词 / 结构化输出）是共同地基；其上三层是 LangChain v1 = 构建块（循环 + 中间件插槽），LangGraph v1 = 运行时（图 + 状态 + 持久化），Deep Agents = 成品 harness（预装规划、文件系统、子代理、记忆）。
 3. **依赖方向单向**：Deep Agents → `create_agent` → LangGraph 图。学是自下而上，用是自上而下。
 4. **版本锚点**：LangChain v1 与 LangGraph v1 于 **2025-10-22** 同步 GA；Deep Agents 独立演进，且**两语言版本号不同步**（Python 0.7.18 / JS 1.14.0）。
-5. **双 SDK 命名规律**：Python snake_case、JS camelCase；入口函数 `create_agent` / `createAgent`。
-6. **本教程的口径**：API 名称、参数名、默认值一律以**本机实测**为准，与官方文档冲突处显式标注；需 API Key 的内容标注「未实测」。
+5. **本教程的口径**：API 名称、参数名、默认值一律以**示例实测 / 本机核对**为准，与官方文档冲突处显式标注；需 API Key 的内容标注「未实测」。
 
 ## 本章要点回顾
 
@@ -212,7 +221,7 @@ console.log(result.messages[result.messages.length - 1].content);
 - **双 SDK 对照**：`create_agent` / `createAgent`、`InMemorySaver` / `MemorySaver`、`@tool` / `tool(fn, { schema })`；完整清单见 `code/README.md`。
 - **三个反复踩的坑**：节点名不可硬编码；「注册了 ≠ 模型看得见」；`FilesystemMiddleware` / `SubAgentMiddleware` / `SkillsMiddleware` 都在 `deepagents` 而不在 `langchain.agents.middleware`。
 - **需额外安装**：`langchain[mcp]`、`langgraph-checkpoint-sqlite`。
-- **示例全部离线可跑**（假模型），真实模型端到端、LangSmith、MCP 真实服务器**均未实测**。
+- **示例全部离线可跑**（假模型）；真实模型的协议层探针已补测，LangSmith 上报与 MCP 真实服务器**仍未实测**。
 
 最后留一块全书共用的地基材料——口径分级的四档定义。后面每一章的结论都带这四档标签之一，读到任何「实测」字样时，回来对一遍这张表：
 

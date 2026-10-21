@@ -85,7 +85,7 @@ my-notes-and-utils/
 | 项目 | 数值 |
 |------|------|
 | 文件总数 | 920（不含 `.git/`、`.workbuddy*/`，以及构建 / 依赖产物 `node_modules/`、`.venv/`、`__pycache__/`、`*.pyc`） |
-| Markdown 文档 | 554 篇 / 270,985 行（约 27.1 万） |
+| Markdown 文档 | 554 篇 / 271,140 行（约 27.1 万） |
 | `guides/backend/` | 259 个文件 / 258 篇 Markdown |
 | `guides/frontend/` | 201 个文件 / 200 篇 Markdown |
 | `articles/` | 49 个文件 / 5 篇 Markdown（2 个类别 / 2 篇文章） |

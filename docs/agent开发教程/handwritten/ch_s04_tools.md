@@ -103,7 +103,7 @@ tools = [
 
 ### 2.4 回填：role=tool 消息的格式
 
-第 ⑤ 步的回填消息是契约里约定死的形状，四个字段一个不能少：
+第 ⑤ 步的回填消息是契约里约定死的形状：`role`、`tool_call_id`、`content` **三项必填**；`name` 可选（示例保留它便于排查，但 OpenAI 的类型定义不要求）：
 
 ```python
 session.messages.append({

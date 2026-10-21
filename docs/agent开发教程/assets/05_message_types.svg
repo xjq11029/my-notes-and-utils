@@ -49,7 +49,8 @@
 
 <!-- 配对箭头 -->
 <path d="M486 190L510 190" fill="none" stroke="#f0655f" stroke-width="1.8" marker-end="url(#ar1)"/>
-<text x="352" y="316" font-family="system-ui, sans-serif" font-size="10.5" fill="#f0655f">tool_calls[].id 必须与 tool_call_id 对上——对不上，框架就认不出这是哪次调用的结果</text>
+<text x="352" y="306" font-family="system-ui, sans-serif" font-size="10.5" fill="#f0655f">tool_calls[].id 必须与 tool_call_id 对上</text>
+<text x="352" y="322" font-family="system-ui, sans-serif" font-size="10.5" fill="#f0655f">对不上，框架就认不出这是哪次调用的结果</text>
 
 <!-- 底部说明 -->
 <line x1="34" y1="336" x2="646" y2="336" stroke="#3a4a5e" stroke-width="1"/>

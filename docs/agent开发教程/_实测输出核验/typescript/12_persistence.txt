@@ -16,7 +16,7 @@
   状态快照（getState）：
     values = {"n":101,"trail":["step→1","step→2","step→101"]}
     next   = []    ← 空数组表示已跑完
-    config = {"thread_id":"order-2026","checkpoint_id":"1f1c942a-62df-6411-8007-6fe82a337996","checkpoint_ns":""}
+    config = {"thread_id":"order-2026","checkpoint_id":"1f1cc335-eb6c-6230-8007-57b95ec832d1","checkpoint_ns":""}
 
   检查点历史（getStateHistory）：
     共 9 个检查点：

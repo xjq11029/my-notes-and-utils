@@ -10,9 +10,9 @@
 
 运行：python 02_models.py
 
-⚠️ 未实测范围（本机没有模型 API Key，也没有本地 Ollama）：
+⚠️ 真实模型范围（本机也没有本地 Ollama）：
    - 「初始化」一节只走到**构造出对象**这一步，不发任何请求，因此可离线实测；
-   - 真实 provider 的 invoke、stream 的真实分块、token 计费**未实测**，逐处标注；
+   - 真实模型的流式分块 / token 字段已有独立探针（见 code/README「真实模型实测」）；
    - 本示例真正跑通的调用链路全部走假模型 ScriptedChatModel（见 _fake_model.py）。
 """
 
@@ -34,7 +34,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 print("=" * 72)
 print("① 模型初始化的三个角度：提供商库 / init_chat_model / 本地 Ollama")
 print("=" * 72)
-print("  ⚠️ 本节只走到「构造出对象」，不发请求——真实调用需 API Key，未实测。")
+print("  ⚠️ 本节只走到「构造出对象」，不发请求；真实模型探针见 code/README「真实模型实测」。")
 print()
 
 # 角度 1：模型提供商库 —— 直接实例化对应的 ChatXxx 类
@@ -124,7 +124,7 @@ for label, payload in cases:
     print(f"      {[(type(m).__name__, m.content) for m in received]}")
 
 print()
-print("  → 三种写法归一化成同一件事：一条 system + 一条 human。")
+print("  → 字符串 → 一条 HumanMessage；两种列表写法 → 一条 system + 一条 human。")
 print("    模型侧永远只认消息对象：字符串被包成一条 HumanMessage，dict 被逐条转换。")
 print()
 
@@ -227,7 +227,7 @@ try:
     print(f"    init_chat_model('openai:gpt-4o').profile（节选）= {picked}")
 except Exception as exc:  # noqa: BLE001
     print(f"    （构造失败：{type(exc).__name__}）")
-print("    ⚠️ 画像来自「构造」，不代表真实调用行为；本机无 Key，未实测调用。")
+print("    ⚠️ 画像来自「构造」，不代表真实调用行为；真实模型探针见 code/README。")
 print("    → 用途：运行时判断这个模型支不支持工具调用、上下文窗口有多大。")
 print()
 

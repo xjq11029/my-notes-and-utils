@@ -8,7 +8,7 @@
  *   3. thread_id（对话作用域）与 context（单次运行作用域）的区别
  *   4. 结构化输出 responseFormat
  *
- * 运行：pnpm run 02_create_agent
+ * 运行：pnpm run 05_create_agent
  */
 
 import { createAgent, tool, HumanMessage } from "langchain";
@@ -137,5 +137,5 @@ console.log("  → 参数不合法时框架走「校验失败写回 ToolMessage 
 console.log();
 console.log("  ⚠️ 假模型回普通文本而不回工具调用时，structuredResponse 是 undefined——");
 console.log("     策略没被命中，框架不报错；真实模型下由模型自己决定调不调这个工具。");
-console.log("  ⚠️ 「JS 默认走 provider 原生 JSON schema」只对 provider 子类成立（未实测）；");
+console.log("  ⚠️ 「JS 默认走 provider 原生 JSON schema」只对 provider 子类成立；真实请求体已实测（code/README B）。");
 console.log("     裸 schema 与纯 BaseChatModel 子类的默认策略都是工具调用（源码可证）。");

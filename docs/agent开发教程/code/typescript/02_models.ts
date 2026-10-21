@@ -13,10 +13,10 @@
  *   - initChatModel() 是**异步**的，必须 await；Python 的 init_chat_model() 是同步的。
  *   - JS 侧 invoke / stream / batch **本来就在 Promise 上**，没有 ainvoke 这套孪生方法。
  *
- * ⚠️ 未实测范围（本机没有模型 API Key，也没有本地 Ollama）：
- *   - 本机未装 @langchain/openai，所以「provider 前缀」这一节只能看到**报错**，
- *     构造不出真实的 ChatOpenAI（Python 侧装了包，能构造出来）；
- *   - 真实 provider 的 invoke、stream 的真实分块、token 计费**未实测**，逐处标注；
+ * ⚠️ 真实模型范围（本机也没有本地 Ollama）：
+ *   - 本机未装 @langchain/openai：「provider 前缀」这一节构造会返回 ConfigurableModel，
+ *     真正 invoke 时才报缺包（Python 侧装了包，能构造出真实 ChatOpenAI）；
+ *   - 真实模型的流式分块 / token 字段已有独立探针（见 code/README「真实模型实测」）；
  *   - 本示例真正跑通的调用链路全部走假模型 ScriptedChatModel（见 _fakeModel.ts）。
  *
  * 运行：pnpm run 02_models
@@ -37,7 +37,7 @@ const shortErr = (e: unknown): string => firstLine(e).split(" imported from ")[0
 console.log("=".repeat(72));
 console.log("① 模型初始化的三个角度：提供商库 / initChatModel / 本地 Ollama");
 console.log("=".repeat(72));
-console.log("  ⚠️ 本节只走到「构造出对象」，不发请求——真实调用需 API Key，未实测。");
+console.log("  ⚠️ 本节只走到「构造出对象」，不发请求；真实模型探针见 code/README「真实模型实测」。");
 console.log();
 
 // 角度 1：模型提供商库 —— 直接 new 一个 ChatXxx 类
@@ -133,7 +133,7 @@ for (const [label, payload] of cases) {
 }
 
 console.log();
-console.log("  → 三种写法归一化成同一件事：一条 system + 一条 human。");
+console.log("  → 字符串 → 一条 HumanMessage；两种列表写法 → 一条 system + 一条 human。");
 console.log("    模型侧永远只认消息对象：字符串被包成一条 HumanMessage，dict 被逐条转换。");
 console.log();
 
@@ -213,7 +213,7 @@ console.log("=".repeat(72));
 console.log("  profile：LangChain 给模型做的「能力画像」，声明过才有——");
 const fakeProfile = new ScriptedChatModel({ script: [reply("x")] }).profile;
 console.log(`    假模型 profile = ${JSON.stringify(fakeProfile)}（空对象；Python 侧同一位置是 None）`);
-console.log("    真实模型下这样读（⚠️ 需 API Key，未实测）：");
+console.log("    真实模型下这样读（真实模型探针见 code/README「真实模型实测」）：");
 console.log('      const m = await initChatModel("openai:gpt-4o", { apiKey: "..." });');
 console.log("      m.profile.maxInputTokens / m.profile.toolCalling");
 console.log("    → 用途：运行时判断这个模型支不支持工具调用、上下文窗口有多大。");

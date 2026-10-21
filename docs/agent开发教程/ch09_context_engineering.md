@@ -34,13 +34,23 @@
 四种手段的共同目标只有一个：让模型在有限窗口里看到最有用的那部分。区别在于**信息损失发生在哪一层**——状态层、模型输入层，还是干脆挪出上下文。其中 ③（消息裁剪）是四者里最轻的一档，双语言名字还不一样；本章示例实测的是 ①② 两种，③④ 只给定位与代价（④ 见 2.5 节）——③ 的参数与命名细节见本节末尾的参考块。
 
 > **参考块｜手段 ③ 裁剪器的双语言细节**
-> ③ 的裁剪器值得单独说一句，因为**双语言名字不一样**：Python 侧是函数 `trim_messages`（`langchain_core.messages` 导出），关键参数 `max_tokens` + `token_counter` + `strategy="last"`（默认保留最新的消息、从最旧的开砍）与 `include_system`（是否保住系统提示）；JS 侧是类 `trimMessages`（`@langchain/core/messages` 导出）。它是四种手段里最轻的一档——**本教程未单独实测它**：示例 `09_context.py` / `09_context.ts` 实测的是 ①② 两种手段，③④ 只给定位与代价。
+> ③ 的裁剪器值得单独说一句，因为**双语言名字不一样**：Python 侧是函数 `trim_messages`（`langchain_core.messages` 导出），关键参数 `max_tokens` + `token_counter` + `strategy="last"`（默认保留最新的消息、从最旧的开砍）与 `include_system`（是否保住系统提示）；JS 侧的 `trimMessages` **也是函数**（`@langchain/core/messages` 导出），只是参数改成 options 对象。它是四种手段里最轻的一档——**示例 `09_context.py` / `09_context.ts` 实测的是 ①② 两种手段**，③④ 只给定位与代价；本轮的最小片段已抽测 ③ 的裁剪结果（8→4），完整链路仍未单独实测。
+
+最小例子（写法示意；本章示例实测的是 ①②，裁剪本身未单独实测）：
+
+```python
+from langchain_core.messages import HumanMessage, trim_messages
+
+messages = [HumanMessage(f"第 {i} 轮") for i in range(8)]
+trimmed = trim_messages(messages, max_tokens=4, token_counter=len, strategy="last")
+print(len(messages), "→", len(trimmed))
+```
 
 ### 2.2 核心差异：① 与 ② 走的是两个不同的钩子
 
 四种手段里，① 摘要和 ② 卸载最常用，也是本章示例实测过的两个。这一节先看它们在机制上的分岔——这是本章最值得记住的一处，而且是**实测出来的**，不是文档写的（差异清单口径）。两个都叫「上下文中间件」，效果却完全不同。下表回答的问题是：**两者各挂在什么钩子上、各自对图状态做了什么**。
 
-| | `SummarizationMiddleware`（①） | `ContextEditingMiddleware`（②） |
+| 维度 | `SummarizationMiddleware`（①） | `ContextEditingMiddleware`（②） |
 |---|---|---|
 | 挂载钩子 | `before_model`（节点式） | `wrap_model_call`（包裹式） |
 | 做法 | 返回一条摘要消息，**写回图状态** | 复制一份消息、改完**只传给模型** |
@@ -144,7 +154,7 @@ async function runCase(title: string, middleware: any[], rounds = 6): Promise<vo
 ```python
 SummarizationMiddleware(
     model=ScriptedChatModel(script=[reply("【摘要】前几轮排查了 svc-0 起的服务，均无新问题。")]),
-    trigger=("messages", 8),   # 状态超过 8 条消息就触发（位置参数：元组）
+    trigger=("messages", 8),   # keyword-only 参数；状态超过 8 条消息就触发
     keep=("messages", 4),      # 最近 4 条保留原文
 )
 ```
@@ -190,7 +200,7 @@ contextEditingMiddleware({
 
 上下文工程的坑有个共同点：大多不报错，只是质量悄悄变差（2.4 节）。下面逐条收拢。
 
-- **触发参数语法不一致**（实测）：Python 是位置参数 `trigger=("messages", 8)`；JS 一律是对象 `trigger: { messages: 8 }`。抄代码时最容易在这里翻车。
+- **触发参数语法不一致**（实测）：Python 的 `trigger` / `keep` 是 **keyword-only**，值为元组；JS 是对象 `trigger: { messages: 8 }`。抄代码时最容易在这里翻车。
   ⚠️ **`keep` 的取值别记串**：示例里 `SummarizationMiddleware` 用的是 **`keep=("messages", 4)`**（`09_context.py:94`），`keep=2` 属于另一个中间件 `ClearToolUsesEdit`（`:110`，且它的 `trigger` 是 **600 token** 而不是消息条数）。原先这里把 `keep=2` 归给了 `SummarizationMiddleware`，是张冠李戴。
 - **摘要本身要花一次模型调用**：`SummarizationMiddleware` 需要一个 `model` 参数——示例里传的是假模型，真实场景这是**额外的 token 与延迟**，要计入成本。
 - **「摘要后原文永久丢失」要加前提**：**不配 checkpointer** 时确实不可恢复；**配了 checkpointer** 就不一定——摘要发生在某个 super-step 内，**上一个检查点仍保有压缩前的完整消息**。本机实测（6 轮、`trigger=("messages", 8)`、`keep=("messages", 4)`，**需另配 `InMemorySaver`**）：最终状态 8 条，而 `get_state_history` 的 **42 个快照**里仍能翻出第 1 轮的长工具输出原文。
@@ -200,25 +210,25 @@ contextEditingMiddleware({
 - **压缩最旧内容会伤缓存**：时间顺序 = 前缀顺序，被压缩的正好是前缀部分。手段 ① 与缓存优化天然有张力。
 - **裁剪是最粗暴也最可预测的一种**：按条数 / token 砍最旧的，风险是砍掉「我稍后会做 X」这类尚未兑现的承诺。
 - **`keep` 要给足**：留太少会把当前的工具结果也清掉，模型立刻失去上下文。
-- **未实测**：真实模型下的缓存命中率、真实 token 计费、真实摘要质量——都需要 API Key。
+- **未实测**：真实模型下的折扣比例、真实 token 计费口径、真实摘要质量——都需要供应商账单/评测；**缓存命中率本身已在 2.6 节实测**，别再把它列为未实测。
 
 ## 五、关键结论
 
 1. **上下文只增不减是结构性的**：`messages` 用 `add_messages` reducer，天生只追加。
-2. **四种手段**：摘要压缩、工具输出卸载、消息裁剪、外部存储；区别在于信息损失发生在哪一层。
+2. **四种手段，按信息损失发生在哪一层选**：摘要压缩、工具输出卸载、消息裁剪、外部存储；需要「状态也变小」用 ①，需要「保留完整历史、只让模型少看」用 ②。
 3. **① 与 ② 机制不同**（实测）：`SummarizationMiddleware` 走 `before_model` 并**写回图状态**；`ContextEditingMiddleware` 走 `wrap_model_call`、**只改模型这次看到的请求、不回写状态**。
-4. **实测数字**：基线状态 4 → 24 条、模型收到 token 253 → 1545；摘要后状态稳定 8 条 / 528 token；卸载后状态照涨 4 → 24 而模型收到 token 稳定在 253 → 588。
-5. **判断口径**：需要「状态也变小」用 ①；需要「保留完整历史、只让模型少看」用 ②。
-6. **两者都会造成静默失败**，必须同时观测状态与模型输入两个数字。
-7. **缓存按前缀比对**，改动点之后全部失效 → 稳定内容放前面、时间顺序 = 前缀顺序、压缩最旧内容会伤缓存。
+4. **两者都会造成静默失败**，必须同时观测状态与模型输入两个数字。
+5. **缓存按前缀比对**，改动点之后全部失效 → 稳定内容放前面、时间顺序 = 前缀顺序、压缩最旧内容会伤缓存。
+
+> 口径：①/② 的状态与 token 数字、缓存命中 4→780→780 为示例 / 真实模型实测（`09_context.*`、`_实测输出核验/真实模型/`）；③ 裁剪器仅抽测最小片段（8→4），完整链路未单独实测；缓存折扣与计费口径未实测。
 
 ## 本章要点回顾
 
 - 核心提问：**装了中间件，图状态变小了吗？** 答案是「不一定」。
 - **摘要压缩走 `before_model` 并写回状态**；**工具输出卸载走 `wrap_model_call` 且不回写状态**——这是本章最重要的一条实测结论。
-- 记住两个数字：状态 **4 → 24 条**（基线），模型 token **253 → 1545**；摘要后 **8 条 / 528 token**，卸载后 token 稳在 **253 → 588**。
-- 触发参数：Python `trigger=("messages", 8)`（位置参数）/ JS `trigger: { messages: 8 }`（对象）。
+- 记住两个数字：状态 **4 → 24 条**（基线），模型 token **253 → 1545**；摘要后 **8 条 / 528 token**，卸载后 token **从 253 爬到 588**（逐轮 530 / 550 / 569 / 588，仍在上升）。
+- 触发参数：Python 的 `trigger=("messages", 8)` 是 **keyword-only** 元组 / JS `trigger: { messages: 8 }` 是对象。
 - 两者都**静默失败**：不报错，只是信息悄悄没了。观测手段是同时看「状态」与「模型输入」。
 - 消息裁剪（Python `trim_messages` / JS `trimMessages`，见 2.1 节）最粗暴也最可预测；外部存储（文件系统 / Store / Skills）损失最小，但要求模型主动读。
 - 提示词缓存按**前缀**比对，改动点之后全部失效 → **时间顺序 = 前缀顺序**，所以压缩最旧内容会伤缓存。
-- 缓存收益与真实 token 计费**未实测**（需 API Key）。
+- 缓存收益的**折扣比例与计费口径未实测**（需供应商账单）；缓存命中 token 数已在 2.6 节实测。

@@ -63,7 +63,7 @@
 | `object` / `model` / `created` | 类型标识、模型名、时间戳 |
 | `choices` | 候选回复数组；默认只有一条，取 `choices[0]` |
 | `choices[].message` | **正文所在**：`{role, content, …}` |
-| `choices[].finish_reason` | 停止原因：`stop` 或 `tool_calls`（2.4 节） |
+| `choices[].finish_reason` | 停止原因：常见值有 `stop` / `length` / `tool_calls` 等；本章只演示 `stop` 与 `tool_calls`（判停实际不读该字段，见坑 1） |
 | `usage` | token 消耗：`prompt_tokens` / `completion_tokens` / `total_tokens` |
 
 下面是一个**真实响应的结构摘录**，来自《Agents底层逻辑》课程课件——Ollama 本地跑 `qwen3-vl` 的返回（取值有删节，字段结构原样）：
@@ -268,6 +268,8 @@ session.add_message({"role": "user", "content": "你是谁"})
 resp = model.invoke(session)          # 非流式
 print(json.dumps(resp.message, ensure_ascii=False, indent=2))
 ```
+
+> 读代码时可以先借这两个黑盒：`Session` 是消息列表 + 工具清单的容器（S3 展开），`Model` 继承的 `EventEmitter` 是事件广播器（S6 展开）。S1 只关心它们产出的 JSON 形状，不要求你现在就懂实现。
 
 `invoke` 内部对非流式与流式分两条路径，但终点相同——一个归一化的 message dict：
 

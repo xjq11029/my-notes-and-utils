@@ -7,7 +7,7 @@
 1. **agent 要干一件不可逆的事**——扣款、发邮件、删数据。你不能让它自己决定，必须停下来等人点头，等完再接着跑。这叫**人在回路（human-in-the-loop, HITL）**。
 2. **前端要看到过程**——不是等 30 秒后一次性蹦出一整段回答，而是逐字往外吐。这叫**流式（streaming）**。
 
-两件事看着不相关，但**暂停与恢复**共用同一个底层事实：它们建立在检查点之上。所以本章的第一条硬性前置条件就是上一章的 checkpointer。（**流式本身不需要 checkpointer**——只有 `stream_mode` 里的 `checkpoints` / `tasks` 两档才要求，3.2 节那个父图流式示例就没配。）
+两件事看着不相关，但**暂停与恢复**共用同一个底层事实：它们建立在检查点之上。所以本章的第一条硬性前置条件就是上一章的 checkpointer。（**流式本身不需要 checkpointer**——`stream_mode` 里只有 `checkpoints` 这一档要求 checkpointer；`tasks` 不配也能产出 `task` / `task_result`，3.2 节那个父图流式示例就没配。）
 
 **一句话主线：本章回答「怎么让图停下来等人、怎么把过程投影给前端」——`interrupt` / `resume` 与静态中断是两种暂停方式，`stream_mode` 的七档投影与 `subgraphs=True` 是流式的两个控制面。**
 
@@ -42,6 +42,11 @@
 | 3 | payload 与 resume 值都必须**可序列化** | 写不进检查点，直接报错 |
 
 > `Command(resume=...)` 是**唯一**可以当作 `invoke` / `stream` 输入的 `Command` 形态。像 `Command(goto=...)` 那种跳转形态只能在**节点内部**返回，不能从外面喂进去——这是新手最容易混的一处。
+
+最小例子（三步）：
+1. 节点里调用 `value = interrupt({"question": "批准吗？"})`。
+2. 第一次 `invoke` 返回 `__interrupt__`，状态停在检查点。
+3. 用同一 `thread_id` 调 `invoke(Command(resume="批准"), cfg)`；节点从头重跑，`value` 拿到 resume 值。
 
 ### 2.2 最核心的实测结论：恢复时整个节点从头重跑
 
@@ -92,10 +97,10 @@
 | `messages` | `(token, metadata)` 二元组 | 打字机效果（最常用） |
 | `custom` | 节点里主动推的事件 | 「第 3/10 步」这类业务进度 |
 | `checkpoints` | 检查点事件 | 需要 checkpointer |
-| `tasks` | 任务开始 / 结束（含结果与错误） | 需要 checkpointer |
+| `tasks` | 任务开始 / 结束（含结果与错误） | 不需要 checkpointer（实测） |
 | `debug` | `checkpoints` + `tasks` 及额外元数据 | 排障；信息最多也最杂 |
 
-> ⚠️ **示例实跑的档数远少于七档**：Python 侧跑了 `values` / `updates` / `custom` / `debug` **4 档**，**JS 侧只跑了 3 档、没有 `debug`**。`messages` / `checkpoints` / `tasks` **两语言都没跑过**（后两档还需配 checkpointer）。
+> ⚠️ **示例实跑的档数远少于七档**：Python 侧跑了 `values` / `updates` / `custom` / `debug` **4 档**，**JS 侧只跑了 3 档、没有 `debug`**。`messages` / `checkpoints` / `tasks` **两语言都没跑过**（其中 `checkpoints` 需要 checkpointer；`tasks` 不需要，见上表）。
 > Python 侧 `debug` 的实际输出是 `['checkpoint', 'checkpoint', 'task', 'task_result', 'checkpoint']`——注意里面有 `task_result`，不是「checkpoints + tasks」两个词能概括的。
 
 ![图 25　stream_mode 各档投影分别给你什么，以及 agent 当子图时最容易踩的坑](assets/25_stream_modes.png)
@@ -120,7 +125,7 @@
 |---|---|---|
 | A | 直接 `stream` 子 agent | 内部消息**一览无余**（模型调用、工具消息全在） |
 | B | 父图 `stream`，**不加** `subgraphs` | 只剩跨边界的少数几条，模型内部的 token 全没了 |
-| C | 父图 `stream`，**加** `subgraphs=True` | 内部消息恢复，且分块**带 namespace**，能区分来自哪个子图 |
+| C | 父图 `stream`，**加** `subgraphs=True` | 只恢复子图的最终模型输出（本例 1 条 `AIMessage`），工具消息仍未透出；分块**带 namespace**，能区分来自哪个子图 |
 
 这就是「图能跑、结果也对，但打字机效果莫名其妙没了」的根因。要透传，就显式加 `subgraphs=True`。
 
@@ -243,7 +248,7 @@ const b = await collect(await parent.stream(inp, { streamMode: "messages" }), fa
 const c = await collect(await parent.stream(inp, { streamMode: "messages", subgraphs: true }), true);
 ```
 
-> ⚠️ **别把 A/B/C 的「分块个数」当结论**：示例用的是脚本化假模型，它一次吐一条完整消息，不是逐 token 吐，所以个数不可比（Python 侧实测 B 是 2 条，JS 侧是 1 条，会随版本变）。真正要看的是**哪几条消息能看见**：A 全见、B 只剩进出两条、C 恢复并标出来源。
+> ⚠️ **别把 A/B/C 的「分块个数」当结论**：示例用的是脚本化假模型，它一次吐一条完整消息，不是逐 token 吐，所以个数不可比（Python 侧实测 B 是 2 条，JS 侧是 1 条，会随版本变）。真正要看的是**哪几条消息能看见**：A 能看到模型调用与工具消息；B 只剩跨边界的少数几条；C 只恢复子图的最终模型输出，工具消息仍未透出，但分块会带 namespace 标出来源。
 > 完整可跑版本：`code/python/13_hitl_stream.py`、`code/typescript/13_hitl_stream.ts`。
 
 ## 四、常见坑与边界条件
@@ -262,14 +267,13 @@ const c = await collect(await parent.stream(inp, { streamMode: "messages", subgr
 
 ## 五、关键结论
 
-把全章收束成六条可迁移的判断：
-
-1. **HITL 建立在检查点之上**：三个前置条件是 checkpointer、`thread_id`、可序列化 payload。**流式不在此列**——它不需要 checkpointer，只有 `checkpoints` / `tasks` 两档 `stream_mode` 才要求。
+1. **HITL 建立在检查点之上**：三个前置条件是 checkpointer、`thread_id`、可序列化 payload。**流式不在此列**——它不需要 checkpointer；`stream_mode` 里只有 `checkpoints` 要求 checkpointer，`tasks` 不要求（实测）。
 2. **`interrupt()` 靠抛异常挂起**，因此不能被 `try/except` 吞掉；`Command(resume=...)` 是唯一能当 `invoke` 输入的 `Command` 形态。
 3. **恢复时整个节点从头重跑**（副作用日志实测出现两次）——由此推出四条铁律：不包 `try/except`、不重排、不传复杂值、之前的副作用必须幂等。**真正的副作用要拆成独立节点**放在 `interrupt()` 之后，而不是想办法让副作用幂等。
 4. **静态中断只适合调试**：它只能在节点边界停，且恢复时拿不到结构化的人工输入。
-5. **`stream_mode` 最多七种投影**，可组合成列表；`custom` 需要节点里主动推。**示例实跑：Python 4 档、JS 3 档**，`messages` / `checkpoints` / `tasks` 未跑过。
-6. **`subgraphs=True` 是子图流式的开关**：不加，agent 内部消息默认不透传。
+5. **流式是两个控制面**：`stream_mode` 最多七种投影、可组合成列表；子图要透出内部消息，必须显式 `subgraphs=True`。**示例实跑：Python 4 档、JS 3 档**，`messages` / `checkpoints` / `tasks` 未跑过。
+
+> 口径：中断恢复重跑、流式档数、子图透传为示例实测（`13_hitl_stream.*`）；静态中断与部分 `stream_mode` 档位未实跑；`tasks` 不要求 checkpointer 为实测结论。
 
 ## 本章要点回顾
 
@@ -282,5 +286,5 @@ const c = await collect(await parent.stream(inp, { streamMode: "messages", subgr
 - **四条铁律**：不包 `try/except`、不重排 `interrupt()`、不传复杂值、之前的副作用必须幂等。
 - **正确姿势**：把真副作用（扣款）拆成独立节点，放在 `interrupt()` 之后。
 - **静态中断**（`interrupt_before` / `interrupt_after`，JS 是 `interruptBefore` / `interruptAfter`）只用于调试，不推荐做审批流。
-- **`stream_mode` 七档**：`values` / `updates` / `messages` / `custom` / `checkpoints` / `tasks` / `debug`，可组合成列表。
+- **`stream_mode` 七档**（Python）：`values` / `updates` / `messages` / `custom` / `checkpoints` / `tasks` / `debug`，可组合成列表；JS 类型定义里多一个 `"tools"`（源码核对）。
 - **子图坑**：agent 当节点后内部消息默认不透传，必须显式 `subgraphs=True`（Python 可直接 `add_node`，JS 要取 `.graph`）。**JS 特有**：返回 `Command` 的节点必须声明 `ends`，否则编译期报 `UnreachableNodeError`。

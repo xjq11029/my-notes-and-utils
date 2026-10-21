@@ -34,12 +34,28 @@ State schema 就是「共享数据长什么样」。它回答的问题是：**�
 |---|---|---|
 | 字典式 | `TypedDict`（最常用） | `Annotation.Root({...})` |
 | 类式 | `dataclass` | 同上（JS 没有等价的 dataclass 写法） |
-| 校验式 | Pydantic `BaseModel` | zod schema（`Annotation.Root` 内） |
+| 校验式 | Pydantic `BaseModel` | zod schema（作为**整体 state** 传给 `StateGraph` / `StateSchema`；不能塞进 `Annotation.Root` 的字段里） |
 | 默认值 | 字段可给默认值，也可在 `invoke` 时传入 | 每个字段用 `default: () => 值` 显式给 |
 
 要点：**每个字段各管各的**。同一个 State 里，`counter` 可以是覆盖语义、`log` 是追加语义、`messages` 是消息专用语义，互不影响。
 
 schema 只回答了「字段是什么类型」；还有一个它回答不了的问题：两个节点都往同一个字段写东西，听谁的？这就是下一节的 reducer。
+
+最小例子（一张只有一个节点的图）：
+
+```python
+from typing import TypedDict
+from langgraph.graph import START, END, StateGraph
+
+class State(TypedDict):
+    n: int
+
+graph = StateGraph(State)
+graph.add_node("inc", lambda s: {"n": s["n"] + 1})
+graph.add_edge(START, "inc")
+graph.add_edge("inc", END)
+print(graph.compile().invoke({"n": 1}))   # {'n': 2}
+```
 
 ### 2.2 Reducer：默认是覆盖，`Annotated` 才合并
 
@@ -107,8 +123,8 @@ reducer 讲的是通用规则；这一节看最常用的那个合并型字段—
 边与 `Send` 覆盖了「流程往哪走」的常见形状；还有两种更灵活的组织方式——节点自己决定去哪，以及把整张图当零件复用。
 
 - **`Command`**：在节点里返回它，可以**同时**做两件事——`update` 更新状态、`goto` 跳转到指定节点。它是「动态路由 + 状态更新」的合一。第 13 章会讲它的另一种形态 `Command(resume=...)`。
-  - **JS 侧返回 `Command` 的节点建议显式声明去向** `addNode(name, fn, { ends: [...] })`；Python 靠类型注解 `Command[Literal[...]]`。「不写就报 `UnreachableNodeError`」是**源码核对**——本机 `tsc --noEmit` 的 45 条报错里没有一条是该错误名。
-- **子图**：编译好的图可以直接当节点用。Python 直接 `add_node("x", agent)`；JS 侧 `11_state_graph.ts` 取的是 `agent.graph`——「`ReactAgent` 包装对象本身不是 Runnable」属**源码核对**。**注意这与第 18 章的 JS 示例矛盾**：`18_multiagent.ts` 里直接把 agent 当节点用也能跑通，说明至少在该版本上不必一律取 `.graph`。两处口径以能跑通的 18 号为准，别照抄「必须取 `.graph`」。
+  - **JS 侧返回 `Command` 的节点建议显式声明去向** `addNode(name, fn, { ends: [...] })`；Python 靠类型注解 `Command[Literal[...]]`。「不写就报 `UnreachableNodeError`」是**源码核对**（图编译时的校验），本机未做「不写 ends」的编译对照实验。
+- **子图**：编译好的图可以直接当节点用。Python 的 `create_agent` 返回 `CompiledStateGraph`，可直接 `add_node("x", agent)`；JS 的 `createAgent` 返回 `ReactAgent` 包装对象，要取 `agent.graph` 再当节点——第 18 章的 JS 示例就是这么做的。11 号示例本身没有 agent 节点，不要把它当作「不必取 `.graph`」的证据。
 
 ### 2.8 同一线程再次 `invoke` 的语义
 
@@ -138,7 +154,7 @@ reducer 讲的是通用规则；这一节看最常用的那个合并型字段—
 
 ## 三、代码：Python 与 TypeScript
 
-完整可运行版本见 `code/python/11_state_graph.py` 与 `code/typescript/11_state_graph.ts`。四段代码对应机制部分的四个主题：schema 与 reducer、同线程多次 `invoke`、`Send` 并行、`Overwrite` 清空。
+完整可运行版本见 `code/python/11_state_graph.py` 与 `code/typescript/11_state_graph.ts`。五段代码对应机制部分的五个主题：schema 与 reducer、同线程多次 `invoke`、条件边、`Send` 并行、`Overwrite` 清空。
 
 **① State schema 与 reducer**——一个字段覆盖、一个字段合并：
 
@@ -275,15 +291,13 @@ new StateGraph(State)
 
 ## 五、关键结论
 
-把全章收束成七条可迁移的判断：
-
 1. **图 = State + Node + Edge**，必须 `compile()` 才能运行；`checkpointer` / `store` 在编译时传入。
-2. **State schema 三形态**：TypedDict / dataclass / Pydantic（JS 统一用 `Annotation.Root`，每个字段用 `default: () => ...`）。
-3. **默认 reducer = 覆盖**（**顺序**执行时后者覆盖前者；**并行**写同一无 reducer 字段会抛 `InvalidUpdateError`）；`Annotated[type, reducer]` 才是合并。消息用 `add_messages`（JS：`messagesStateReducer`）。
-4. **`Overwrite` 是合并型 reducer 的逃生舱**：返回空列表**不会**清空字段，要包 `Overwrite([])`。
-5. **条件边选一条路，`Send` 走多条路**：`Send` 是 map-reduce，靠目标字段的 reducer 汇总。
-6. **`Command` = 状态更新 + 动态跳转**；子图可以直接当节点（JS 取 `.graph`）。
-7. **同一线程再次 `invoke`（实测）**：输入里出现的字段按各自 reducer 合并、没出现的保留检查点值；`invoke(None)` 不注入新输入（已跑完的线程上为空操作）、`invoke({})` 才是续跑。
+2. **默认 reducer = 覆盖**（顺序执行时后者覆盖前者；并行写同一无 reducer 字段会抛 `InvalidUpdateError`）；`Annotated[type, reducer]` 才是合并。消息用 `add_messages`（JS：`messagesStateReducer`）。
+3. **`Overwrite` 是合并型 reducer 的逃生舱**：返回空列表**不会**清空字段，要包 `Overwrite([])`。
+4. **控制流原语各管一段**：条件边选一条路；`Send` 给每个分支单独 payload 并并行；`Command` 同时更新状态与跳转；子图可直接当节点（JS 取 `.graph`）。
+5. **同一线程再次 `invoke`（实测）**：输入里出现的字段按各自 reducer 合并、没出现的保留检查点值；`invoke(None)` 不注入新输入（已跑完的线程上为空操作）、`invoke({})` 才是续跑。
+
+> 口径：Reducer 行为、并行写同键报错、同线程 invoke 序列为示例实测（`11_state_graph.*`）；State schema 三形态与 Send / Command 细节以示例 + 源码核对为准；JS 取 `.graph` 的结论见 2.7。
 
 ## 本章要点回顾
 

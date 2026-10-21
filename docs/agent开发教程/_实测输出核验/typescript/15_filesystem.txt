@@ -11,10 +11,11 @@
     [ls] /notes/todo.md (18 bytes)
 
   状态里的键：["files","messages"]
-  state.files = {"/notes/todo.md":{"content":"# 待办\n- 写文档\n- 跑测试 ✅","mimeType":"text/markdown","created_at":"2026-10-16T09:19:16.400Z","modified_at":"2026-10-16T09:19:16.406Z"}
+  state.files = {"/notes/todo.md":{"content":"# 待办\n- 写文档\n- 跑测试 ✅","mimeType":"text/markdown","created_at":"2026-10-20T03:07:25.975Z","modified_at":"2026-10-20T03:07:25.980Z"}
 
   ⚠️ 关键点：StateBackend 把「文件」存在**图状态**里。
-     好处：跟着线程走，天然享受检查点（可回放、可时间旅行）；
+     好处：配了 checkpointer 时跟着线程走、享受检查点（可回放、可时间旅行）；
+           本示例没有配 checkpointer，所以只能证明一次 invoke 内可见。
      代价：跨线程就没了——新 thread_id 打开是一张白纸。
      要跨线程，得换 StoreBackend（见 ③）。
 
@@ -32,6 +33,7 @@
   ⚠️ mode='interrupt' 这一档容易被忽略：它不是「拒绝」，
      而是**暂停下来问人**——权限系统与人在回路是打通的。
 
+  ⚠️ 以下规则来自源码核对；本示例只构造权限，未 invoke 带 permissions 的 agent。
   规则按**声明顺序首次匹配即生效**（first match wins）：
     1. 先声明「/secrets/** 禁止读写」
     2. 再声明「/workspace/** 允许读写」
