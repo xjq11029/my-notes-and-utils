@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 470" width="680" height="470" role="img">
+<title>治理中间件挂在循环的哪里</title>
+<desc>HITL、PII、模型与工具限额、重试与回退在 agent 循环中的挂载位置。</desc>
+
+<rect x="0" y="0" width="680" height="470" fill="#111721"/>
+<text x="34" y="38" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="17" font-weight="700" fill="#dfe6ee">治理中间件挂在循环的哪里</text>
+<text x="34" y="62" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="12" fill="#7d8b9c">四类治理件都是 wrap-style；顺序决定「谁看到原文、谁占预算」</text>
+
+<!-- flow column -->
+<rect x="120" y="86" width="220" height="34" rx="7" fill="#1b2532" stroke="#3a4a5e"/>
+<text x="230" y="108" text-anchor="middle" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="12" fill="#dfe6ee">用户消息</text>
+
+<path d="M230 120 L230 142" stroke="#4dabf7" stroke-width="1.2"/>
+<path d="M226 138 L230 145 L234 138" fill="#4dabf7"/>
+
+<rect x="120" y="145" width="220" height="38" rx="7" fill="#2a1f24" stroke="#f0655f"/>
+<text x="230" y="169" text-anchor="middle" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="12" font-weight="700" fill="#ffb3ae">PIIMiddleware 脱敏</text>
+<text x="368" y="160" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="11" fill="#93a1b1">redact / mask / hash / block</text>
+<text x="368" y="177" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10.5" fill="#6b7a8d">默认只处理模型输入</text>
+
+<path d="M230 183 L230 205" stroke="#4dabf7" stroke-width="1.2"/>
+<path d="M226 201 L230 208 L234 201" fill="#4dabf7"/>
+
+<rect x="120" y="208" width="220" height="38" rx="7" fill="#241f38" stroke="#a78bfa"/>
+<text x="230" y="232" text-anchor="middle" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="12" font-weight="700" fill="#c9b8ff">HumanInTheLoopMiddleware</text>
+<text x="368" y="223" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="11" fill="#93a1b1">approve / edit / reject / respond</text>
+<text x="368" y="240" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10.5" fill="#6b7a8d">需 checkpointer + thread_id</text>
+
+<path d="M230 246 L230 268" stroke="#4dabf7" stroke-width="1.2"/>
+<path d="M226 264 L230 271 L234 264" fill="#4dabf7"/>
+
+<rect x="120" y="271" width="220" height="46" rx="7" fill="#1d2b3d" stroke="#4dabf7"/>
+<text x="230" y="291" text-anchor="middle" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="12" font-weight="700" fill="#8ecbff">模型调用</text>
+<text x="230" y="307" text-anchor="middle" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10.5" fill="#93a1b1">invoke / stream / batch</text>
+<text x="368" y="285" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="11" fill="#93a1b1">ModelCallLimit</text>
+<text x="368" y="302" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="11" fill="#93a1b1">ModelRetry / ModelFallback</text>
+
+<path d="M230 317 L230 339" stroke="#e8a34b" stroke-width="1.2"/>
+<path d="M226 335 L230 342 L234 335" fill="#e8a34b"/>
+
+<rect x="120" y="342" width="220" height="46" rx="7" fill="#2a2320" stroke="#e8a34b"/>
+<text x="230" y="362" text-anchor="middle" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="12" font-weight="700" fill="#f3c47a">工具执行</text>
+<text x="230" y="378" text-anchor="middle" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10.5" fill="#93a1b1">ToolNode / MCP tool</text>
+<text x="368" y="356" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="11" fill="#93a1b1">ToolCallLimit</text>
+<text x="368" y="373" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="11" fill="#93a1b1">ToolRetry</text>
+
+<path d="M230 388 L230 410" stroke="#4dabf7" stroke-width="1.2"/>
+<path d="M226 406 L230 413 L234 406" fill="#4dabf7"/>
+
+<rect x="120" y="413" width="220" height="32" rx="7" fill="#1b2532" stroke="#3a4a5e"/>
+<text x="230" y="433" text-anchor="middle" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="11" fill="#dfe6ee">ToolMessage → 下一轮</text>
+
+<!-- side note -->
+<rect x="40" y="86" width="56" height="359" rx="6" fill="#151d28" stroke="#2a3646"/>
+<text x="68" y="270" text-anchor="middle" transform="rotate(-90 68 270)" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10.5" fill="#6b7a8d">接缝：消息进入 / 工具结果回灌</text>
+
+<text x="34" y="458" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10.5" fill="#6b7a8d">顺序不是固定的：PII 与 HITL 谁在外层，取决于审批人要不要看原文。</text>
+</svg>

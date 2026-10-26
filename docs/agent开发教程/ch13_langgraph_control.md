@@ -29,9 +29,9 @@
 1. **第一次 `invoke(input, cfg)`**。图正常跑，直到节点里调用 `interrupt(payload)`。此时图不是「返回值」，而是**抛出一个特殊的挂起异常**，LangGraph 捕获它、存下检查点、把控制权交回调用方。返回结果里多出一个 `__interrupt__` 键，里面装着 payload。
 2. **第二次 `invoke(Command(resume=值), cfg)`**。用**同一个 `thread_id`** 再调一次，`interrupt()` 这次不再挂起，而是**直接返回 resume 值**，节点继续往下走。
 
-![图 24　interrupt / resume 的时序，以及「恢复时整个节点从头重跑」这个必须记住的事实](assets/24_interrupt_resume.png)
+![图 29　interrupt / resume 的时序，以及「恢复时整个节点从头重跑」这个必须记住的事实](assets/29_interrupt_resume.png)
 
-*图 24　interrupt / resume 的时序，以及「恢复时整个节点从头重跑」这个必须记住的事实*
+*图 29　interrupt / resume 的时序，以及「恢复时整个节点从头重跑」这个必须记住的事实*
 
 三个前置条件缺一不可，少任何一个都会得到「中断没生效」或「恢复找不到线程」：
 
@@ -84,7 +84,7 @@
 
 它的问题是**只会在节点边界停**，停不到节点中间，也拿不到结构化的人工输入（恢复时是再 `invoke(None)` 续跑，人工决定得另外写进状态）。所以它适合**调试时观察中间状态**，**不推荐用来做审批流**——审批流请用节点内的 `interrupt()`。
 
-### 2.4 stream_mode：同一张图，最多七种投影（**示例实跑 4 档 / 3 档**）
+### 2.4 stream_mode：同一张图，七种投影
 
 暂停与恢复讲完了，转到第二个问题：执行过程怎么送给前端。同一张图、同一次执行，`stream_mode` 决定给你看哪种投影。
 
@@ -100,16 +100,29 @@
 | `tasks` | 任务开始 / 结束（含结果与错误） | 不需要 checkpointer（实测） |
 | `debug` | `checkpoints` + `tasks` 及额外元数据 | 排障；信息最多也最杂 |
 
-> ⚠️ **示例实跑的档数远少于七档**：Python 侧跑了 `values` / `updates` / `custom` / `debug` **4 档**，**JS 侧只跑了 3 档、没有 `debug`**。`messages` / `checkpoints` / `tasks` **两语言都没跑过**（其中 `checkpoints` 需要 checkpointer；`tasks` 不需要，见上表）。
-> Python 侧 `debug` 的实际输出是 `['checkpoint', 'checkpoint', 'task', 'task_result', 'checkpoint']`——注意里面有 `task_result`，不是「checkpoints + tasks」两个词能概括的。
+> 口径：本章示例现在**七档全跑**（Python 与 JS 各 7 档）。`values/updates/custom/checkpoints/tasks/debug` 用同一张 `talk` 图；`messages` 用带模型节点的 agent。`checkpoints` 需要 checkpointer，`tasks` 不需要（实测）。`debug` 的实际事件序列是 `checkpoint → checkpoint → task → task_result → checkpoint`——里面有 `task_result`，不是「checkpoints + tasks」两个词能概括的。
 
-![图 25　stream_mode 各档投影分别给你什么，以及 agent 当子图时最容易踩的坑](assets/25_stream_modes.png)
+各档首块长什么样？下表是 **Python 1.2.12 的实测形状**（JS 形状一致，数组/对象类型略有差异）——它回答「拿到一个分块，先看什么」：
 
-*图 25　stream_mode 各档投影分别给你什么，以及 agent 当子图时最容易踩的坑*
+| 档位 | 分块数（本例） | 首块类型 | 首块里有什么 |
+|---|---|---|---|
+| `values` | 2 | `dict` | 第一步之前的完整状态（输入回显） |
+| `updates` | 1 | `dict` | `{'step': {'n': 1, 'note': ...}}` |
+| `messages` | 1（一次模型调用） | `AIMessage` | 模型这次吐出的消息块（假模型一消息一块） |
+| `custom` | 1 | `str` | 节点里 `get_stream_writer()` 推的字符串 |
+| `checkpoints` | 3 | `dict` | `config` / `values` / `next` 等检查点字段 |
+| `tasks` | 2 | `dict` | `id` / `name` / `input` / `triggers` |
+| `debug` | 5 | `dict` | `type` / `timestamp` / `payload` |
 
-**可以同时要多种**：传一个列表即可（Python `stream_mode=["updates","custom"]`，JS `streamMode: ["updates","custom"]`）。此时每个分块要自己分辨来源——Python 侧是 `(mode, payload)` 二元组，JS 侧是 `[mode, payload]` 数组；加了 `subgraphs=True` 之后，前面还会再多一层 namespace。
+> ⚠️ **别把分块数当语义**：它是这张图、这个假模型的产物；真实模型 token 多、节点多，数字都会变。要断言就断言**首块类型、字段、事件名**。
 
-> ⚠️ 这段是**源码核对 / 官方文档**：`13_hitl_stream.py` 与 `.ts` 的 ② 节都是**单档循环**跑的，从未传过列表，两份输出里没有 list-mode 的分块记录。
+![图 30　stream_mode 各档投影分别给你什么，以及 agent 当子图时最容易踩的坑](assets/30_stream_modes.png)
+
+*图 30　stream_mode 各档投影分别给你什么，以及 agent 当子图时最容易踩的坑*
+
+**可以同时要多种**：传一个列表即可（Python `stream_mode=["updates","custom"]`，JS `streamMode: ["updates","custom"]`）。此时每个分块要自己分辨来源——Python 侧是 `(mode, payload)` 二元组，JS 侧是 `[mode, payload]` 数组；加了 `subgraphs=True` 之后，形状变成 `(namespace, mode, payload)` / `[namespace, mode, payload]`（下一节展开）。
+
+> 口径：list-mode 与 subgraphs 形状均为**示例实测**（见 3.3）；`(ns, (mode, payload))` 这种「namespace 包着二元组」的写法**不成立**，实际是三元组/三元素数组。
 
 `custom` 档需要节点里主动推：Python 用 `get_stream_writer()`，JS 用 `getWriter()`。
 
@@ -128,6 +141,58 @@
 | C | 父图 `stream`，**加** `subgraphs=True` | 只恢复子图的最终模型输出（本例 1 条 `AIMessage`），工具消息仍未透出；分块**带 namespace**，能区分来自哪个子图 |
 
 这就是「图能跑、结果也对，但打字机效果莫名其妙没了」的根因。要透传，就显式加 `subgraphs=True`。
+
+### 2.6 组合与 namespace：list-mode + subgraphs 的分块形状
+
+2.4 的单档流已经够用；这一节回答「同时要多种投影、还要看子图内部」时，分块到底长什么样、解析代码怎么写。
+
+分块形状有四种组合，先看表再写解析：
+
+| 配置 | Python | TypeScript | 解析要点 |
+|---|---|---|---|
+| 单档 | `payload` | `payload` | 直接读 |
+| list-mode | `(mode, payload)` | `[mode, payload]` | 先看 `mode`，再解 payload |
+| list + subgraphs | `(namespace, mode, payload)` | `[namespace, mode, payload]` | `namespace` 是元组/数组；空元组表示父图 |
+| 事件流 | `{"event", "name", "data", ...}` | 同左 | 按 `event` 名分流，不看条数 |
+
+`namespace` 不是「子图名字符串」，而是一条路径：`("child:<uuid>",)`。取 `ns[0].split(":")[0]` 得到 `child`，就能判断「这块来自哪个子图」。父图自己产生的事件 `namespace` 为空元组/空数组。
+
+最小例子（3 步）：
+1. `talk.stream(..., stream_mode=["updates","custom"])` → 每块 `(mode, payload)`。
+2. 把 `talk` 当子图挂进父图，再加 `subgraphs=True` → 每块 `(ns, mode, payload)`。
+3. 解析时先按 `mode` 分支，再按 `ns` 分流父图/子图。
+
+> 口径：四种形状为**示例实测**；事件流的 `version` 默认值与支持版本见 2.7。
+
+### 2.7 astream_events：事件流与双语言差异
+
+`stream_mode` 是按状态投影；`astream_events` 是按**回调事件**流。它回答的问题是：**除了状态，还能不能看到模型 token、工具开始/结束、链的嵌套关系**。
+
+- Python：`agent.astream_events(input, version="v2")`，事件名如 `on_chat_model_stream` / `on_tool_start` / `on_tool_end` / `on_chain_start`；`version` 支持 `v1/v2/v3`，默认 `v2`（**源码核对**）。
+- `on_chat_model_stream` 要求模型真正走流式路径；假模型必须实现 `_astream`（本章已加），否则只有 start/end。
+- JS 差异（**示例实测**）：`model.streamEvents` 会出 `on_chat_model_stream`；但 `agent.streamEvents` 在 1.4.17 只出 start/end，逐 token 要用 `agent.stream({streamMode:"messages"})`。
+- 事件数量不是语义：同一次模型调用可能重复出现 stream 事件；按事件名与 payload 判断，不按条数断言。
+
+![图 31　七档投影与 astream_events 事件面](assets/31_stream_events.png)
+
+*图 31　七档投影与 astream_events 事件面*
+
+> 口径：Python 事件名与 `on_chat_model_stream` 为**示例实测**；`version` 支持范围为**源码核对**；JS 的 agent 级差异为**示例实测**（`model.streamEvents` 有 stream、`agent.streamEvents` 只有 start/end）。
+
+### 2.8 子图流式的解析契约
+
+2.5 的坑是「看不见」；2.6 的形状是「看见了怎么解」。这一节把两者收成一张契约表，回答「拿到一个分块，按什么顺序判断」。
+
+| 你先看到 | 说明 | 下一步 |
+|---|---|---|
+| `AIMessage` / `ToolMessage` 等消息对象 | 单档 `messages` 的 `(msg, metadata)` | 读 `metadata["langgraph_node"]` 判断来自哪个节点 |
+| `(mode, payload)` 二元组 / `[mode, payload]` 数组 | list-mode | 先按 `mode` 分支，再解 payload |
+| `(ns, mode, payload)` 三元组 / 三元素数组 | list + subgraphs | `ns[0]` 是子图路径；空 ns 是父图 |
+| `{"event": ...}` 字典 | `astream_events` | 按 `event` 名分流；`data` 里才是 chunk/输入/输出 |
+
+最后一条最重要的判断：**不要按「分块个数」写断言**。假模型一消息一块、真实模型一 token 一块、不同版本还可能重复发事件；个数天生不稳定。要断言就断言「哪些消息可见 + namespace + 事件名」——这也是 2.5 的 A/B/C 对比真正想说明的事。
+
+> 口径：三种流形状与 `astream_events` 事件名为**示例实测**；事件重复为**本机核对**（Python 侧 2 次模型调用共出现 4 条 `on_chat_model_stream`）。
 
 ## 三、代码：Python 与 TypeScript
 
@@ -251,9 +316,78 @@ const c = await collect(await parent.stream(inp, { streamMode: "messages", subgr
 > ⚠️ **别把 A/B/C 的「分块个数」当结论**：示例用的是脚本化假模型，它一次吐一条完整消息，不是逐 token 吐，所以个数不可比（Python 侧实测 B 是 2 条，JS 侧是 1 条，会随版本变）。真正要看的是**哪几条消息能看见**：A 能看到模型调用与工具消息；B 只剩跨边界的少数几条；C 只恢复子图的最终模型输出，工具消息仍未透出，但分块会带 namespace 标出来源。
 > 完整可跑版本：`code/python/13_hitl_stream.py`、`code/typescript/13_hitl_stream.ts`。
 
+### 3.3 七档、list-mode 与事件流
+
+这一段把 2.4–2.7 的四种形状跑成一次演示：先单档、再 list-mode、再加 subgraphs、最后事件流。
+
+```python
+for mode in ("values", "updates", "custom", "checkpoints", "tasks", "debug"):
+    chunks = list(talk.stream({"n": 0, "note": ""},
+                              {"configurable": {"thread_id": f"shape-{mode}"}},
+                              stream_mode=mode))
+    print(mode, len(chunks), type(chunks[0]).__name__)
+
+message_chunks = list(message_agent.stream(
+    {"messages": [{"role": "user", "content": "查 x"}]}, stream_mode="messages"))
+print("messages", len(message_chunks), type(message_chunks[0][0]).__name__)
+
+combined = list(talk.stream({"n": 0, "note": ""},
+                            {"configurable": {"thread_id": "list-1"}},
+                            stream_mode=["updates", "custom"]))
+print(combined)          # [('custom', '进度：正在处理第 1 步'), ('updates', {'step': {...}})]
+
+for namespace, mode, payload in talk_parent.stream(
+        {"n": 0, "note": ""},
+        {"configurable": {"thread_id": "sub-list-1"}},
+        stream_mode=["updates", "custom"], subgraphs=True):
+    print(namespace[0].split(":")[0] if namespace else "()", mode, payload)
+```
+
+```python
+async for event in event_agent.astream_events(
+        {"messages": [{"role": "user", "content": "查 x"}]}, version="v2"):
+    if event["event"] in {"on_chat_model_stream", "on_tool_start", "on_tool_end"}:
+        print(event["event"], str(event["data"].get("chunk", ""))[:20])
+```
+
+TypeScript 侧一一对应，注意 `talkParent.stream(..., { subgraphs: true })` 的每块是**三元素数组**：
+
+```typescript
+for (const mode of ["values", "updates", "custom", "checkpoints", "tasks", "debug"] as const) {
+  const chunks: any[] = [];
+  for await (const c of await talk.stream(
+    { n: 0, note: "" },
+    { configurable: { thread_id: `shape-${mode}` }, streamMode: mode },
+  )) chunks.push(c);
+  console.log(mode, chunks.length, Array.isArray(chunks[0]) ? "array" : typeof chunks[0]);
+}
+
+for await (const chunk of await talkParent.stream(
+  { n: 0, note: "" },
+  { configurable: { thread_id: "sub-list-1" }, streamMode: ["updates", "custom"], subgraphs: true },
+)) {
+  const [ns, mode, payload] = chunk;      // 三元素：namespace / mode / payload
+  console.log(String(ns?.[0] ?? "()").split(":")[0], mode, payload);
+}
+
+for await (const ev of eventModel.streamEvents([new HumanMessage("hi")], { version: "v2" })) {
+  if (ev.event.includes("chat_model")) console.log(ev.event);   // model 级才有 stream 事件
+}
+```
+
+实测形状（Python 1.2.12 / JS 1.4.17 一致，仅容器类型不同）：
+
+```text
+values 2 / updates 1 / messages 1 / custom 1 / checkpoints 3 / tasks 2 / debug 5
+list-mode       → [('custom', '进度：正在处理第 1 步'), ('updates', {'step': {...}})]
+list+subgraphs  → (('child:<uuid>',), 'custom', '进度：正在处理第 1 步')
+                  ((), 'updates', {'child': {'n': 1, 'note': '第 1 步完成'}})
+astream_events  → on_chat_model_stream ×4 / on_tool_start ×1 / on_tool_end ×1
+```
+
 ## 四、常见坑与边界条件
 
-九条坑可以分两组读：前六条围绕中断与恢复（第 1 条是总根源），后三条围绕流式（子图透传、分块形状、JS 类型定义）。
+十二条坑可以分两组读：前六条围绕中断与恢复（第 1 条是总根源），后六条围绕流式（子图透传、分块形状、档位前置条件、事件流与 JS 类型定义）。
 
 1. **恢复时节点从头重跑**——所有坑的总根源。凡 `interrupt()` 之前的代码，都要假设它会跑两次。
 2. **别用 `try/except` 包 `interrupt()`**。它靠抛异常挂起，吞掉异常等于取消暂停；确实要 catch，必须把异常原样重抛。
@@ -264,6 +398,9 @@ const c = await collect(await parent.stream(inp, { streamMode: "messages", subgr
 7. **`subgraphs=True` 忘了加**，表现是「后端日志正常、前端打字机不动」。判断方法：看流出来的分块里有没有 `langgraph_node` 是子图内部节点。
 8. **`stream_mode` 传列表后分块形状变了**。Python 变成 `(mode, payload)`、JS 变成 `[mode, payload]`，再加 `subgraphs=True` 则前面多一层 namespace——升级或改配置后要同步改解析代码。
 9. **JS 类型定义里 `StreamMode` 还多一个 `"tools"`**（**源码核对**——读 `@langchain/langgraph` 1.4.17 的 `dist/pregel/types.d.ts`；示例未使用、本章不展开），Python 侧 `types.py` 的七值里没有 `tools`。**这是读类型定义读出来的，不是跑出来的。**
+10. **`messages` 档需要图里真有模型节点**：拿一张纯函数图去跑 `stream_mode="messages"`，什么也拿不到。另外假模型要实现 `_astream`（或 JS 的 `_streamResponseChunks`），否则只会出 `on_chat_model_start/end`，没有 `on_chat_model_stream`。
+11. **`list + subgraphs` 的形状是三元组/三元素数组**，不是「namespace 包着 `(mode, payload)`」的二元组。Python 解包写 `for ns, mode, payload in chunks`；JS 写 `const [ns, mode, payload] = chunk`。
+12. **JS 的 `agent.streamEvents` 在 1.4.17 只有 start/end**：要逐 token 用 `agent.stream({streamMode:"messages"})`；要看模型级事件，直接 `model.streamEvents(...)`。这是本机实测差异，不是写法问题。
 
 ## 五、关键结论
 
@@ -271,9 +408,9 @@ const c = await collect(await parent.stream(inp, { streamMode: "messages", subgr
 2. **`interrupt()` 靠抛异常挂起**，因此不能被 `try/except` 吞掉；`Command(resume=...)` 是唯一能当 `invoke` 输入的 `Command` 形态。
 3. **恢复时整个节点从头重跑**（副作用日志实测出现两次）——由此推出四条铁律：不包 `try/except`、不重排、不传复杂值、之前的副作用必须幂等。**真正的副作用要拆成独立节点**放在 `interrupt()` 之后，而不是想办法让副作用幂等。
 4. **静态中断只适合调试**：它只能在节点边界停，且恢复时拿不到结构化的人工输入。
-5. **流式是两个控制面**：`stream_mode` 最多七种投影、可组合成列表；子图要透出内部消息，必须显式 `subgraphs=True`。**示例实跑：Python 4 档、JS 3 档**，`messages` / `checkpoints` / `tasks` 未跑过。
+5. **流式有三个控制面**：`stream_mode` 七档（本章**七档全跑**）、list-mode / `subgraphs` 的分块形状（二元组 → 三元组）、`astream_events` 的事件流。子图要透出内部消息必须 `subgraphs=True`；JS 的 `agent.streamEvents` 在 1.4.17 只给 start/end，逐 token 用 `agent.stream({streamMode:"messages"})`。
 
-> 口径：中断恢复重跑、流式档数、子图透传为示例实测（`13_hitl_stream.*`）；静态中断与部分 `stream_mode` 档位未实跑；`tasks` 不要求 checkpointer 为实测结论。
+> 口径：中断恢复重跑、七档 `stream_mode`、list/subgraphs 形状、Python `astream_events` 为**示例实测**（`13_hitl_stream.*`）；静态中断与 JS `tools` 档未实跑/未使用；`tasks` 不要求 checkpointer 为实测结论；JS agent 级 `streamEvents` 差异为示例实测。
 
 ## 本章要点回顾
 
@@ -288,3 +425,6 @@ const c = await collect(await parent.stream(inp, { streamMode: "messages", subgr
 - **静态中断**（`interrupt_before` / `interrupt_after`，JS 是 `interruptBefore` / `interruptAfter`）只用于调试，不推荐做审批流。
 - **`stream_mode` 七档**（Python）：`values` / `updates` / `messages` / `custom` / `checkpoints` / `tasks` / `debug`，可组合成列表；JS 类型定义里多一个 `"tools"`（源码核对）。
 - **子图坑**：agent 当节点后内部消息默认不透传，必须显式 `subgraphs=True`（Python 可直接 `add_node`，JS 要取 `.graph`）。**JS 特有**：返回 `Command` 的节点必须声明 `ends`，否则编译期报 `UnreachableNodeError`。
+- **七档全跑**：`values` / `updates` / `messages` / `custom` / `checkpoints` / `tasks` / `debug`；`messages` 要模型节点、`checkpoints` 要 checkpointer、`tasks` 不要。
+- **list-mode 形状**：Python `(mode, payload)`、JS `[mode, payload]`；加 `subgraphs=True` 后是 `(ns, mode, payload)` / `[ns, mode, payload]` **三元组**，不是嵌套二元组。
+- **`astream_events`**：Python agent 级能看到 `on_chat_model_stream`；JS agent 级只给 start/end，逐 token 用 `stream({streamMode:"messages"})`，模型级 `streamEvents` 才有 stream 事件。

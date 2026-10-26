@@ -16,7 +16,7 @@
   状态快照（get_state）：
     values = {'n': 101, 'trail': ['step→1', 'step→2', 'step→101']}
     next   = ()    ← 空元组表示已跑完，没有待执行节点
-    config = {'thread_id': 'order-2026', 'checkpoint_ns': '', 'checkpoint_id': '1f1cc334-e4a6-6d37-8007-ce78c470ff5f'}
+    config = {'thread_id': 'order-2026', 'checkpoint_ns': '', 'checkpoint_id': '1f1d0d51-2f1f-6a81-8007-acef6e50239d'}
 
   检查点历史（get_state_history）：
     共 9 个检查点：
@@ -44,7 +44,7 @@
       snapshots[ 7]（倒数第 2）  step= 0  n=0
       snapshots[ 8]（倒数第 1）  step=-1  n=None
   选中的历史检查点：snapshots[-2] → step=0, n=0
-  改写后的新分支 config：1f1cc334-e4a9-6b5f-8...
+  改写后的新分支 config：1f1d0d51-2f22-6b5b-8...
   重放结果：n = 101, trail = ['人工改写：从 100 开始', 'step→101']
   → update_state 会**新建一个分支**，原线程的历史不受影响。
     这是调试 agent 的利器：把某一步的状态改一改，看后面会怎么走。
@@ -89,3 +89,35 @@ checkpointer 与 store 的分工
   ⚠️ 生产环境别用 InMemorySaver / InMemoryStore —— 进程一重启就全没了。
      持久化检查点需另装：pip install langgraph-checkpoint-sqlite（本地）
      或 langgraph-checkpoint-postgres（生产）。
+
+==============================================================================
+⑥ 子图持久化：checkpoint_ns 与两层历史
+==============================================================================
+  父图 values = {'x': 0}，next = ('child',)（停在子图节点上）
+  子图 task = child
+    子图 values = {'x': 1}，next = ('child_pause',)
+    checkpoint_ns = child:<uuid>  ← 子图在父图里的命名空间
+  恢复后父图 = {'x': 2}
+  → 父图与子图各自有一层检查点；get_state(..., subgraphs=True) 才能在暂停态下钻。
+    get_state_history 没有 subgraphs 参数——历史只能按当前图的命名空间翻。
+
+==============================================================================
+⑦ durability：sync / async / exit 的快照数量差异
+==============================================================================
+  durability=sync   → 历史快照 4 个
+  durability=async  → 历史快照 4 个
+  durability=exit   → 历史快照 1 个
+  → sync 每步落盘、async 异步落盘（invoke 返回时已补写）、exit 只在结束时写一次；
+    不配 checkpointer 时 durability 无效（没有地方可写）。
+
+==============================================================================
+⑧ 记忆的类型学：短期 / 长期 / 语义 / 程序性
+==============================================================================
+  记忆类型       载体                 作用域 / 检索方式
+  短期对话       checkpointer         线程内，按 thread_id + checkpoint_ns
+  长期事实       Store                跨线程，按 namespace / key
+  语义记忆       Store index          跨线程，按 embedding 相似度
+  程序性记忆     Skills / AGENTS.md   文件，按需加载进提示词
+  → 四种记忆不是四个 API，而是「用哪层存储 + 怎么取」的四种组合；
+    选错层的典型症状：把用户偏好写进 checkpointer（换线程就丢），
+    或把整段对话塞进 Store（检索噪声大、成本高）。

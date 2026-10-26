@@ -61,3 +61,35 @@
      它一次吐一条完整消息，不是逐 token 吐——所以个数不可比。
      真正要看的是**哪几条消息能看见**：A 能看到子图内部全部消息，
      B 只剩进出两条，C 恢复了内部消息并额外标出它来自哪个子图。
+
+==============================================================================
+④ 七档 stream_mode：每种投影给你什么形状
+==============================================================================
+  values       2 个分块，首块类型 dict
+  updates      1 个分块，首块类型 dict
+  custom       1 个分块，首块类型 str
+  checkpoints  3 个分块，首块类型 dict
+  tasks        2 个分块，首块类型 dict
+  debug        5 个分块，首块类型 dict
+  messages     1 个分块，首块 AIMessage
+  → values/updates/custom/checkpoints/tasks/debug 都不需要模型；messages 需要图里有模型节点。
+    checkpoints 需要 checkpointer；tasks 不需要（本机 1.2.12 实测）。
+
+==============================================================================
+⑤ list-mode + subgraphs：分块形状怎么解
+==============================================================================
+  stream_mode=['updates','custom'] → [('custom', '进度：正在处理第 1 步'), ('updates', {'step': {'n': 1, 'note': '第 1 步完成'}})]
+  → Python 每块是 (mode, payload) 二元组；JS 每块是 [mode, payload] 数组。
+  ns=child    mode=custom   payload=进度：正在处理第 1 步
+  ns=child    mode=updates  payload={'step': {'n': 1, 'note': '第 1 步完成'}}
+  ns=()       mode=updates  payload={'child': {'n': 1, 'note': '第 1 步完成'}}
+  → 加 subgraphs=True 后是 (namespace, mode, payload) 三元组；
+    JS 侧是 [namespace, mode, payload] 数组——形状一致，容器类型不同。
+
+==============================================================================
+⑥ astream_events：事件流
+==============================================================================
+  关键事件计数 = {'on_chain_start': 4, 'on_chat_model_stream': 4, 'on_tool_end': 1, 'on_tool_start': 1}
+  → on_chat_model_stream 来自假模型的 _astream；真实模型的每个 token 都会触发一次。
+  ⚠️ JS 侧差异：agent.streamEvents 在 1.4.17 只给 start/end，
+     逐 token 要用 agent.stream({streamMode:'messages'})；模型自身的 streamEvents 才会给 stream 事件。

@@ -859,6 +859,59 @@ if __name__ == "__main__":
 
 **涉及知识点：** asyncio 事件循环与协程、`Semaphore` 限流、异步装饰器、`functools.wraps`、`dataclass`、`Counter` 统计、异常聚合、GIL 与并发选型。
 
+
+## 四、进阶专题（12道）
+
+> 本节对应新增的 `03-Python函数进阶与装饰器`、`04-Python异常与上下文管理`、`05-Python迭代器与生成器`、`06-Python并发与协程` 四篇专题。题目偏「Agent 代码里真正会用到的那部分 Python」。
+
+### 1. 闭包为什么能记住外层变量？LEGB 的查找顺序是什么？★★
+
+**答：** 闭包是「函数对象 + 它捕获的自由变量」的组合。内层函数引用外层函数的局部变量时，Python 把这些变量存进函数的 `__closure__`（cell 对象），即使外层函数已经返回，变量仍然存活。名字查找顺序是 **Local → Enclosing → Global → Built-in**（LEGB）：先找当前函数局部，再找外层函数闭包，再找模块全局，最后找内置命名空间。要修改外层变量，用 `nonlocal`（不是 `global`）。
+
+### 2. 循环里创建多个 lambda，为什么都拿到最后一个值？★★★
+
+**答：** 这是 **late binding（延迟绑定）**：lambda 体在调用时才去闭包里取 `i`，而循环结束后 `i` 已经是最后一个值。修复方式有两种：默认参数 `lambda i=i: i`（定义时求值并绑定），或 `functools.partial`。Agent 代码里常见于「为每个工具/回调注册闭包」——如果闭包捕获循环变量，必须显式绑定。
+
+### 3. 带参装饰器的三层结构分别是什么？★★★
+
+**答：** `def deco(arg): def wrapper(func): def inner(*a, **kw): ...; return inner; return wrapper`。最外层接收装饰器参数，第二层接收被装饰函数，第三层是真正替换原函数的 wrapper。`@deco("x")` 等价于 `func = deco("x")(func)`。LangChain 的 `@tool(description=...)`、`@before_model` 都是这个结构的不同变体。
+
+### 4. `functools.wraps` 解决什么问题？不加会怎样？★★
+
+**答：** 装饰器返回的 `inner` 会覆盖原函数的元数据：`__name__` 变成 `inner`、`__doc__` 丢失、签名变成 `(*a, **kw)`。`@functools.wraps(func)` 把原函数的 `__name__` / `__doc__` / `__module__` / `__annotations__` / `__wrapped__` 复制到 wrapper 上，IDE、日志、`inspect.signature` 才能看到真实函数。Agent 框架靠签名和 docstring 生成工具 schema，不加 `wraps` 会直接导致工具描述错误。
+
+### 5. `lru_cache` 的缓存键是什么？哪些函数不能加？★★★
+
+**答：** 默认用**位置参数与关键字参数组成的 key**（参数必须可哈希）；`maxsize=None` 表示无上限，`typed=True` 会把 `1` 与 `1.0` 分开。不能加在有副作用、依赖外部可变状态、参数不可哈希（list/dict）或需要每次重新计算的函数上。Agent 里常用于缓存「纯的 schema 构造 / 配置解析」，不要缓存「工具调用结果」——那会把实时数据冻住。
+
+### 6. `try/except/else/finally` 的执行顺序是什么？★★
+
+**答：** `try` 正常结束 → `else`（仅无异常时）→ `finally`（无论如何都执行）。`try` 抛异常 → 匹配的 `except` → `finally`。`finally` 里的 `return` / `break` 会**吞掉异常并覆盖返回值**，生产代码应避免。`else` 适合放「只有成功才做」的后续逻辑，避免把无关异常误捕获。
+
+### 7. `raise ... from ...` 与直接 `raise` 有什么区别？★★★
+
+**答：** `raise NewError(...) from exc` 设置 `__cause__`，形成**显式异常链**，traceback 显示「The above exception was the direct cause…」；`raise NewError(...)` 在 `except` 块里会自动设置 `__context__`（隐式链）；`raise ... from None` 则切断上下文，隐藏底层异常。Agent 的工具层应保留底层原因（`from exc`），但对外返回给模型的错误消息要脱敏。
+
+### 8. 上下文管理器协议是什么？`@contextmanager` 的 `yield` 处异常怎么处理？★★
+
+**答：** 实现 `__enter__` / `__exit__(exc_type, exc, tb)`；`__exit__` 返回 `True` 会吞掉异常，返回 `False`/`None` 继续传播。`@contextmanager` 把生成器切成两半：`yield` 前是 `__enter__`，`yield` 后是 `__exit__`；**必须用 `try: yield ... finally: 清理`** 包住，否则块内抛异常时清理代码会被跳过。Agent 的会话、流、临时文件都适合用它管理。
+
+### 9. 生成器的 `send` / `throw` / `close` 分别做什么？★★★
+
+**答：** `send(v)` 把值送进 `yield` 表达式并恢复执行（首次必须 `send(None)` 或 `next()`）；`throw(E)` 在暂停点抛入异常，生成器可捕获；`close()` 在暂停点抛 `GeneratorExit`，用于清理。它们让生成器变成「可双向通信的协程雏形」——`yield from` 会把 `send`/`throw` 委托给子生成器。
+
+### 10. `yield from` 比手写 `for x in sub: yield x` 多做了什么？★★
+
+**答：** 除了转发迭代，它还**转发 `send` / `throw` / `close`**，并自动处理子生成器的返回值（成为 `yield from` 表达式的值）。在「生成器管道」里，它让最外层可以直接与最内层通信，不必每层手写转发逻辑。Agent 的 token 流、分页结果拼接常用它。
+
+### 11. GIL 存在时，CPU 密集与 IO 密集任务分别怎么选？★★★
+
+**答：** GIL 让同一进程内同一时刻只有一个线程执行 Python 字节码。**CPU 密集**用 `multiprocessing` / `ProcessPoolExecutor`（绕开 GIL），进程间用序列化通信；**IO 密集**用 `threading`（阻塞 IO 会释放 GIL）或 `asyncio`（单线程协程，开销更小）。CPU 密集 + 大量并发不要用线程池硬扛；IO 密集 + 需要共享内存时线程池更简单。
+
+### 12. `asyncio.create_task` 不保存引用会怎样？★★★
+
+**答：** 事件循环只持**弱引用**，任务对象可能被垃圾回收，导致「任务跑到一半消失」或取消/异常无人处理。正确做法是把 task 存进集合（`tasks.add(t); t.add_done_callback(tasks.discard)`），或使用 `asyncio.TaskGroup`（3.11+）统一管理生命周期。Agent 的并发工具调用、后台流式任务都要守这条。
+
 ---
 
 ## 学习导航栏

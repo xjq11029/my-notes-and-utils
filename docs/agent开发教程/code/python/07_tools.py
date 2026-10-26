@@ -1,17 +1,20 @@
 # -*- coding: utf-8 -*-
 """第 7 章示例：工具、运行时上下文注入与错误处理。
 
-演示四件事：
+演示五件事：
   1. @tool 的 docstring 与类型注解如何变成模型看到的 schema
   2. ToolRuntime 注入：工具里怎么读到 state / context / store
   3. 工具返回 Command —— 直接修改图状态（v1 的新写法）
   4. 工具抛异常时，用 wrap_tool_call 把它变成模型能读懂的 ToolMessage
+  5. MCP：连接一个真实的本地 stdio server，发现并调用工具
 
 运行：python 07_tools.py
 """
 
+import asyncio
 import sys
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Callable, TypedDict
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -192,3 +195,30 @@ print("  · 转成 ToolMessage    → 模型读到「失败了，换个参数」
 print()
 print("  ⚠️ 注意：v1 已经**不再**使用 ToolException / handle_tool_error 这套旧 API。")
 print("     要么像上面这样自己写 wrap_tool_call，要么直接用内置的 ToolErrorMiddleware。")
+
+
+# ---------------------------------------------------------------------------
+# 5. MCP
+# ---------------------------------------------------------------------------
+print()
+print("=" * 72)
+print("⑤ MCP：连接一个真实的 stdio server")
+print("=" * 72)
+
+
+async def mcp_demo() -> None:
+    from langchain.mcp import MCPAdapter
+
+    server = Path(__file__).with_name("07_mcp_server.py")
+    async with MCPAdapter(server) as adapter:
+        tools = await adapter.list_tools()
+        print(f"  发现工具：{[t.name for t in tools]}")
+        add_tool = next(t for t in tools if t.name == "add")
+        result = await add_tool.ainvoke({"a": 2, "b": 3})
+        text = result[0]["text"] if isinstance(result, list) and result else result
+        print(f"  add(2, 3) → {text}")
+        print("  → 客户端只拿到工具名、描述、schema；server 进程由 MCPAdapter 通过 stdio 拉起。")
+        print("    server 的 stdout 只能走协议，日志写 stderr；这是 stdio 传输最容易踩的坑。")
+
+
+asyncio.run(mcp_demo())

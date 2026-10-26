@@ -6,13 +6,14 @@
 
 这些需求**都不该去改框架源码**。LangChain v1 把它们统一收进一个扩展点：**中间件（middleware）**。回到第 1 章的定义，harness 是「围绕循环的一切」，而中间件就是这「一切」在 v1 里的**落点**。
 
-这一章要解决三个问题：
+这一章要解决四个问题：
 
 1. 中间件到底能挂在循环的哪些位置，**执行顺序**是什么；
 2. 两类中间件（node-style / wrap-style）能力差在哪；
-3. 官方预置了哪些中间件，各自属于哪个包。
+3. 官方预置了哪些中间件，各自属于哪个包；
+4. 常见的治理需求（人审、脱敏、限额、重试、回退）有没有现成件，怎么组合。
 
-**本章回答：中间件是什么、挂在哪、怎么排队、能干什么、现成的有哪些、自己怎么写。**顺序是：先用一次真实轮次把六个钩子的触发顺序打出来（2.1），再按能力把钩子分成 node-style / wrap-style 两类（2.2），然后看官方预置的六大能力域（2.3），最后落到两种语言各自怎么写（2.4）。学完这一章，「循环之外的需求」就都有了统一的插法。
+**本章回答：中间件是什么、挂在哪、怎么排队、能干什么、现成的有哪些、自己怎么写。**顺序是：先用一次真实轮次把六个钩子的触发顺序打出来（2.1），再按能力把钩子分成 node-style / wrap-style 两类（2.2），然后看官方预置的六大能力域（2.3），落到两种语言各自怎么写（2.4），最后用 2.5–2.8 把四类治理件（HITL / PII / 限额 / 重试回退）逐个跑通并给出组合顺序。学完这一章，「循环之外的需求」就都有了统一的插法。
 
 ## 二、机制与原理
 
@@ -93,7 +94,7 @@ def inject_notice(state, runtime):
 | 上下文治理 | `SummarizationMiddleware`、`ContextEditingMiddleware`（配合 `ClearToolUsesEdit`） | `langchain.agents.middleware` | 第 9 章 |
 | 模型调用治理 | `PatchToolCallsMiddleware` | **`deepagents`**（默认装入 Deep Agent 图） | 第 14 章 |
 | 工具执行治理 | `ToolErrorMiddleware` | `langchain.agents.middleware` | 第 7 章 |
-| 人在回路 | `HumanInTheLoopMiddleware` | `langchain.agents.middleware` | 第 13 章（LangGraph `interrupt` 路线；该中间件本书不展开） |
+| 人在回路 | `HumanInTheLoopMiddleware` | `langchain.agents.middleware` | **§2.5**（底层仍是第 13 章的 `interrupt` 路线） |
 | 规划与委派 | `TodoListMiddleware` / `SubAgentMiddleware` | `langchain.agents.middleware` / **`deepagents`** | 第 16 章 |
 | 文件系统与记忆 | `FilesystemMiddleware`、`MemoryMiddleware`、`SkillsMiddleware` | **`deepagents`** | 第 15 / 17 章 |
 
@@ -137,9 +138,96 @@ def log_messages(state, runtime):
 
 > ⚠️ 上面两条 bullet 的口径**是互斥的，别混着读**：Python 侧示例实测「直接改 `request.model` 也能跑」（`06_middleware.py` 里就这么试过并打印了这句话），只是不推荐；JS 侧**没有 `override()` 可用**，展开写法是唯一约定，直接改对象会污染链。把两句合成一句「两边都不要直接改」会丢掉这个差别。
 
+### 2.5 人在回路：`HumanInTheLoopMiddleware`
+
+2.4 讲的是「怎么写中间件」；从这一节开始看「官方已经写好的治理件」。第一个是不可逆操作前的人工审批。它回答的问题是：**工具调用怎么停下来等人、人能做什么决策、恢复时怎么把决策送回去**。
+
+它把第 13 章的 `interrupt` 封装成**工具级审批**：命中 `interrupt_on` 的工具调用会被拦下，图停在检查点；人审完之后用 `Command(resume={"decisions": [...]})` 恢复。
+
+| 决策 | Python | TypeScript | 含义 |
+|---|---|---|---|
+| 同意 | `{"type": "approve"}` | `{ "type": "approve" }` | 原样执行 |
+| 编辑 | `{"type": "edit", "edited_action": {"name": ..., "args": ...}}` | `{ "type": "edit", "editedAction": { "name": ..., "args": ... } }` | 改参数/工具后执行 |
+| 拒绝 | `{"type": "reject", "message": "..."}` | `{ "type": "reject", "message": "..." }` | 不执行，把理由回给模型 |
+| 代答 | `{"type": "respond", "message": "..."}` | **无** | 不执行工具，直接把人工答复当工具结果 |
+
+> 关键差异：**Python 的 `allowed_decisions` 默认四种，JS 只支持前三种**（本机导出/类型核对）。载荷字段也是 snake_case vs camelCase：Python `action_requests` / `review_configs`，JS `actionRequests` / `reviewConfigs`。
+
+最小例子（3 步）：
+1. `create_agent(..., middleware=[HumanInTheLoopMiddleware(interrupt_on={"refund": True})], checkpointer=InMemorySaver())`。
+2. 第一次 `invoke` 返回 `__interrupt__`，工具还没执行。
+3. 用同一 `thread_id` 调 `invoke(Command(resume={"decisions": [{"type": "approve"}]}), cfg)`，工具执行一次。
+
+> 口径：approve / reject 两条路径为**示例实测**；edit / respond 只做了**类型与源码核对**，示例未构造。HITL 必须有 checkpointer 与 `thread_id`，否则中断无处落盘。
+
+### 2.6 脱敏：`PIIMiddleware` 的四种策略
+
+审批解决「要不要执行」；脱敏解决「模型该看到什么」。它回答的问题是：**邮箱、卡号、IP 这些敏感信息，在到达模型之前怎么处理**。
+
+内置五类：`email` / `credit_card` / `ip` / `mac_address` / `url`；四种策略：
+
+| 策略 | 效果 | 典型场景 |
+|---|---|---|
+| `redact` | 替换成 `[REDACTED_EMAIL]` 这类占位符 | 默认；保留结构、去掉值 |
+| `mask` | 保留尾号（Python `**** **** **** 1111`；JS `****-****-****-1111`） | 客服、对账 |
+| `hash` | 确定性哈希（`<email_hash:...>`） | 需要关联同一用户但不可还原 |
+| `block` | 直接拒绝（抛 `PIIDetectionError`） | 合规红线 |
+
+三个开关：`apply_to_input=True`（默认）、`apply_to_output=False`（默认）、`apply_to_tool_results=False`（默认）——**模型输入默认脱敏，模型输出与工具结果默认不脱敏**（本机源码核对）。
+
+最小例子（3 行）：
+
+```python
+agent = create_agent(model=model, tools=[], middleware=[
+    PIIMiddleware("email", strategy="redact"),
+    PIIMiddleware("credit_card", strategy="mask"),
+])
+# 模型实际收到：'联系 [REDACTED_EMAIL]，卡号 **** **** **** 1111'
+```
+
+> 口径：email redact 与 credit_card mask 为**示例实测**；`hash` / `block` 与流式跨 chunk 检测为**源码核对 / 未实测**。掩码分隔符两语言不同（Python 空格、JS 连字符），要断言就断言「尾号还在、前缀被替换」。
+
+### 2.7 限额、重试与回退：把失控成本关进中间件
+
+脱敏管「看到什么」，限额管「最多花多少」，重试管「失败了再试几次」，回退管「主模型整体不可用」。它们回答的是同一类问题：**agent 失控时，谁来踩刹车**。
+
+| 能力 | Python | TypeScript | 关键默认值 / 边界 |
+|---|---|---|---|
+| 模型调用限额 | `ModelCallLimitMiddleware(thread_limit=None, run_limit=None, exit_behavior="end")` | `modelCallLimitMiddleware({ threadLimit, runLimit, exitBehavior: "end" })` | `exit_behavior` 只有 `end` / `error` |
+| 工具调用限额 | `ToolCallLimitMiddleware(tool_name=None, run_limit=None, exit_behavior="continue")` | `toolCallLimitMiddleware({ toolName, runLimit, exitBehavior: "continue" })` | 默认 `continue`；`end` 对多工具调用会抛 `NotImplementedError`（源码核对） |
+| 工具重试 | `ToolRetryMiddleware(max_retries=2, initial_delay=1.0, jitter=True, on_failure="continue")` | `toolRetryMiddleware({ maxRetries: 2, initialDelayMs: 1000, jitter: true, onFailure: "continue" })` | Python 秒 / JS 毫秒 |
+| 模型重试 | `ModelRetryMiddleware(...)` | `modelRetryMiddleware(...)` | 同上 |
+| 模型回退 | `ModelFallbackMiddleware(first, *rest)` | `modelFallbackMiddleware(first, ...rest)` | 主模型异常时按顺序换 |
+
+最小例子（3 步）：
+1. `ModelCallLimitMiddleware(run_limit=1)` → 第二次模型调用被拦，返回 `Model call limits exceeded...`。
+2. `ToolCallLimitMiddleware(tool_name="get_weather", run_limit=1)` → 第二次同名工具调用被换成一条 `ToolMessage`，模型继续。
+3. `ToolRetryMiddleware(max_retries=2)` + 前两次失败的工具 → 工具总共执行 3 次，第三次成功。
+
+> 口径：三类限额的拦截消息、重试次数、fallback 切换为**示例实测**；`on_failure` / `exit_behavior="end"` 的多工具边界为**源码核对**。两语言的限额文案不同（Python `run limit (1/1)`、JS `run level call limit reached...`），不要按文案断言。
+
+### 2.8 治理件的组合顺序
+
+单件都会用之后，最后一个问题是：**它们叠在一起时谁在外层**。wrap-style 是洋葱，顺序会改变语义；node-style 的顺序则按注册顺序/反向执行。
+
+| 你想要的效果 | 推荐顺序（从外到内） | 为什么 |
+|---|---|---|
+| 先脱敏再审批 | PII → HITL → 模型/工具 | 审批人看到的是脱敏后的参数 |
+| 审批人看到原文 | HITL → PII → 模型/工具 | 审批载荷保留原文，模型侧才脱敏 |
+| 限额优先于重试 | 限额 → 重试 → 模型 | 重试次数也算进限额，避免「重试把预算打穿」 |
+| 重试优先于限额 | 重试 → 限额 → 模型 | 限额只数成功调用，失败重试不占额度 |
+
+这张表没有「唯一正确答案」——它取决于你的合规与成本口径。**先定口径，再排顺序**，并把顺序写进测试。
+
+![图 12　治理中间件栈：HITL / PII / 限额 / 重试在模型与工具调用上的位置](assets/12_middleware_governance.png)
+
+*图 12　治理中间件栈：HITL / PII / 限额 / 重试在模型与工具调用上的位置*
+
+> 口径：HITL / PII / 限额 / 重试的单独行为为示例实测；**组合顺序的语义为架构判断**，本机未做「交换顺序」的对照实验。
+
 ## 三、代码：Python 与 TypeScript
 
-两段代码做同一件事：① 把六个钩子的触发顺序打出来；② 用 `wrap_model_call` 按消息数动态换模型。完整版见 `code/` 下对应文件。
+下面的代码按机制顺序给出：① 把六个钩子的触发顺序打出来；② 用 `wrap_model_call` 按消息数动态换模型；③ HITL 审批；④ PII 脱敏；⑤ 模型/工具限额；⑥ 重试与回退。完整版见 `code/` 下对应文件。
 
 Python 侧：
 
@@ -245,6 +333,86 @@ wrap_* 钩子能改写请求：动态切换模型
 
 > 但「改写请求不影响钩子顺序」这半句**没有实测支撑**——第二次运行（换强模型那次）**没有再挂 trace 中间件**，所以顺序根本没被打印第二遍。它是从「`wrap_model_call` 只换 `request.model`、不改变循环结构」推出来的合理结论，属**源码核对 / 推断**，不是跑出来的。要自己验：把 trace 中间件挂上、跑两轮以上，比较两次的顺序。
 
+**③ HITL：工具调用前停下来等人**——载荷里带 `action_requests`，恢复用 `decisions`：
+
+```python
+agent = create_agent(
+    model=ScriptedChatModel(script=[tool_call("refund", {"order_id": "A-1"}, "c1"), reply("已处理。")]),
+    tools=[refund],
+    middleware=[HumanInTheLoopMiddleware(interrupt_on={"refund": True})],
+    checkpointer=InMemorySaver(),
+)
+cfg = {"configurable": {"thread_id": "refund-approve"}}
+first = agent.invoke({"messages": [{"role": "user", "content": "把 A-1 退款"}]}, cfg)
+print(first["__interrupt__"][0].value["action_requests"][0]["name"])   # refund
+agent.invoke(Command(resume={"decisions": [{"type": "approve"}]}), cfg)
+```
+
+```typescript
+const agent = createAgent({
+  model: new ScriptedChatModel({ script: [toolCall("refund", { order_id: "A-1" }, "c1"), reply("已处理。")] }) as any,
+  tools: [refund],
+  middleware: [humanInTheLoopMiddleware({ interruptOn: { refund: true } })],
+  checkpointer: new MemorySaver(),
+});
+const first: any = await agent.invoke({ messages: [new HumanMessage("把 A-1 退款")] }, cfg);
+console.log(first.__interrupt__[0].value.actionRequests[0].name);      // refund
+await agent.invoke(new Command({ resume: { decisions: [{ type: "approve" }] } }), cfg);
+```
+
+**④ PII：模型侧只看到脱敏文本**——两个开关按内置类型分开配：
+
+```python
+pii_agent = create_agent(model=pii_model, tools=[], middleware=[
+    PIIMiddleware("email", strategy="redact"),
+    PIIMiddleware("credit_card", strategy="mask"),
+])
+pii_agent.invoke({"messages": [{"role": "user", "content": "联系 alice@example.com，卡号 4111 1111 1111 1111"}]})
+print([str(m.content) for m in pii_model.seen[-1]])
+# ['联系 [REDACTED_EMAIL]，卡号 **** **** **** 1111']
+```
+
+```typescript
+const piiAgent = createAgent({
+  model: piiModel as any,
+  tools: [],
+  middleware: [
+    piiMiddleware("email", { strategy: "redact" }),
+    piiMiddleware("credit_card", { strategy: "mask" }),
+  ],
+});
+```
+
+**⑤ 限额：模型与工具各有一个计数器**——超限后 `end` 直接收工，`continue` 换成错误消息：
+
+```python
+create_agent(model=model, tools=[get_weather],
+             middleware=[ModelCallLimitMiddleware(run_limit=1, exit_behavior="end")])
+create_agent(model=model, tools=[get_weather],
+             middleware=[ToolCallLimitMiddleware(tool_name="get_weather", run_limit=1, exit_behavior="continue")])
+```
+
+```typescript
+createAgent({ model, tools: [getWeather],
+  middleware: [modelCallLimitMiddleware({ runLimit: 1, exitBehavior: "end" })] });
+createAgent({ model, tools: [getWeather],
+  middleware: [toolCallLimitMiddleware({ toolName: "get_weather", runLimit: 1, exitBehavior: "continue" })] });
+```
+
+**⑥ 重试与回退**——重试解决偶发失败，回退解决主模型整体不可用：
+
+```python
+ToolRetryMiddleware(max_retries=2, initial_delay=0.01, jitter=False)
+ModelRetryMiddleware(max_retries=2, initial_delay=0.01, jitter=False)
+ModelFallbackMiddleware(fallback_model)          # 第一个参数是备选模型
+```
+
+```typescript
+toolRetryMiddleware({ maxRetries: 2, initialDelayMs: 10, jitter: false })
+modelRetryMiddleware({ maxRetries: 2, initialDelayMs: 10, jitter: false })
+modelFallbackMiddleware(fallbackModel)
+```
+
 ## 四、常见坑与边界条件
 
 **1. `before_model` 触发两次不是 bug。** 一轮里调了几次模型，它就触发几次。要「整个 agent 只跑一次」的逻辑，放 `before_agent` / `after_agent`。
@@ -261,17 +429,23 @@ wrap_* 钩子能改写请求：动态切换模型
 
 **7. 上下文类中间件的参数形状两语言不同。** Python 是位置参数（`trigger=("messages", 8)`），JS 是对象（`trigger: { messages: 8 }`）——第 9 章会用到。
 
-**8. 未实测范围。** 本章实测只覆盖「六个钩子的顺序」与「`wrap_model_call` 换模型」两件事（脚本化假模型 + `langchain` 1.4.2 / JS 侧 `langchain` 1.5.11）。真实模型下的重试、超时、缓存行为，以及需要真实 provider 的中间件（如原生结构化输出）**未实测**。
+**8. 治理件的实测范围。** 本章实测覆盖：六个钩子顺序、`wrap_model_call` 换模型、HITL approve/reject、PII email/credit_card、Model/Tool 限额、ToolRetry/ModelRetry/ModelFallback（脚本化假模型 + `langchain` 1.4.2 / JS 侧 `langchain` 1.5.11）。真实模型下的工具选择倾向、提示词遵从度、跨供应商行为**未实测**。
+**9. HITL 必须有 checkpointer 与 `thread_id`。** 没有检查点，中断无处落盘；没有 `thread_id`，恢复找不到线程。一次中断里如果有多个工具调用，`decisions` 的数量必须与 `action_requests` 一一对应，否则抛 `ValueError`。
+**10. HITL 决策两语言不对等。** Python 默认允许 `approve/edit/reject/respond` 四种；JS 只支持前三种（**类型定义核对**）。载荷字段也是 snake_case vs camelCase（`action_requests` vs `actionRequests`）。
+**11. PII 默认只脱敏「模型输入」。** `apply_to_input=True`、`apply_to_output=False`、`apply_to_tool_results=False`（源码核对）——模型输出与工具结果默认不脱敏。要覆盖这两处，显式打开开关，并自己测流式跨 chunk 的漏检。
+**12. 限额的 `thread_limit` 依赖线程历史。** 它统计整条线程的调用数，通常要配 checkpointer 才有意义（**源码核对/未实测**）；`run_limit` 只统计本轮。`ToolCallLimitMiddleware` 的 `end` 在多工具调用下会抛 `NotImplementedError`。
+**13. 重试参数单位不同。** Python `initial_delay` / `max_delay` 以**秒**计，JS `initialDelayMs` / `maxDelayMs` 以**毫秒**计；照抄数字会差 1000 倍。
+**14. 回退不是重试的替代品。** `ModelFallbackMiddleware` 只在主模型**抛异常**时切换；主模型正常返回但答得烂，它不会切。重试与回退叠加时，顺序决定「先重试再换」还是「先换再重试」。
 
 ## 五、关键结论
 
 1. **中间件是 harness 在 v1 里的落点**：循环之外的一切——提示词、工具、行为塑造——都从这里插进去。
 2. **实测触发顺序（`langchain` 1.4.2）**：`before_agent → before_model → wrap_model_call → after_model → wrap_tool_call → before_model → wrap_model_call → after_model → after_agent`。
 3. **两类中间件**：node-style 只能读写状态（要影响模型输入得绕一层——改状态里的 `messages`）；wrap-style 能直接改请求、能拦结果、能短路（不调 `handler`）。
-4. **六大能力域**：上下文治理、模型调用治理、工具执行治理、人在回路、规划与委派、文件系统与记忆；后两域的主要实现**在 `deepagents` 包里**。
+4. **四类治理件都能用中间件解决**：HITL（工具级审批，必须有 checkpointer + `thread_id`）、PII（默认只脱敏模型输入）、限额（模型/工具各有 run/thread 两级）、重试与回退（Python 秒 / JS 毫秒；回退只在异常时触发）。组合顺序按合规与成本口径定，没有唯一答案。
 5. **改写模型请求**：Python `handler(request.override(model=...))`（直接改 `request.model` 也能跑但不推荐），JS `handler({ ...request, model })`（没有 `override()`，必须展开）。
 
-> 口径：钩子顺序与 `wrap_model_call` 换模型为示例实测（`06_middleware.*`）；归属包与直接改 `request.model` 的边界为本机 / 源码核对；真实模型下的重试、超时、缓存未实测。
+> 口径：钩子顺序、`wrap_model_call` 换模型、HITL approve/reject、PII email/credit_card、Model/Tool 限额、ToolRetry/ModelRetry/ModelFallback 为**示例实测**（`06_middleware.*`）；归属包、PII 默认开关、JS 决策集合、`thread_limit` 依赖为**源码/类型核对**；真实模型下的工具选择、提示词遵从度与跨供应商行为**未实测**。
 
 ## 本章要点回顾
 
@@ -283,3 +457,7 @@ wrap_* 钩子能改写请求：动态切换模型
 - **归属包**：`FilesystemMiddleware`、`SubAgentMiddleware`、`MemoryMiddleware` 在 `deepagents`；`SkillsMiddleware` 从 `deepagents.middleware` 导入。
 - **预置清单别背**：`langchain.agents.middleware` 在 1.4.2 的 `__all__` 是 46 项、公开名 64 个；以你所用版本的 `__all__` 为准。
 - **自定义中间件**：Python 用装饰器或 `AgentMiddleware` 子类；JS 用 `createMiddleware({...})`。
+- **HITL**：`interrupt_on={"工具名": True}` 拦工具；恢复用 `Command(resume={"decisions": [...]})`；必须有 checkpointer + `thread_id`。Python 有 approve/edit/reject/respond，JS 只有前三种。
+- **PII**：内置 email/credit_card/ip/mac_address/url；策略 redact/mask/hash/block；默认只脱敏**模型输入**。
+- **限额/重试/回退**：`ModelCallLimit` / `ToolCallLimit` / `ToolRetry` / `ModelRetry` / `ModelFallback`；Python 重试间隔以秒计，JS 以毫秒计。
+- **组合顺序**：PII 与 HITL 谁在外层、限额与重试谁在外层，取决于「审批人看原文还是脱敏文」「重试是否占预算」——先定口径再排顺序。

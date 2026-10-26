@@ -16,7 +16,7 @@
   状态快照（getState）：
     values = {"n":101,"trail":["step→1","step→2","step→101"]}
     next   = []    ← 空数组表示已跑完
-    config = {"thread_id":"order-2026","checkpoint_id":"1f1cc335-eb6c-6230-8007-57b95ec832d1","checkpoint_ns":""}
+    config = {"thread_id":"order-2026","checkpoint_id":"1f1d0d53-337e-6a70-8007-f669cc1d2e78","checkpoint_ns":""}
 
   检查点历史（getStateHistory）：
     共 9 个检查点：
@@ -83,3 +83,34 @@ checkpointer 与 store 的分工
 
   ⚠️ 生产环境别用 MemorySaver / InMemoryStore —— 进程一重启就全没了。
      持久化检查点要用 @langchain/langgraph-checkpoint-* 系列包。
+
+==============================================================================
+⑥ 子图持久化：checkpoint_ns 与两层历史
+==============================================================================
+  父图 values = {"x":0}，next = ["child"]（停在子图节点上）
+  子图 task = child
+    子图 values = {"x":1}，next = ["child_pause"]
+    checkpoint_ns = child:<uuid>  ← 子图在父图里的命名空间
+  恢复后父图 = {"x":2}
+  → 父图与子图各自有一层检查点；getState(..., { subgraphs: true }) 才能在暂停态下钻。
+
+==============================================================================
+⑦ durability：sync / async / exit 的快照数量差异
+==============================================================================
+  durability=sync   → 历史快照 4 个
+  durability=async  → 历史快照 4 个
+  durability=exit   → 历史快照 1 个
+  → sync 每步落盘、async 异步落盘（invoke 返回时已补写）、exit 只在结束时写一次；
+    不配 checkpointer 时 durability 无效（没有地方可写）。
+
+==============================================================================
+⑧ 记忆的类型学：短期 / 长期 / 语义 / 程序性
+==============================================================================
+  记忆类型       载体                 作用域 / 检索方式
+  短期对话       checkpointer         线程内，按 thread_id + checkpoint_ns
+  长期事实       Store                跨线程，按 namespace / key
+  语义记忆       Store index          跨线程，按 embedding 相似度
+  程序性记忆     Skills / AGENTS.md   文件，按需加载进提示词
+  → 四种记忆不是四个 API，而是「用哪层存储 + 怎么取」的四种组合；
+    选错层的典型症状：把用户偏好写进 checkpointer（换线程就丢），
+    或把整段对话塞进 Store（检索噪声大、成本高）。

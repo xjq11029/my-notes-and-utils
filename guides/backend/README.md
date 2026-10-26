@@ -14,7 +14,7 @@
 | 1 | Java 基础 | java-core / jvm-juc / mysql-jdbc | 51 | [01-java-basics](./01-java-basics/) |
 | 2 | JavaWeb 单体架构 | maven / javaweb-servlet / ssm / spring-boot / mybatis / linux / docker-k8s | 77 | [02-javaweb-monolith](./02-javaweb-monolith/) |
 | 3 | 分布式微服务 | redis / mysql-advanced / nginx / spring-cloud / zookeeper / mq / elasticsearch / clickhouse / git | 95 | [03-distributed-microservices](./03-distributed-microservices/) |
-| 4 | Python AI Agent | python-core / langchain-rag / llm-fine-tuning | 27 | [04-python-aiagent](./04-python-aiagent/) |
+| 4 | Python AI Agent | python-core / langchain-rag / llm-fine-tuning | 37 | [04-python-aiagent](./04-python-aiagent/) |
 | 扩展 | 实战项目 | project | 5 | [extensions](./extensions/) |
 
 ---
@@ -247,22 +247,27 @@
 
 ---
 
-### 04-python-aiagent — Python AI Agent（27 文件）
+### 04-python-aiagent — Python AI Agent（37 文件）
 
-#### python-core（7 文件）
+#### python-core（15 文件）
 
 | 文件 | 内容 | 类型 |
 |------|------|:--:|
 | [01-Python核心语法速通.md](./04-python-aiagent/python-core/01-Python核心语法速通.md) | Java对比Python速通、数据类型、函数、面向对象、装饰器、常用标准库 | 原理 |
-| [02-Python笔面试题集.md](./04-python-aiagent/python-core/02-Python笔面试题集.md) | 选择题 18 + 简答 11 + 场景设计 3 | 题库 |
+| [02-Python笔面试题集.md](./04-python-aiagent/python-core/02-Python笔面试题集.md) | 选择题 18 + 简答 11 + 场景设计 3 + 进阶专题 12 | 题库 |
+| [03-Python函数进阶与装饰器.md](./04-python-aiagent/python-core/03-Python函数进阶与装饰器.md) | 闭包/LEGB、late binding、装饰器、functools、回调与中间件 | 原理 |
+| [04-Python异常与上下文管理.md](./04-python-aiagent/python-core/04-Python异常与上下文管理.md) | 异常链、try/else/finally、contextlib、async with、重试与清理 | 原理 |
+| [05-Python迭代器与生成器.md](./04-python-aiagent/python-core/05-Python迭代器与生成器.md) | 迭代器协议、yield/yield from、itertools、token 流 | 原理 |
+| [06-Python并发与协程.md](./04-python-aiagent/python-core/06-Python并发与协程.md) | GIL、threading/multiprocessing、asyncio、限流/背压、异步 LLM | 原理 |
 
-#### langchain-rag（9 文件）
+#### langchain-rag（11 文件）
 
 | 文件 | 内容 | 类型 |
 |------|------|:--:|
 | [02-LangChain与AI智能体核心.md](./04-python-aiagent/langchain-rag/02-LangChain与AI智能体核心.md) | AI Agent循环、Model I/O、Chain、Tool、Agent、Memory、LangGraph编排 | 原理 |
 | [03-RAG检索增强生成实战.md](./04-python-aiagent/langchain-rag/03-RAG检索增强生成实战.md) | RAG架构、文档切分、向量化、检索策略、知识库问答系统、RAG评估 | 原理 |
-| [04-Python与AI智能体笔面试题集.md](./04-python-aiagent/langchain-rag/04-Python与AI智能体笔面试题集.md) | 选择题 15 + 简答 10 + 场景题 3 | 题库 |
+| [04-Python与AI智能体笔面试题集.md](./04-python-aiagent/langchain-rag/04-Python与AI智能体笔面试题集.md) | 选择题 15 + 简答 10 + 场景题 3 + LangGraph 专题 10 | 题库 |
+| [05-LangGraph核心机制与面试要点.md](./04-python-aiagent/langchain-rag/05-LangGraph核心机制与面试要点.md) | StateGraph/Reducer、控制流、持久化、interrupt、七档流式、部署与 30 道面试题 | 原理 |
 
 #### llm-fine-tuning（11 文件）
 

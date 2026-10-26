@@ -33,3 +33,11 @@
 
   ⚠️ 注意：v1 已经**不再**使用 ToolException / handleToolError 这套旧 API。
      要么像上面这样自己写 wrapToolCall，要么用内置的 toolErrorMiddleware。
+
+========================================================================
+⑤ MCP：连接一个真实的 stdio server
+========================================================================
+  发现工具：["demo__add","demo__echo"]
+  add(2, 3) → "5"
+  → TS 侧工具名带 server 前缀（demo__add）；Python 侧是裸名（add）。
+    MCP 是语言无关协议：server 用 Python 写，TS 客户端照样能连。

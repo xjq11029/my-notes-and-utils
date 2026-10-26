@@ -1,16 +1,21 @@
 # -*- coding: utf-8 -*-
 """第 13 章示例：人在回路与流式输出。
 
-演示四件事：
+演示七件事：
   1. interrupt() / Command(resume=...) 的完整往返
   2. **恢复时整个节点从头重跑** —— 这是理解一切人在回路坑的钥匙
-  3. stream_mode 各档投影分别给你什么
+  3. stream_mode 的基础投影
   4. agent 作为子图时，不加 subgraphs=True 就拿不到 token
+  5. 七档 stream_mode 全量与前置条件
+  6. list-mode + subgraphs 的 namespace 形状
+  7. astream_events 事件流
 
 运行：python 13_hitl_stream.py
 """
 
+import asyncio
 import sys
+from collections import Counter
 from typing import TypedDict
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -230,3 +235,106 @@ print("  ⚠️ 别把这里的「分块个数」当结论：本示例用的是�
 print("     它一次吐一条完整消息，不是逐 token 吐——所以个数不可比。")
 print("     真正要看的是**哪几条消息能看见**：A 能看到子图内部全部消息，")
 print("     B 只剩进出两条，C 恢复了内部消息并额外标出它来自哪个子图。")
+
+
+# ---------------------------------------------------------------------------
+# 5. 七档 stream_mode
+# ---------------------------------------------------------------------------
+print()
+print("=" * 78)
+print("④ 七档 stream_mode：每种投影给你什么形状")
+print("=" * 78)
+
+for mode in ("values", "updates", "custom", "checkpoints", "tasks", "debug"):
+    chunks = list(
+        talk.stream(
+            {"n": 0, "note": ""},
+            {"configurable": {"thread_id": f"shape-{mode}"}},
+            stream_mode=mode,
+        )
+    )
+    print(f"  {mode:<12} {len(chunks)} 个分块，首块类型 {type(chunks[0]).__name__}")
+
+message_agent = create_agent(model=ScriptedChatModel(script=[reply("流式消息。")]), tools=[lookup])
+message_chunks = list(
+    message_agent.stream({"messages": [{"role": "user", "content": "查 x"}]}, stream_mode="messages")
+)
+print(f"  {'messages':<12} {len(message_chunks)} 个分块，首块 {type(message_chunks[0][0]).__name__}")
+print("  → values/updates/custom/checkpoints/tasks/debug 都不需要模型；messages 需要图里有模型节点。")
+print("    checkpoints 需要 checkpointer；tasks 不需要（本机 1.2.12 实测）。")
+
+
+# ---------------------------------------------------------------------------
+# 6. list-mode 与 namespace
+# ---------------------------------------------------------------------------
+print()
+print("=" * 78)
+print("⑤ list-mode + subgraphs：分块形状怎么解")
+print("=" * 78)
+
+combined = list(
+    talk.stream(
+        {"n": 0, "note": ""},
+        {"configurable": {"thread_id": "list-1"}},
+        stream_mode=["updates", "custom"],
+    )
+)
+print(f"  stream_mode=['updates','custom'] → {combined}")
+print("  → Python 每块是 (mode, payload) 二元组；JS 每块是 [mode, payload] 数组。")
+
+talk_parent = (
+    StateGraph(dict)
+    .add_node("child", talk)
+    .add_edge(START, "child")
+    .add_edge("child", END)
+    .compile(checkpointer=InMemorySaver())
+)
+tagged = list(
+    talk_parent.stream(
+        {"n": 0, "note": ""},
+        {"configurable": {"thread_id": "sub-list-1"}},
+        stream_mode=["updates", "custom"],
+        subgraphs=True,
+    )
+)
+for namespace, mode, payload in tagged:
+    prefix = namespace[0].split(":")[0] if namespace else "()"
+    print(f"  ns={prefix:<8} mode={mode:<8} payload={payload}")
+print("  → 加 subgraphs=True 后是 (namespace, mode, payload) 三元组；")
+print("    JS 侧是 [namespace, mode, payload] 数组——形状一致，容器类型不同。")
+
+
+# ---------------------------------------------------------------------------
+# 7. astream_events
+# ---------------------------------------------------------------------------
+print()
+print("=" * 78)
+print("⑥ astream_events：事件流")
+print("=" * 78)
+
+
+async def event_demo() -> None:
+    event_agent = create_agent(
+        model=ScriptedChatModel(
+            script=[tool_call("lookup", {"q": "x"}, "c1"), reply("查完了。")]
+        ),
+        tools=[lookup],
+    )
+    names: list[str] = []
+    async for event in event_agent.astream_events(
+        {"messages": [{"role": "user", "content": "查 x"}]}, version="v2"
+    ):
+        if event["event"] in {
+            "on_chat_model_stream",
+            "on_tool_start",
+            "on_tool_end",
+            "on_chain_start",
+        }:
+            names.append(event["event"])
+    print(f"  关键事件计数 = {dict(sorted(Counter(names).items()))}")
+    print("  → on_chat_model_stream 来自假模型的 _astream；真实模型的每个 token 都会触发一次。")
+
+
+asyncio.run(event_demo())
+print("  ⚠️ JS 侧差异：agent.streamEvents 在 1.4.17 只给 start/end，")
+print("     逐 token 要用 agent.stream({streamMode:'messages'})；模型自身的 streamEvents 才会给 stream 事件。")

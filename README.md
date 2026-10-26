@@ -2,7 +2,7 @@
 
 个人知识库与工具仓库：把**体系化学习指南**、**技术专题深度笔记**、**可复用工具函数**统一归档，便于检索与复用。
 
-仓库以 Markdown 为主要载体（936 个文件，其中 567 篇 Markdown、约 27.4 万行），内容分两条主线：
+仓库以 Markdown 为主要载体（962 个文件，其中 577 篇 Markdown、约 28.2 万行），内容分两条主线：
 
 - **知识线**：`guides/` 的笔面试学习资料库（后端 + 前端）与 `docs/` 的技术专题深度笔记；
 - **工具线**：`src/` 的通用工具函数与 `examples/` 用法示例。
@@ -85,12 +85,12 @@ my-notes-and-utils/
 
 | 项目 | 数值 |
 |------|------|
-| 文件总数 | 936（不含 `.git/`、`.workbuddy*/`，以及构建 / 依赖产物 `node_modules/`、`.venv/`、`__pycache__/`、`*.pyc`） |
-| Markdown 文档 | 567 篇 / 274,143 行（约 27.4 万） |
-| `guides/backend/` | 259 个文件 / 258 篇 Markdown |
+| 文件总数 | 962（不含 `.git/`、`.workbuddy*/`、外部课程包 `atguigu-note-main/`，以及构建 / 依赖产物 `node_modules/`、`.venv/`、`__pycache__/`、`*.pyc`） |
+| Markdown 文档 | 577 篇 / 282,317 行（约 28.2 万） |
+| `guides/backend/` | 269 个文件 / 268 篇 Markdown |
 | `guides/frontend/` | 201 个文件 / 200 篇 Markdown |
 | `articles/` | 49 个文件 / 5 篇 Markdown（2 个类别 / 2 篇文章） |
-| `docs/` | 394 个文件 |
+| `docs/` | 410 个文件 |
 | `src/` | 8 个文件 |
 
 ---

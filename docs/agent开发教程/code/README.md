@@ -1,6 +1,6 @@
 # 示例代码（code）
 
-本目录是 `docs/agent开发教程/` 的配套示例，**Python 与 TypeScript 一一对应**。
+本目录是 `docs/agent开发教程/` 的配套示例：17 个主示例 **Python 与 TypeScript 一一对应**；另有 `07_mcp_server.py`（MCP fixture）与 `19_deploy_agent.py` + `langgraph.json`（Python-only 部署样例）。
 
 **全部示例都已在本机实跑通过**（见下方「实测记录」）。示例用**脚本化的假模型**替代真实 LLM，因此**跑这些示例本身不需要 API Key、不产生网络请求**，结果确定可复现。
 
@@ -44,6 +44,8 @@ pip install -r requirements.txt
 python 02_models.py
 ```
 
+> `07_tools.py` 会拉起 `07_mcp_server.py`（stdio 子进程）；`19_deploy_agent.py` 配合 `langgraph.json` 用 `langgraph validate -c langgraph.json` / `langgraph dev --config langgraph.json` 验证。Windows 上 `langgraph dev` 需要 `colorama`（已列入 requirements）。
+
 ### TypeScript
 
 ```bash
@@ -53,6 +55,8 @@ pnpm run 02_models        # 单个
 pnpm run all                    # 全部（按顺序）
 pnpm run typecheck              # 类型检查
 ```
+
+> `07_tools.ts` 的 MCP 段会调用 `../python/.venv` 里的 Python 解释器；未建 Python 环境时该段打印「跳过」，不影响其余示例。
 
 ---
 
@@ -64,21 +68,22 @@ pnpm run typecheck              # 类型检查
 | 3 | `03_messages_prompts.py` | `03_messages_prompts.ts` | 四种消息、历史裁剪、模板的三种调用方式 | `format()` 返回带标签的 str、`format_messages()` 返回消息列表 |
 | 4 | `04_structured_output.py` | `04_structured_output.ts` | 四种 schema 模式、校验失败、工具策略自动重试 | Python 侧只有 Pydantic 会抛 `ValidationError`；JS 基类不校验。**基类两语言都把 `method` 丢掉**，只有 provider 子类才真正分叉（已实测，见 B） |
 | 5 | `05_create_agent.py` | `05_create_agent.ts` | Agent Loop、状态只追加、两类作用域、结构化输出 | 消息序列 Human → AI(tool_call) → ToolMessage → AI(final)；第 2 轮历史 4 条而非 2 条 |
-| 6 | `06_middleware.py` | `06_middleware.ts` | 六个钩子的真实触发顺序、`wrap_*` 改写请求 | 顺序：`before_agent → before_model → wrap_model_call → after_model → wrap_tool_call → before_model → wrap_model_call → after_model → after_agent` |
-| 7 | `07_tools.py` | `07_tools.ts` | 工具 schema、`ToolRuntime` 注入、返回 `Command`、异常处理 | 返回 `Command` 必须自带匹配 `tool_call_id` 的 `ToolMessage`；v1 的 agent 路线不再推荐 `ToolException`（API 仍在包里） |
+| 6 | `06_middleware.py` | `06_middleware.ts` | 六个钩子顺序、`wrap_*` 改写请求、HITL / PII / 限额 / 重试回退 | 顺序不变；HITL approve/reject、PII `[REDACTED_EMAIL]` / 掩码、`Model/ToolCallLimit`、`ToolRetry/ModelRetry/ModelFallback` 均实测 |
+| 7 | `07_tools.py` | `07_tools.ts` | 工具 schema、`ToolRuntime` 注入、返回 `Command`、异常处理、MCP stdio 客户端 | 返回 `Command` 必须自带匹配 `tool_call_id` 的 `ToolMessage`；本地 MCP server 的 `add` / `echo` 端到端通过（Python 裸名 / TS `demo__add`） |
 | 8 | `08_rag.py` | `08_rag.ts` | Loader / Splitter / 假嵌入（含手写二维玩具 ③-0）/ 内存向量库 / 检索器接成工具 | 假嵌入只验链路不验语义；TS 的 `JSONLoader` 收 JSON Pointer 而非 jq |
 | 9 | `09_context.py` | `09_context.ts` | 摘要压缩 vs 工具输出卸载 | **两者机制不同**：摘要写回状态（4→24 被压到 8），卸载不回写状态（状态 4→24 但模型收到的 token 稳定在 253→588） |
 | 10 | `10_observability.py` | `10_observability.ts` | trace 树、离线评测骨架 | **Python 侧**一次 agent 调用产生 7 个 run（1 chain → 2 model→llm + 1 tools→tool）；**TS 侧是 10 个 run、chain 一律无名**。单边结论，别当双语言一致 |
-| 11 | `11_state_graph.py` | `11_state_graph.ts` | Reducer、条件边、`Send`、`Overwrite` | 输入里出现的字段按各自 reducer 合并，没出现的保留检查点值；`invoke(None)` 不注入新输入（已完成的线程上为空操作）、`invoke({})` 才是续跑 |
-| 12 | `12_persistence.py` | `12_persistence.ts` | 检查点、时间旅行（快照序号示意 + 三节点链重放两步）、Store 跨线程 | `updateState` 新建分支不改原线程；三节点链 fork 后只重走 `double→tag` 两步；`store.search(('alice',))` 是**前缀**匹配，命中 3 条 |
-| 13 | `13_hitl_stream.py` | `13_hitl_stream.ts` | `interrupt`/`resume`、`stream_mode`、子图流式 | 恢复时**整个节点从头重跑**（副作用日志出现两次）；agent 当子图时不加 `subgraphs` 就收不到内部消息 |
+| 11 | `11_state_graph.py` | `11_state_graph.ts` | Reducer、条件边、`Send`、`Overwrite`、顺序/扇入、循环上限、重试/超时/缓存、Functional API | 同线程 invoke 语义不变；`recursion_limit` 默认 10007；同步节点 timeout 直接报错、async 节点抛 `NodeTimeoutError`；cache 同输入只跑 1 次 |
+| 12 | `12_persistence.py` | `12_persistence.ts` | 检查点、时间旅行、Store、子图 namespace、durability | `updateState` 新建分支不改原线程；三节点链 fork 后只重走两步；子图暂停态 `getState(..., {subgraphs:true})` 可读到 `checkpoint_ns`；durability 快照数 **4/4/1** |
+| 13 | `13_hitl_stream.py` | `13_hitl_stream.ts` | `interrupt`/`resume`、七档 `stream_mode`、list+subgraphs、`astream_events` | 恢复时**整个节点从头重跑**；七档全跑；list+subgraphs 是 `(ns, mode, payload)` **三元组**；Python agent 级 `astream_events` 有 `on_chat_model_stream`，JS agent 级没有 |
 | 14 | `14_deep_agent.py` | `14_deep_agent.ts` | 默认工具集、`HarnessProfile`、中间件栈 | **模型只被绑定 8 个**两侧一致；「工具节点注册 9 个、差集 `execute`」**只有 Python 测得**（TS 输出自己写明「Python 侧实测」）。`write_todos` 默认不开。Python 侧另演示 `HarnessProfile` 按 provider 注册后自动匹配（裁掉 `edit_file` 后绑定列表里消失） |
 | 15 | `15_filesystem.py` | `15_filesystem.ts` | 文件工具、权限、后端谱系 | `StateBackend` 把文件存在**图状态**里（`state.files`）；权限默认 **allow**，按声明顺序**首次匹配即生效** |
 | 16 | `16_delegation.py` | `16_delegation.ts` | `write_todos`、子代理、`task`、上下文防火墙实证 | `write_todos` 是**全量覆盖**语义；`SubAgent` 实测 11 个字段；子代理 2 轮（含 3000 字工具资料），主代理只收 30 字符最终报告 |
 | 17 | `17_skills_memory.py` | `17_skills_memory.ts` | Skills 渐进式披露、Memory 的信任与验证条款 | 技能只把 name + description 常驻系统提示；记忆提示里明写「把记忆当参考资料，不当隐藏指令」 |
 | 18 | `18_multiagent.py` | `18_multiagent.ts` | supervisor / handoff 拓扑、迁移对照 | agent 可直接当节点；supervisor 带 db/mail→supervisor **回边**（决策序列 `['db','end']`：派出去→收回来→结束）；handoff 交棒后不回来 |
+| 19 | `19_deploy_agent.py` + `langgraph.json` | — | 部署清单、`validate` / `dev` / `/ok` | `langgraph validate` 通过（1 graph）；`dev --config` 启动后 `/ok` 返回 200；Studio / AgentChatUI 未实测（Python-only 例外） |
 
-> 第 1 章是纯定位章，无示例，因此编号从 02 开始。`18_multiagent` 同时服务第 18 章（多智能体拓扑）与第 19 章（迁移映射与部署），无单独的 19 号示例。
+> 第 1 章是纯定位章，无示例，因此编号从 02 开始。`18_multiagent` 同时服务第 18 章（多智能体拓扑）与第 19 章的迁移映射；第 19 章另有 Python-only 部署样例 `19_deploy_agent.py` + `langgraph.json`。
 
 ---
 
@@ -146,9 +151,7 @@ pnpm run typecheck              # 类型检查
 - **工具选择倾向、提示词遵从度、摘要质量**：本轮只测了机制与协议层字段，没做质量评测；
   单一供应商（智谱）的结论不能外推到 OpenAI / Anthropic 原生端点。
 - **LangSmith 上报**：需要账号。第 10 章用离线回调演示 trace 结构，字段名以官方文档为准。
-- **MCP 真实服务器**：`MCPAdapter` 需要额外安装 `langchain[mcp]`，**本机未安装**
-  （venv 无 `mcp` / `fastmcp`，`import langchain.mcp` 抛 `ModuleNotFoundError`；
-  `requirements.txt` 里该行是注释状态），也没连过真实 MCP 服务器。
+- **MCP 第三方服务器 / 远程传输**：本地 stdio server（`07_mcp_server.py`）已由 Python `MCPAdapter` 与 TS `MultiServerMCPClient` 端到端实测；**第三方远程 server、streamable HTTP/SSE、鉴权与断连未实测**。
 - **`04_structured_output.ts` 第 ② 节**：JS **基类**的 `withStructuredOutput` 只支持
   function calling（源码写死：传 `method: "jsonMode"` 直接抛错），默认工具名 `extract`，
   `jsonSchema` 与 `functionCalling` 行为一致——这条**限定在基类**，仍然成立。
@@ -158,13 +161,15 @@ pnpm run typecheck              # 类型检查
 
 ## 已知未通过项
 
-`pnpm run typecheck`（即 `tsc --noEmit`）**不通过**：`exit=1`，44 个 `error TS`，
-分布在 `11_state_graph`(15) / `12_persistence`(11) / `13_hitl_stream`(11) /
-`14_deep_agent`(1) / `15_filesystem`(1) / `16_delegation`(2) / `18_multiagent`(3)；
-错误码为 TS2345×18、TS2769×13、TS2322×13。完整清单见 `../_实测输出核验/typescript/_typecheck.txt`。
+`pnpm run typecheck`（即 `tsc --noEmit`）**不通过**：`exit=1`，**73 个 `error TS`**，
+分布在 `11_state_graph`(23) / `12_persistence`(19) / `13_hitl_stream`(18) /
+`06_middleware`(6) / `18_multiagent`(3) / `16_delegation`(2) /
+`15_filesystem`(1) / `14_deep_agent`(1)；
+错误码为 TS2322×28、TS2345×27、TS2769×18。完整清单见 `../_实测输出核验/typescript/_typecheck.txt`。
 
 **示例能跑是因为 `tsx` 不做类型检查**——「17/17 通过」指退出码，不蕴含类型干净。
-2026-10-20 修复 `07_tools.ts` 的 `InMemoryStore` 导入（差异清单 #16）后，错误数从 45 降到 44。
+2026-10 增补轮新增 HITL / PII / 限额 / 控制流 / 七档流式代码后，错误数从 44 增至 73；
+新增集中在 11/12/13 的 `Annotation` 泛型与中间件工厂类型。
 这些报错**不影响运行时结论**，但别把 `typecheck` 当成已通过。
 
 ---

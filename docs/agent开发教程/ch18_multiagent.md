@@ -32,9 +32,9 @@
 | **handoff** | 交棒后**不回来**，接手的 agent 负责到底 | 一次分流就结束的场景（像「转人工」） | 交错了没人兜底；链路一长就难追 |
 | **swarm** | **没有中心**，agent 之间互相转移，谁接手谁往下传 | 任务边界模糊、需要互相接力的场景 | 最容易失控：可能循环转圈、可能没人收尾 |
 
-![图 32　多智能体拓扑：supervisor 有调度者、handoff 交棒不回头、swarm 互相转移](assets/32_multiagent_topology.png)
+![图 37　多智能体拓扑：supervisor 有调度者、handoff 交棒不回头、swarm 互相转移](assets/37_multiagent_topology.png)
 
-*图 32　多智能体拓扑：supervisor 有调度者、handoff 交棒不回头、swarm 互相转移*
+*图 37　多智能体拓扑：supervisor 有调度者、handoff 交棒不回头、swarm 互相转移*
 
 三者的关系可以这样理解：**handoff 是 supervisor 去掉「收回来」这一步，swarm 是 handoff 去掉「中心」。** 去掉的东西越多，越省事，也越难管。
 

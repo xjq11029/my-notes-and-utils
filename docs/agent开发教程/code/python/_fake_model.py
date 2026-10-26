@@ -25,13 +25,13 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import AsyncIterator, Sequence
 from typing import Any
 
 from langchain_core.callbacks import CallbackManagerForLLMRun
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import AIMessage, BaseMessage
-from langchain_core.outputs import ChatGeneration, ChatResult
+from langchain_core.messages import AIMessage, AIMessageChunk, BaseMessage
+from langchain_core.outputs import ChatGeneration, ChatGenerationChunk, ChatResult
 
 
 class ScriptedChatModel(BaseChatModel):
@@ -88,6 +88,25 @@ class ScriptedChatModel(BaseChatModel):
         msg = self.script[idx]
         self._cursor += 1
         return ChatResult(generations=[ChatGeneration(message=msg)])
+
+    async def _astream(
+        self,
+        messages: list[BaseMessage],
+        stop: list[str] | None = None,
+        run_manager: Any = None,
+        **kwargs: Any,
+    ) -> AsyncIterator[ChatGenerationChunk]:
+        """异步流式版本：每条脚本消息只吐一个 chunk，与 `_generate` 同语义。"""
+        self.seen.append(list(messages))
+        idx = min(self._cursor, len(self.script) - 1)
+        msg = self.script[idx]
+        self._cursor += 1
+        chunk = AIMessageChunk(
+            content=msg.content,
+            tool_calls=msg.tool_calls,
+            additional_kwargs=msg.additional_kwargs,
+        )
+        yield ChatGenerationChunk(message=chunk)
 
 
 def tool_call(name: str, args: dict[str, Any], call_id: str) -> AIMessage:

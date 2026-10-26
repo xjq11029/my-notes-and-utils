@@ -231,3 +231,35 @@ npx tsc --noEmit   →  exit=1，45 个 error TS（2026-10-20 复审后为 44 �
 | ch14 | `create_deep_agent` + 假模型 | `你好，我是 Deep Agent。` |
 
 ch02 / ch12 / ch13 / ch15 / ch16 / ch17 / ch18 / ch19 的最小例子是三步说明或依赖前文对象，不单独运行。
+
+
+## 9. 2026-10 增补轮（HITL / MCP / 控制流 / 部署）
+
+本轮以 `atguigu-note-main` 为选题清单，就地扩写 ch06/07/11/12/13/19；新增输出与证据如下。
+
+| 产物 | 内容 | 结果 |
+|---|---|---|
+| `python/06_middleware.txt` | HITL approve/reject、PII、Model/Tool 限额、ToolRetry/ModelRetry/ModelFallback | exit=0；approve 后退款 1 次、reject 后不增加；模型侧 `[REDACTED_EMAIL]` / `****` |
+| `typescript/06_middleware.txt` | 同上 TS 版 | exit=0；`allowedDecisions` 仅 `approve/edit/reject`；JS 掩码为连字符 |
+| `python/07_tools.txt` | MCP `MCPAdapter(Path(...))` 发现 `add`/`echo` 并调用 | exit=0；`add(2,3) → 5` |
+| `typescript/07_tools.txt` | TS `MultiServerMCPClient` 连同一个 Python server | exit=0；工具名 `demo__add` / `demo__echo` |
+| `python/11_state_graph.txt` | `add_sequence`、静态扇入、循环/`recursion_limit`、`RemainingSteps`、`RetryPolicy`、async timeout、`CachePolicy`、Functional API | exit=0；默认 limit **10007**；同步 timeout `compile()` 抛 `ValueError`；cache 同输入只跑 1 次 |
+| `typescript/11_state_graph.txt` | 同上 TS 版 | exit=0；`recursionLimit` 驼峰；JS 无 `RemainingSteps` 导出 |
+| `python/12_persistence.txt` | 子图 `checkpoint_ns`、durability | exit=0；暂停态可读 `tasks[0].state.values`；快照 **4/4/1** |
+| `typescript/12_persistence.txt` | 同上 TS 版 | exit=0；`getState(cfg,{subgraphs:true})` 可下钻；快照 **4/4/1** |
+| `python/13_hitl_stream.txt` | 七档 `stream_mode`、list+subgraphs、`astream_events` | exit=0；list+subgraphs 为 `(ns, mode, payload)` 三元组；`on_chat_model_stream` 可见 |
+| `typescript/13_hitl_stream.txt` | 同上 TS 版 | exit=0；list+subgraphs 为三元素数组；agent 级 `streamEvents` 只有 start/end |
+| `python/19_deploy_agent.txt` | `langgraph validate` / `dev` / `/ok` | validate 通过（1 graph）；dev 启动后 `/ok` 返回 `{"ok":true,"services":{}}` |
+| `typescript/_typecheck.txt` | `tsc --noEmit` 全量报错 | `exit=1`，**73** 个 error（TS2322×28 / TS2345×27 / TS2769×18） |
+
+**关键差异证据**（正文与 `_写作大纲与来源登记.md` 差异 #26–#36 对应）：
+
+- `langgraph._internal._config.DEFAULT_RECURSION_LIMIT == 10007`（源码读取）。
+- 同步节点 `timeout`：`ValueError: Node timeouts are only supported for async nodes...`（`11_state_graph.py` 捕获并打印）。
+- `durability` 默认 `async`（源码）；两节点图历史快照 sync/async/exit = **4/4/1**。
+- `PIIMiddleware` 默认 `apply_to_input=True`、`apply_to_output=False`、`apply_to_tool_results=False`（源码签名）。
+- `retryPolicy`：Python `initial_interval` 秒 / JS `initialInterval` 毫秒（JS 日志显示 `1.00ms`）。
+- `MCPAdapter` 字符串目标必须 `http(s)`；本地 server 用 `Path`；Python 裸工具名 / TS `server__tool`。
+- `langgraph validate` 用 `-c`；`langgraph dev` 用 `--config`；Windows 需 `colorama`。
+
+**边界**：Studio / AgentChatUI 页面、Docker build、云端 deploy、第三方远程 MCP server、LangSmith 上报**未实测**；第 19 章的 SDK 运行时调用未执行（只验证了 validate + dev + `/ok` + 图导入）。

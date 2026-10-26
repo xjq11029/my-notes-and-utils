@@ -29,3 +29,35 @@ wrap_* 钩子能改写请求：动态切换模型
   → JS 侧改写请求的约定是 `handler({ ...request, model })`；
     Python 侧则是 `handler(request.override(model=...))`。
     两边都保留链上其它中间件的语义，不要直接改 request 对象本身。
+
+========================================================================
+③ humanInTheLoopMiddleware：工具调用前停下来等人
+========================================================================
+  待审批工具 = refund
+  允许决策   = ["approve","edit","reject"]
+  审批前退款次数 = 0
+  approve 后退款次数 = 1，最终回复 = "已处理。"
+  reject 后退款次数 = 1（未增加），最终回复 = "已处理。"
+  → JS 的载荷字段是 camelCase（actionRequests / reviewConfigs），且只支持 approve/edit/reject；
+    Python 多一个 respond 决策。底层同样是 interrupt + checkpointer。
+
+========================================================================
+④ piiMiddleware：模型侧只看到脱敏文本
+========================================================================
+  模型实际收到：["联系 [REDACTED_EMAIL]，卡号 ****-****-****-1111"]
+  → 选项名是 camelCase：applyToInput / applyToOutput / applyToToolResults；默认值与 Python 一致。
+
+========================================================================
+⑤ 限额：模型调用与工具调用的上限
+========================================================================
+  modelCallLimit(runLimit=1) → 最后一条："Model call limits exceeded: run level call limit reached with 1 model calls"
+  ToolMessage: "上海: 22°C，晴"
+  ToolMessage: "Tool call limit exceeded. Do not call 'get_weather' again."
+
+========================================================================
+⑥ 重试与回退：toolRetry / modelRetry / modelFallback
+========================================================================
+  toolRetry(maxRetries=2) → 工具实际调用 3 次，最后回复 = "查到了。"
+  modelRetry → "重试成功"（fails 余量 0）
+  modelFallback → "备用模型的回答"
+  → 重试解决「偶发失败」，回退解决「主模型整体不可用」；两者可以叠加，但顺序决定语义。

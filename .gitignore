@@ -17,3 +17,10 @@ node_modules/
 .workbuddy-ai/
 # IDE 配置不入库
 .vscode/
+.trae/
+
+# langgraph dev 运行时缓存
+.langgraph_api/
+
+# 外部课程包（无 LICENSE，含密钥文件；仅作本地选题参考，不入库）
+atguigu-note-main/

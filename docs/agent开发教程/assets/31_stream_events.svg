@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 470" width="680" height="470" role="img">
+<title>七档投影与 astream_events 事件面</title>
+<desc>stream_mode 的七种投影与 astream_events 的回调事件流对照。</desc>
+
+<rect x="0" y="0" width="680" height="470" fill="#111721"/>
+<text x="34" y="38" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="17" font-weight="700" fill="#dfe6ee">七档投影与 astream_events 事件面</text>
+<text x="34" y="62" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="12" fill="#7d8b9c">stream_mode 是「按状态看」，astream_events 是「按回调看」</text>
+
+<!-- left -->
+<rect x="30" y="84" width="300" height="340" rx="8" fill="#151d28" stroke="#2a3646"/>
+<text x="48" y="108" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="12" font-weight="700" fill="#8ecbff">stream_mode 七档</text>
+
+<rect x="48" y="122" width="92" height="24" rx="4" fill="#1d2b3d" stroke="#4dabf7"/>
+<text x="94" y="138" text-anchor="middle" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10" fill="#dfe6ee">values</text>
+<text x="152" y="138" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10" fill="#93a1b1">每步完整状态</text>
+
+<rect x="48" y="154" width="92" height="24" rx="4" fill="#1d2b3d" stroke="#4dabf7"/>
+<text x="94" y="170" text-anchor="middle" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10" fill="#dfe6ee">updates</text>
+<text x="152" y="170" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10" fill="#93a1b1">节点增量</text>
+
+<rect x="48" y="186" width="92" height="24" rx="4" fill="#2a2320" stroke="#e8a34b"/>
+<text x="94" y="202" text-anchor="middle" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10" fill="#f3c47a">messages</text>
+<text x="152" y="202" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10" fill="#93a1b1">模型 token（需模型节点）</text>
+
+<rect x="48" y="218" width="92" height="24" rx="4" fill="#1d2b3d" stroke="#4dabf7"/>
+<text x="94" y="234" text-anchor="middle" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10" fill="#dfe6ee">custom</text>
+<text x="152" y="234" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10" fill="#93a1b1">get_stream_writer 事件</text>
+
+<rect x="48" y="250" width="92" height="24" rx="4" fill="#241f38" stroke="#a78bfa"/>
+<text x="94" y="266" text-anchor="middle" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10" fill="#c9b8ff">checkpoints</text>
+<text x="152" y="266" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10" fill="#93a1b1">检查点（需 checkpointer）</text>
+
+<rect x="48" y="282" width="92" height="24" rx="4" fill="#1d2b3d" stroke="#4dabf7"/>
+<text x="94" y="298" text-anchor="middle" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10" fill="#dfe6ee">tasks</text>
+<text x="152" y="298" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10" fill="#93a1b1">任务开始 / 结束（不需 checkpointer）</text>
+
+<rect x="48" y="314" width="92" height="24" rx="4" fill="#2a1f24" stroke="#f0655f"/>
+<text x="94" y="330" text-anchor="middle" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10" fill="#ffb3ae">debug</text>
+<text x="152" y="330" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10" fill="#93a1b1">checkpoints + tasks + 元数据</text>
+
+<text x="48" y="376" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10" fill="#93a1b1">可组合成列表：Python (mode, payload)</text>
+<text x="48" y="394" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10" fill="#93a1b1">加 subgraphs 后变 (ns, mode, payload) 三元组</text>
+
+<!-- right -->
+<rect x="360" y="84" width="290" height="340" rx="8" fill="#151d28" stroke="#2a3646"/>
+<text x="378" y="108" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="12" font-weight="700" fill="#f3c47a">astream_events 事件面</text>
+
+<path d="M420 130 L420 370" stroke="#2a3646" stroke-width="1.2"/>
+<circle cx="420" cy="140" r="4" fill="#4dabf7"/>
+<text x="438" y="144" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">on_chain_start</text>
+
+<circle cx="420" cy="178" r="4" fill="#4dabf7"/>
+<text x="438" y="182" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">on_chat_model_start</text>
+
+<circle cx="420" cy="216" r="5" fill="#e8a34b"/>
+<text x="438" y="220" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#f3c47a">on_chat_model_stream</text>
+<text x="438" y="236" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="9.5" fill="#93a1b1">假模型需实现 _astream</text>
+
+<circle cx="420" cy="262" r="4" fill="#4dabf7"/>
+<text x="438" y="266" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">on_tool_start</text>
+
+<circle cx="420" cy="298" r="4" fill="#4dabf7"/>
+<text x="438" y="302" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">on_tool_end</text>
+
+<circle cx="420" cy="334" r="4" fill="#4dabf7"/>
+<text x="438" y="338" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">on_chat_model_end</text>
+
+<circle cx="420" cy="370" r="4" fill="#4dabf7"/>
+<text x="438" y="374" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">on_chain_end</text>
+
+<text x="378" y="404" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10" fill="#93a1b1">Python agent 级能看到全部；JS agent 级只给 start/end</text>
+
+<text x="34" y="452" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10.5" fill="#6b7a8d">断言时看「首块类型 / 事件名 / namespace」，不要按分块个数写测试。</text>
+</svg>

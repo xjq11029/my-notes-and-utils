@@ -23,5 +23,11 @@ langchain-anthropic>=1.7
 # 持久化检查点（第 11 章提到，默认不装）：
 # langgraph-checkpoint-sqlite
 
-# MCP 接入（第 7 章提到，需 extra；装完才能 import langchain.mcp）：
-# langchain[mcp]
+# 第 7 章 MCP（本地 stdio 实测；langchain[mcp] 的 extra 要求 fastmcp>=4.0.1,<5）：
+fastmcp==4.1.3
+mcp==2.3.0
+
+# 第 19 章本地部署（langgraph dev / validate）：
+langgraph-cli[inmem]==0.4.37
+# Windows 上 langgraph dev 的 structlog 彩色 ConsoleRenderer 需要：
+colorama==0.4.6

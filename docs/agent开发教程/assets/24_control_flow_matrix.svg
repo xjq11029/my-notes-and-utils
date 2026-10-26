@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 500" width="680" height="500" role="img">
+<title>控制流原语与容错面</title>
+<desc>顺序、并行扇出、静态扇入、循环、节点级容错与 Functional API 的对照。</desc>
+
+<rect x="0" y="0" width="680" height="500" fill="#111721"/>
+<text x="34" y="38" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="17" font-weight="700" fill="#dfe6ee">控制流原语与容错面</text>
+<text x="34" y="62" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="12" fill="#7d8b9c">一张图里同时出现顺序、并行、汇合、循环与节点级治理时，分别用哪个原语</text>
+
+<!-- panel 1: sequence -->
+<rect x="30" y="84" width="300" height="120" rx="8" fill="#151d28" stroke="#2a3646"/>
+<text x="48" y="106" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="12" font-weight="700" fill="#8ecbff">顺序：add_sequence</text>
+<rect x="52" y="132" width="58" height="26" rx="5" fill="#1d2b3d" stroke="#4dabf7"/>
+<text x="81" y="149" text-anchor="middle" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">a</text>
+<rect x="138" y="132" width="58" height="26" rx="5" fill="#1d2b3d" stroke="#4dabf7"/>
+<text x="167" y="149" text-anchor="middle" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">b</text>
+<rect x="224" y="132" width="58" height="26" rx="5" fill="#1d2b3d" stroke="#4dabf7"/>
+<text x="253" y="149" text-anchor="middle" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">c</text>
+<path d="M110 145 L134 145" stroke="#4dabf7" stroke-width="1.1"/><path d="M130 141 L137 145 L130 149" fill="#4dabf7"/>
+<path d="M196 145 L220 145" stroke="#4dabf7" stroke-width="1.1"/><path d="M216 141 L223 145 L216 149" fill="#4dabf7"/>
+<text x="48" y="186" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10" fill="#93a1b1">入口 / 出口仍要 add_edge(START, "a") / add_edge("c", END)</text>
+
+<!-- panel 2: parallel -->
+<rect x="350" y="84" width="300" height="120" rx="8" fill="#151d28" stroke="#2a3646"/>
+<text x="368" y="106" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="12" font-weight="700" fill="#8ecbff">并行扇出：同一起点多条边</text>
+<rect x="368" y="136" width="58" height="26" rx="5" fill="#1b2532" stroke="#3a4a5e"/>
+<text x="397" y="153" text-anchor="middle" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">START</text>
+<rect x="478" y="118" width="58" height="26" rx="5" fill="#1d2b3d" stroke="#4dabf7"/>
+<text x="507" y="135" text-anchor="middle" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">a</text>
+<rect x="478" y="158" width="58" height="26" rx="5" fill="#1d2b3d" stroke="#4dabf7"/>
+<text x="507" y="175" text-anchor="middle" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">b</text>
+<path d="M426 145 L452 133 L472 130" stroke="#4dabf7" stroke-width="1.1" fill="none"/><path d="M468 126 L476 130 L470 135" fill="#4dabf7"/>
+<path d="M426 153 L452 165 L472 168" stroke="#4dabf7" stroke-width="1.1" fill="none"/><path d="M468 164 L476 168 L470 173" fill="#4dabf7"/>
+<text x="368" y="194" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10" fill="#93a1b1">两个分支在同一个 super-step 执行；动态派发用 Send</text>
+
+<!-- panel 3: fan-in -->
+<rect x="30" y="218" width="300" height="120" rx="8" fill="#151d28" stroke="#2a3646"/>
+<text x="48" y="240" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="12" font-weight="700" fill="#8ecbff">静态扇入：add_edge([a, b], "join")</text>
+<rect x="54" y="256" width="58" height="26" rx="5" fill="#1d2b3d" stroke="#4dabf7"/>
+<text x="83" y="273" text-anchor="middle" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">left</text>
+<rect x="54" y="296" width="58" height="26" rx="5" fill="#1d2b3d" stroke="#4dabf7"/>
+<text x="83" y="313" text-anchor="middle" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">right</text>
+<rect x="210" y="276" width="70" height="26" rx="5" fill="#2a2320" stroke="#e8a34b"/>
+<text x="245" y="293" text-anchor="middle" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10.5" fill="#f3c47a">join</text>
+<path d="M116 269 L160 269 L204 284" stroke="#4dabf7" stroke-width="1.1" fill="none"/><path d="M198 280 L206 284 L199 289" fill="#4dabf7"/>
+<path d="M116 309 L160 309 L204 294" stroke="#4dabf7" stroke-width="1.1" fill="none"/><path d="M198 289 L206 294 L199 298" fill="#4dabf7"/>
+<text x="48" y="330" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10" fill="#93a1b1">等两路都完成才跑 join；与 Send 的动态并行不是一回事</text>
+
+<!-- panel 4: loop -->
+<rect x="350" y="218" width="300" height="120" rx="8" fill="#151d28" stroke="#2a3646"/>
+<text x="368" y="240" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="12" font-weight="700" fill="#8ecbff">循环：条件边绕回自己</text>
+<rect x="470" y="266" width="76" height="28" rx="5" fill="#1d2b3d" stroke="#4dabf7"/>
+<text x="508" y="284" text-anchor="middle" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">inc</text>
+<path d="M548 280 C590 280 590 330 508 330 C470 330 470 300 466 292" stroke="#e8a34b" stroke-width="1.2" fill="none"/>
+<path d="M462 298 L466 289 L472 295" fill="#e8a34b"/>
+<text x="368" y="330" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10" fill="#93a1b1">必须显式设 recursion_limit；超限抛 GraphRecursionError</text>
+
+<!-- panel 5: fault tolerance -->
+<rect x="30" y="352" width="300" height="120" rx="8" fill="#151d28" stroke="#2a3646"/>
+<text x="48" y="374" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="12" font-weight="700" fill="#f3c47a">节点级容错：add_node 的三个参数</text>
+<rect x="48" y="392" width="82" height="26" rx="5" fill="#2a2320" stroke="#e8a34b"/>
+<text x="89" y="409" text-anchor="middle" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10" fill="#f3c47a">RetryPolicy</text>
+<rect x="140" y="392" width="70" height="26" rx="5" fill="#2a2320" stroke="#e8a34b"/>
+<text x="175" y="409" text-anchor="middle" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10" fill="#f3c47a">timeout</text>
+<rect x="220" y="392" width="88" height="26" rx="5" fill="#2a2320" stroke="#e8a34b"/>
+<text x="264" y="409" text-anchor="middle" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10" fill="#f3c47a">CachePolicy</text>
+<text x="48" y="444" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10" fill="#ffb3ae">timeout 只支持 async 节点；同步节点 compile() 直接报错</text>
+<text x="48" y="460" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10" fill="#93a1b1">cache 只给纯节点；有副作用的节点不要开</text>
+
+<!-- panel 6: functional -->
+<rect x="350" y="352" width="300" height="120" rx="8" fill="#151d28" stroke="#2a3646"/>
+<text x="368" y="374" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="12" font-weight="700" fill="#8ecbff">Functional API：entrypoint + task</text>
+<rect x="368" y="396" width="72" height="26" rx="5" fill="#1d2b3d" stroke="#4dabf7"/>
+<text x="404" y="413" text-anchor="middle" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10" fill="#dfe6ee">entrypoint</text>
+<rect x="466" y="382" width="72" height="26" rx="5" fill="#2a2320" stroke="#e8a34b"/>
+<text x="502" y="399" text-anchor="middle" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10" fill="#f3c47a">task A</text>
+<rect x="466" y="418" width="72" height="26" rx="5" fill="#2a2320" stroke="#e8a34b"/>
+<text x="502" y="435" text-anchor="middle" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10" fill="#f3c47a">task B</text>
+<path d="M442 409 L460 397" stroke="#4dabf7" stroke-width="1.1"/><path d="M456 393 L464 396 L459 402" fill="#4dabf7"/>
+<path d="M442 413 L460 425" stroke="#4dabf7" stroke-width="1.1"/><path d="M456 429 L464 426 L459 420" fill="#4dabf7"/>
+<text x="560" y="410" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10" fill="#93a1b1">.result() / await</text>
+<text x="368" y="462" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10" fill="#93a1b1">逻辑是一条函数链时更直接；要可视化 / 中断仍用 Graph API</text>
+</svg>

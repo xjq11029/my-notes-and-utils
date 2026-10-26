@@ -17,8 +17,8 @@
 
 import { BaseChatModel } from "@langchain/core/language_models/chat_models";
 import type { BaseChatModelCallOptions } from "@langchain/core/language_models/chat_models";
-import { AIMessage, type BaseMessage } from "@langchain/core/messages";
-import type { ChatGeneration, ChatResult } from "@langchain/core/outputs";
+import { AIMessage, AIMessageChunk, type BaseMessage } from "@langchain/core/messages";
+import { ChatGenerationChunk, type ChatGeneration, type ChatResult } from "@langchain/core/outputs";
 
 export class ScriptedChatModel extends BaseChatModel {
   script: AIMessage[];
@@ -59,6 +59,25 @@ export class ScriptedChatModel extends BaseChatModel {
     const message = this.script[idx];
     const generation: ChatGeneration = { text: String(message.content), message };
     return { generations: [generation] };
+  }
+
+  /** 异步流式版本：每条脚本消息只吐一个 chunk，与 `_generate` 同语义。 */
+  async *_streamResponseChunks(
+    messages: BaseMessage[],
+    _options: BaseChatModelCallOptions,
+    _runManager?: unknown,
+  ): AsyncGenerator<ChatGenerationChunk> {
+    this.seen.push([...messages]);
+    const idx = Math.min(this.cursor, this.script.length - 1);
+    this.cursor += 1;
+    const message = this.script[idx];
+    yield new ChatGenerationChunk({
+      text: String(message.content),
+      message: new AIMessageChunk({
+        content: message.content,
+        tool_calls: message.tool_calls,
+      }),
+    });
   }
 }
 

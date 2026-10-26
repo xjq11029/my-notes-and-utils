@@ -1,0 +1,7 @@
+{
+  "dependencies": ["."],
+  "graphs": {
+    "agent": "./19_deploy_agent.py:graph"
+  },
+  "env": {}
+}

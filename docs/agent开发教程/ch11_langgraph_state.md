@@ -8,9 +8,9 @@
 
 先回收一个伏笔：**第 5 章的 `AgentState` 就是一张最小图的状态，`create_agent` 编译出来的本来就是一张 LangGraph 图**（第 1 章的分层图说过这句话，这里兑现）。本章把「图」这层黑盒打开：你自己画一张图时，状态、合并、流转、并行各由什么说了算。
 
-![图 18　图的基本构件](assets/18_graph_building_blocks.png)
+![图 21　图的基本构件](assets/21_graph_building_blocks.png)
 
-*图 18　图的基本构件*
+*图 21　图的基本构件*
 
 **一句话主线：本章回答「自己画一张图」的四个落点——状态长什么样（schema）、多个节点的贡献怎么合（reducer）、流程怎么表达（节点 / 边 / 条件边 / `Send`）、同一线程再次 `invoke` 会发生什么。** 顺着这条线，要回答五个问题：
 
@@ -19,6 +19,8 @@
 3. 流程怎么表达（节点 / 边 / 条件边 / 入口点）；
 4. 并行怎么派发（`Send`）；
 5. **同一线程再次 `invoke` 会发生什么**——这是本章最反直觉、也最容易踩的一处。
+
+2.9–2.13 再把「一次 `invoke` 内部」的控制流与健壮性补齐：顺序与扇入、循环上限、节点重试/超时/缓存、Functional API。
 
 ## 二、机制与原理
 
@@ -65,9 +67,9 @@ schema 定了字段，reducer 定「合并规则」。它回答的问题是：**
 new_value = reducer(left = 当前状态值, right = 节点返回的更新)
 ```
 
-![图 19　Reducer 合并语义](assets/19_reducer_semantics.png)
+![图 22　Reducer 合并语义](assets/22_reducer_semantics.png)
 
-*图 19　Reducer 合并语义*
+*图 22　Reducer 合并语义*
 
 可以把 reducer 类比成一块共享白板旁的两种约定（类比，只帮助理解，机制以上文公式和下表为准）：**覆盖式**约定「后写的人把整块板擦掉重写」；**追加式**约定「后写的人接着往下写」。字段没有显式声明 reducer 时，LangGraph 取前一种。
 
@@ -99,9 +101,9 @@ reducer 讲的是通用规则；这一节看最常用的那个合并型字段—
 
 「状态怎么合」讲完了，接下来讲另一半：**流程怎么表达**——图从哪开始、经过哪些节点、靠什么规则走到下一步。
 
-![图 20　条件边与 `Send` 并行](assets/20_send_fanout.png)
+![图 23　条件边与 `Send` 并行](assets/23_send_fanout.png)
 
-*图 20　条件边与 `Send` 并行*
+*图 23　条件边与 `Send` 并行*
 
 - **入口点**：`START`（Python）/ `START`（JS）——图的起点。
 - **节点**：一个函数，读 state、返回更新字典；异步函数也可以。
@@ -152,9 +154,126 @@ reducer 讲的是通用规则；这一节看最常用的那个合并型字段—
 
 第 1、2 条是最阴的坑：以为「同一线程会累积」，结果标量字段被输入悄悄重置了。
 
+### 2.9 顺序与扇入：`add_sequence` 与多起点边
+
+2.8 讲的是「同一线程再次 `invoke`」；这一节回到「一次 `invoke` 内部」，补齐两种最常见的固定形状：**顺序链**与**并行汇合**。它们回答的问题是：**多个节点按固定顺序串起来、或从多个起点并行跑再汇合，代码怎么写**。
+
+- **顺序链**：`add_sequence([a, b, c])` 一次声明 a→b→c，比三次 `add_edge` 少写两行；入口仍要自己 `add_edge(START, "a")`，出口仍要 `add_edge("c", END)`。
+- **静态扇入**：`add_edge(["left", "right"], "join")` 表示「等 left、right **都**完成后再跑 join」。它是**静态**的（起点在编译期写死），与 2.6 的 `Send`（运行期按数据派发 N 个分支）不是一回事——前者是「固定的几路汇合」，后者是「按列表长度动态并行」。
+
+最小例子（3 步）：先顺序、再两路扇出、最后汇合。
+
+```python
+class Flow(TypedDict):
+    trail: Annotated[list[str], operator.add]
+
+sequence = (StateGraph(Flow).add_sequence([seq_a, seq_b])
+            .add_edge(START, "seq_a").add_edge("seq_b", END).compile())
+# sequence.invoke({"trail": []}) → {'trail': ['a', 'b']}
+
+fan_in = (StateGraph(Flow)
+          .add_node("left", left).add_node("right", right).add_node("join", join)
+          .add_edge(START, "left").add_edge(START, "right")
+          .add_edge(["left", "right"], "join")
+          .add_edge("join", END).compile())
+# fan_in.invoke({"trail": []}) → {'trail': ['left', 'right', 'join<-left,right']}
+```
+
+下图把顺序、扇出、扇入、循环放进同一张控制流面板——**只画原语，不画具体业务**：
+
+![图 24　控制流原语与容错面](assets/24_control_flow_matrix.png)
+
+*图 24　控制流原语与容错面*
+
+### 2.10 循环与递归上限：`recursion_limit` 与 `RemainingSteps`
+
+条件边既可以分流，也可以**绕回自己**形成循环。循环必须有人踩刹车：LangGraph 用 `recursion_limit` 限制单次运行最多走多少个 super-step。它回答的问题是：**循环什么时候被强行停下、默认上限是多少、还剩几步能不能在节点里读到**。
+
+三个实测/核对事实（`langgraph` 1.2.12）：
+
+1. 本机默认上限是 **10007**（`langgraph._internal._config.DEFAULT_RECURSION_LIMIT`，**源码核对**）；讲义里的 25、官方旧文档的 1000、课程包在 1.1.2 上量到的 10000，都不是本机值——**这个默认值随版本变化，生产代码请显式传**。
+2. 超过上限抛 `GraphRecursionError`，**示例实测**；报错文本会带上当前 limit。
+3. `RemainingSteps` 是 LangGraph 注入的 managed 值：在状态里声明 `remaining_steps: RemainingSteps`，节点里就能读到「进入本节点时还剩几步」，**示例实测**（`recursion_limit=5` 时进入节点看到 4）。Python 从 `langgraph.managed` 导入；JS 1.4.17 的导出表里没有同名值（**本机核对**）。
+
+最小例子（3 步）：
+
+```python
+def keep_going(state: Loop) -> str:
+    return "inc" if state["n"] < 3 else END
+
+loop = (StateGraph(Loop).add_node("inc", inc).add_edge(START, "inc")
+        .add_conditional_edges("inc", keep_going, {"inc": "inc", END: END}).compile())
+loop.invoke({"n": 0}, {"recursion_limit": 5})   # {'n': 3}
+
+class StepState(TypedDict):
+    n: int
+    remaining_steps: RemainingSteps
+
+def report(state: StepState) -> dict:
+    print(state["remaining_steps"])    # recursion_limit=5 时进入节点看到 4
+    return {"n": state["n"] + 1}
+```
+
+### 2.11 节点级容错：`RetryPolicy`、timeout 与 `error_handler`
+
+循环会反复执行同一个节点，节点失败怎么办？图提供了**节点级**的容错三件套，回答的问题是：**失败重试几次、单次执行最多多久、重试仍失败后走哪条路**。
+
+| 能力 | Python | TypeScript | 关键默认值 / 边界 |
+|---|---|---|---|
+| 重试 | `RetryPolicy(max_attempts, retry_on, initial_interval, ...)` | `retryPolicy: { maxAttempts, initialInterval, ... }` | Python `max_attempts=3`、`initial_interval=0.5` 秒；JS `maxAttempts=3`、`initialInterval=500` **毫秒**（JS 重试日志实测） |
+| 超时 | `timeout=0.05` 或 `TimeoutPolicy(...)` | `timeout: 50` 或 `TimeoutPolicy` | **只支持 async 节点**；同步节点 `compile()` 直接抛 `ValueError`（**示例实测**） |
+| 错误处理 | `error_handler=fn` | `errorHandler` | 重试耗尽后接管；与重试策略分开配置（**源码核对**，示例未构造耗尽用例） |
+
+最小例子（重试 3 次）：
+
+```python
+graph.add_node("flaky", flaky, retry_policy=RetryPolicy(max_attempts=3, retry_on=ValueError))
+# 前两次抛 ValueError，第三次成功；节点总共执行 3 次
+```
+
+> 口径：重试次数、`retry_on`、超时异常是**示例实测**；`error_handler` 的签名与继承规则只做了**源码核对**，示例未构造「重试耗尽后交给 error_handler」的用例。
+
+### 2.12 节点缓存：`CachePolicy` 与 `InMemoryCache`
+
+重试解决「失败」；缓存解决「重复」：同一个纯节点、同一份输入，第二次能否直接复用上次结果。它回答的问题是：**缓存键是什么、TTL 多久、哪些节点不能缓存**。
+
+- `CachePolicy(ttl=60)` 挂在节点上（ttl 单位：秒）；`compile(cache=InMemoryCache())` 给整张图提供缓存实现。
+- 缓存键默认由节点输入生成；有副作用（写库、发消息、扣款）的节点**不要**开缓存。
+- JS 侧 `cachePolicy: { ttl: 60 }`，`InMemoryCache` 在 `@langchain/langgraph-checkpoint` 包里，不在 `@langchain/langgraph` 顶层（**本机核对**导出表）。
+
+最小例子（同输入两次，节点只跑一次）：
+
+```python
+graph.add_node("pure", pure, cache_policy=CachePolicy(ttl=60))
+graph = graph.compile(cache=InMemoryCache())
+graph.invoke({"n": 1}); graph.invoke({"n": 1})   # 节点执行 1 次
+```
+
+### 2.13 Functional API：`@entrypoint` 与 `@task`
+
+前面各节都在用 Graph API（节点 + 边）。如果工作流本身就是一条函数链，用 Graph API 描述会显得绕。Functional API 回答的问题是：**能不能用普通函数调用写同一类工作流**。
+
+- `@task` 把一个函数变成可并行、可重试、可缓存的「任务」；调用它返回一个 future，`.result()` / `await` 取结果。
+- `@entrypoint` 把一组任务调用包成一个入口；它本身也是一张可编译、可带 checkpointer/store 的图。
+- 选型：需要**可视化、中断、子图**时用 Graph API；逻辑就是**一条函数链**时 Functional 更直接。
+
+最小例子（3 步）：
+
+```python
+@task
+def add_one(x: int) -> int:
+    return x + 1
+
+@entrypoint()
+def pipeline(x: int) -> int:
+    return add_one(x).result()
+
+pipeline.invoke(3)   # 4
+```
+
 ## 三、代码：Python 与 TypeScript
 
-完整可运行版本见 `code/python/11_state_graph.py` 与 `code/typescript/11_state_graph.ts`。五段代码对应机制部分的五个主题：schema 与 reducer、同线程多次 `invoke`、条件边、`Send` 并行、`Overwrite` 清空。
+完整可运行版本见 `code/python/11_state_graph.py` 与 `code/typescript/11_state_graph.ts`。下面按机制顺序给出：① schema 与 reducer、② 同线程多次 `invoke`、③ `Send` 并行、④ `Overwrite` 清空，以及**顺序/扇入、循环、容错、Functional API** 四段（脚本中对应 ⑥–⑨ 节，因为脚本前五节还含条件边）。
 
 **① State schema 与 reducer**——一个字段覆盖、一个字段合并：
 
@@ -273,6 +392,120 @@ new StateGraph(State)
   .compile();
 ```
 
+**⑤ 顺序与静态扇入**——`add_sequence` 省掉中间边，`add_edge([a, b], "join")` 等两路都完成：
+
+```python
+class Flow(TypedDict):
+    trail: Annotated[list[str], operator.add]
+
+sequence = (StateGraph(Flow).add_sequence([seq_a, seq_b])
+            .add_edge(START, "seq_a").add_edge("seq_b", END).compile())
+
+fan_in = (StateGraph(Flow)
+          .add_node("left", left).add_node("right", right).add_node("join", join)
+          .add_edge(START, "left").add_edge(START, "right")
+          .add_edge(["left", "right"], "join")
+          .add_edge("join", END).compile())
+```
+
+```typescript
+const sequence = new StateGraph(Flow)
+  .addSequence([["seq_a", seqA], ["seq_b", seqB]])
+  .addEdge(START, "seq_a").addEdge("seq_b", END).compile();
+
+const fanIn = new StateGraph(Flow)
+  .addNode("left", left).addNode("right", right).addNode("join", join)
+  .addEdge(START, "left").addEdge(START, "right")
+  .addEdge(["left", "right"], "join")
+  .addEdge("join", END).compile();
+```
+
+**⑥ 循环、`recursion_limit` 与 `RemainingSteps`**——循环要显式设上限；Python 能在节点里读到剩余步数：
+
+```python
+def keep_going(state: Loop) -> str:
+    return "inc" if state["n"] < 3 else END
+
+loop = (StateGraph(Loop).add_node("inc", inc).add_edge(START, "inc")
+        .add_conditional_edges("inc", keep_going, {"inc": "inc", END: END}).compile())
+loop.invoke({"n": 0}, {"recursion_limit": 5})   # {'n': 3}
+
+class StepState(TypedDict):
+    n: int
+    remaining_steps: RemainingSteps
+
+def report(state: StepState) -> dict:
+    print(state["remaining_steps"])    # recursion_limit=5 时看到 4
+    return {"n": state["n"] + 1}
+```
+
+```typescript
+const loop = new StateGraph(Loop)
+  .addNode("inc", (s: any) => ({ n: s.n + 1 }))
+  .addEdge(START, "inc")
+  .addConditionalEdges("inc", (s: any) => (s.n < 3 ? "inc" : END), { inc: "inc", [END]: END })
+  .compile();
+await loop.invoke({ n: 0 }, { recursionLimit: 5 });   // 注意是驼峰 recursionLimit
+// JS 1.4.17 未导出 RemainingSteps；剩余步数的 managed 值只在 Python 侧演示
+```
+
+**⑦ `RetryPolicy` / async timeout / `CachePolicy`**——三个都是 `add_node` 的编译参数：
+
+```python
+retry_graph = (StateGraph(Loop)
+    .add_node("flaky", flaky, retry_policy=RetryPolicy(max_attempts=3, retry_on=ValueError))
+    .add_edge(START, "flaky").add_edge("flaky", END).compile())
+
+async def slow(state: Loop) -> dict:
+    await asyncio.sleep(0.2)
+    return {"n": 1}
+
+timeout_graph = (StateGraph(Loop)
+    .add_node("slow", slow, timeout=0.05)   # 只支持 async 节点
+    .add_edge(START, "slow").add_edge("slow", END).compile())
+
+cache_graph = (StateGraph(Loop)
+    .add_node("pure", pure, cache_policy=CachePolicy(ttl=60))
+    .add_edge(START, "pure").add_edge("pure", END).compile(cache=InMemoryCache()))
+```
+
+```typescript
+const retryGraph = new StateGraph(Loop)
+  .addNode("flaky", flaky, { retryPolicy: { maxAttempts: 3, initialInterval: 1, jitter: false } })
+  .addEdge(START, "flaky").addEdge("flaky", END).compile();
+
+const timeoutGraph = new StateGraph(Loop)
+  .addNode("slow", slow, { timeout: 50 })   // 毫秒
+  .addEdge(START, "slow").addEdge("slow", END).compile();
+
+const cacheGraph = new StateGraph(Loop)
+  .addNode("pure", pure, { cachePolicy: { ttl: 60 } })
+  .addEdge(START, "pure").addEdge("pure", END)
+  .compile({ cache: new InMemoryCache() });   // 从 @langchain/langgraph-checkpoint 导入
+```
+
+**⑧ Functional API**——同一件事，用普通函数调用表达：
+
+```python
+@task
+def add_one(x: int) -> int:
+    return x + 1
+
+@entrypoint()
+def pipeline(x: int) -> int:
+    return add_one(x).result()
+
+pipeline.invoke(3)   # 4
+```
+
+```typescript
+const pipeline = entrypoint("pipeline", async (x: number) => {
+  const a = await task("add_one", async (v: number) => v + 1)(x);
+  return a;
+});
+await pipeline.invoke(3);   // 4
+```
+
 ## 四、常见坑与边界条件
 
 下面各条可以分三类读：**合并语义**（默认 reducer、`Overwrite`、`Send` 汇总）、**线程语义**（2.8 的三种 `invoke` 输入）、**跨语言差异**（`ends` 声明、`.graph`、`messages` reducer、节点名）。
@@ -288,16 +521,24 @@ new StateGraph(State)
 - **没有 checkpointer 就没有跨 `invoke` 的记忆**：2.8 节的所有结论都建立在 `compile(checkpointer=...)` 之上。Python 用 `InMemorySaver`，JS 用 `MemorySaver`（实测）。
 - **JS 示例的 `messages` 用的是普通 `concat`**：与 Python 的 `add_messages` 不完全等价（少了按 ID 去重更新）。要消息语义就用 `messagesStateReducer` 或 `MessagesAnnotation`。
 - **节点名是内部实现细节**：**跨语言会变（实测**，见第 13 章 `model` vs `model_request`）；「跨版本也会变」是合理推断，本机只跑过 `langgraph` 1.2.12 / `@langchain/langgraph` 1.4.17 一个版本，**未实测**。别硬编码。
+- **同步节点不能设 `timeout`**：`compile()` 会抛 `ValueError: Node timeouts are only supported for async nodes...`（**示例实测**）。这不是配置问题，是 Python 无法安全取消同步执行；要么把节点改成 `async`，要么在节点内部自己做超时。
+- **`recursion_limit` 的默认值不可背**：本机 1.2.12 是 **10007**（源码核对），课程包 1.1.2 量到 10000，旧文档写 1000/25。凡是循环图，显式传 `{"recursion_limit": N}`（JS：`{ recursionLimit: N }`）。
+- **重试参数的单位两语言不同**：Python `initial_interval` 以**秒**计，JS `initialInterval` 以**毫秒**计（JS 重试日志实测）。照抄数字会差 1000 倍。
+- **`RemainingSteps` 只有 Python 侧有**：从 `langgraph.managed` 导入；JS 1.4.17 没有同名导出（**本机核对**），TS 示例只演示 `recursionLimit`。
+- **缓存只给纯节点**：`CachePolicy` 按节点输入做键，有副作用的节点（写库、发消息、扣款）开了缓存会跳过真实副作用。JS 的 `InMemoryCache` 要从 `@langchain/langgraph-checkpoint` 导入。
+- **`add_sequence` 不接入口/出口**：它只负责中间的顺序边；`START → 首节点` 与 `末节点 → END` 仍要自己写。
+- **静态扇入 ≠ `Send`**：`add_edge([a, b], "join")` 是编译期固定的几路汇合；`Send` 是运行期按数据长度动态派发。两者都能并行，但适用场景不同。
+- **Functional API 的 `@task` 只能在 `@entrypoint` 或图里调用**：调用返回的是 future/`_TaskFunction` 结果，Python 忘记 `.result()`、JS 忘记 `await`，拿到的是任务对象而不是值。
 
 ## 五、关键结论
 
 1. **图 = State + Node + Edge**，必须 `compile()` 才能运行；`checkpointer` / `store` 在编译时传入。
 2. **默认 reducer = 覆盖**（顺序执行时后者覆盖前者；并行写同一无 reducer 字段会抛 `InvalidUpdateError`）；`Annotated[type, reducer]` 才是合并。消息用 `add_messages`（JS：`messagesStateReducer`）。
 3. **`Overwrite` 是合并型 reducer 的逃生舱**：返回空列表**不会**清空字段，要包 `Overwrite([])`。
-4. **控制流原语各管一段**：条件边选一条路；`Send` 给每个分支单独 payload 并并行；`Command` 同时更新状态与跳转；子图可直接当节点（JS 取 `.graph`）。
-5. **同一线程再次 `invoke`（实测）**：输入里出现的字段按各自 reducer 合并、没出现的保留检查点值；`invoke(None)` 不注入新输入（已跑完的线程上为空操作）、`invoke({})` 才是续跑。
+4. **控制流原语各管一段**：条件边选一条路；`Send` 运行期动态并行；`add_sequence` 固定顺序；`add_edge([a, b], "join")` 静态扇入；`Command` 同时更新与跳转；子图可直接当节点（JS 取 `.graph`）。循环图必须显式设 `recursion_limit`（本机默认 10007，随版本变化）。
+5. **同线程 `invoke` 与节点级治理都是「编译参数」**：输入里出现的字段按各自 reducer 合并、没出现的保留检查点值（`None` 空操作、`{}` 续跑）；`RetryPolicy` / `timeout`（仅 async）/ `CachePolicy` 挂在 `add_node` 上，Functional API 用 `@entrypoint` + `@task` 表达同一条链。
 
-> 口径：Reducer 行为、并行写同键报错、同线程 invoke 序列为示例实测（`11_state_graph.*`）；State schema 三形态与 Send / Command 细节以示例 + 源码核对为准；JS 取 `.graph` 的结论见 2.7。
+> 口径：Reducer 行为、并行写同键报错、同线程 invoke 序列、顺序/扇入、循环报错、`RemainingSteps`、重试/超时/缓存、Functional API 均为**示例实测**（`11_state_graph.*`）；`recursion_limit` 默认 10007 与 `error_handler` 为**源码核对**；JS 取 `.graph` 的结论见 2.7，`RemainingSteps` 无导出见 2.10。
 
 ## 本章要点回顾
 
@@ -311,3 +552,7 @@ new StateGraph(State)
 - `Command` 可同时更新状态与跳转；JS 侧要在 `addNode` 里声明 `ends`。
 - **同一线程再次 invoke 的三条实测结论**：出现的字段按自己的 reducer 合并 / 没出现的沿用检查点 / **`None` 是空操作而 `{}` 才是续跑**。
 - 记住那串数字：`n` 走 **1 → 1 → 2 → 101 → 102**，`trail` 一路追加到 `["起点","→1","→2","→101","插一条","→102"]`。
+- `add_sequence([a, b])` 只补中间的顺序边，入口/出口仍要自己接；`add_edge([a, b], "join")` 是**静态扇入**，等所有起点完成。
+- 循环图显式设 `recursion_limit`（本机默认 **10007**）；超限抛 `GraphRecursionError`；Python 可用 `RemainingSteps` 读剩余步数。
+- 节点级治理三件套：`RetryPolicy`（重试）、`timeout`（**仅 async**）、`CachePolicy`（只给纯节点）；JS 的重试间隔单位是毫秒。
+- 逻辑是一条函数链时可用 Functional API：`@entrypoint` 包入口、`@task` 包任务；Python `.result()`、JS `await` 取结果。

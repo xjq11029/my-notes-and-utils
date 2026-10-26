@@ -128,9 +128,9 @@ state['files'] = {
 
 **一处例外：递归删除不吃「先匹配先赢」这一套。** 源码对 `delete` 单独处理——目标可能有子孙时，只要存在**任何**能覆盖到该子树（或它的某个祖先）的 `deny write` 规则，删除就会被拦下，**不管这条规则排在多后面**（源码注释：`regardless of rule order`）。理由是：早先的 `allow` 无法保证子树里每个后代都安全。所以「顺序纪律」只对 `read` / `write` / `edit` 成立，**别拿它去推 `delete`**。
 
-![图 27　文件工具集与权限判定：声明顺序首次匹配即生效，mode 三档含 interrupt](assets/27_filesystem_permissions.png)
+![图 33　文件工具集与权限判定：声明顺序首次匹配即生效，mode 三档含 interrupt](assets/33_filesystem_permissions.png)
 
-*图 27　文件工具集与权限判定：声明顺序首次匹配即生效，mode 三档含 interrupt*
+*图 33　文件工具集与权限判定：声明顺序首次匹配即生效，mode 三档含 interrupt*
 
 > **参考块｜「首次匹配即生效」的实测口径**
 > ⚠️ **源码核对，非实测**：`15_filesystem.py` / `.ts` 从未 invoke 过带 `permissions` 的 agent，示例里那些「首次匹配即生效 / 未命中默认 allow」的句子是**直接 print 出来的结论文字**，没有任何一次真实的拦截或放行观测。判定逻辑读 `_check_fs_permission` 源码可确认其收尾是 `return "allow"`，但**要当真请自己跑一遍**。

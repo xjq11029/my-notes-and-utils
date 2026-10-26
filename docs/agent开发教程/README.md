@@ -21,10 +21,10 @@
 |---|---|---|
 | `ch01`–`ch19*.md` | 教程正文（框架线） | 19 章，每章统一骨架：这一章要解决的问题 → 机制与原理 → 双语言代码 → 常见坑 → 关键结论 → 本章要点回顾 |
 | [`handwritten/`](handwritten/README.md) | **手写线** | S1–S11 共 11 章 + Python 手写代码包 + 11 张配图：从模型接口契约到五大 Engineering，不依赖框架从零实现 Agent |
-| `agent-frameworks-deep-dive.html` | 精读版长文 | 单文件自包含（无 CDN / 无外部字体 / 无外部 JS），深色主题，左侧目录滚动高亮，32 张内联 SVG，Python/TypeScript 代码切换。**由脚本生成，不手工改** |
+| `agent-frameworks-deep-dive.html` | 精读版长文 | 单文件自包含（无 CDN / 无外部字体 / 无外部 JS），深色主题，左侧目录滚动高亮，38 张内联 SVG，Python/TypeScript 代码切换。**由脚本生成，不手工改** |
 | `_build_html.py` | 元文件 · 构建脚本 | 从 19 章正文 + `assets/` 生成上面那份 HTML。**幂等**；改章节或配图后必须重跑 |
-| `code/python/` | 示例代码 | Python 示例，**全部实跑通过**；离线 Fake 模型，无需 API Key |
-| `code/typescript/` | 示例代码 | TypeScript 示例，与 Python 一一对应，**全部实跑通过** |
+| `code/python/` | 示例代码 | 17 个主示例 + `07_mcp_server.py`（MCP fixture）+ `19_deploy_agent.py` / `langgraph.json`（部署样例）；**全部实跑通过**，离线 Fake 模型无需 API Key（MCP 本地 stdio、`langgraph dev` 除外） |
+| `code/typescript/` | 示例代码 | 17 个主示例与 Python 一一对应，**全部实跑通过**；MCP 客户端连接 Python fixture；部署为 Python-only 例外 |
 | `assets/` | 配图 | 自绘 SVG 矢量源 + **2× PNG 导出**（Markdown 引用 PNG；SVG 与 HTML 精读版同一份源） |
 | `_写作大纲与来源登记.md` | 元文件 | 逐章大纲 + 官方文档 URL + 版本 + **官方文档与本机实测的差异清单**（内部用） |
 | [`_写法规范.md`](_写法规范.md) | 元文件 · 写法规范 | 从 `docs/harness/` 与大模型笔记提炼的**叙事改写 + 一致性修复**双轨规范（问题驱动 / 一句话主线 / 推导链 / 类比与最小例子 / 图文码互证 / 口径后置 + 存量例外），第八轮起框架线全章节适用；`ch02_models.md` 是参考实现 |
@@ -55,20 +55,20 @@
 | 3 | [ch03_messages_prompts.md](ch03_messages_prompts.md) | Message 与提示词模板：四种消息类型与模板渲染 |
 | 4 | [ch04_structured_output.md](ch04_structured_output.md) | 结构化输出：四种 schema 模式与两种策略 |
 | 5 | [ch05_create_agent.md](ch05_create_agent.md) | `create_agent` 与 Agent Loop：状态、两类作用域、结构化输出 |
-| 6 | [ch06_middleware.md](ch06_middleware.md) | 中间件：harness 的可插拔扩展点与钩子体系 |
-| 7 | [ch07_tools_and_context.md](ch07_tools_and_context.md) | 工具与运行时上下文：`@tool`、注入与 MCP 接入 |
+| 6 | [ch06_middleware.md](ch06_middleware.md) | 中间件：钩子体系与治理件（HITL / PII / 限额 / 重试） |
+| 7 | [ch07_tools_and_context.md](ch07_tools_and_context.md) | 工具与运行时上下文：`@tool`、注入与 MCP 客户端/服务端 |
 | 8 | [ch08_rag.md](ch08_rag.md) | RAG 全链路：加载、切分、嵌入、入库与检索 |
 | 9 | [ch09_context_engineering.md](ch09_context_engineering.md) | 上下文工程：摘要、裁剪、卸载与缓存前缀 |
 | 10 | [ch10_observability.md](ch10_observability.md) | 可观测与评测：追踪、数据集与成本 |
-| 11 | [ch11_langgraph_state.md](ch11_langgraph_state.md) | LangGraph 图与状态：State / Reducer / Node / Edge / Send |
-| 12 | [ch12_langgraph_persistence.md](ch12_langgraph_persistence.md) | 持久化与持久执行：检查点、线程、时间旅行、长期记忆 |
-| 13 | [ch13_langgraph_control.md](ch13_langgraph_control.md) | 人在回路与流式：interrupt / resume / stream_mode |
+| 11 | [ch11_langgraph_state.md](ch11_langgraph_state.md) | LangGraph 图与状态：Reducer、控制流与节点级容错 |
+| 12 | [ch12_langgraph_persistence.md](ch12_langgraph_persistence.md) | 持久化：检查点、子图、durability、时间旅行 |
+| 13 | [ch13_langgraph_control.md](ch13_langgraph_control.md) | 人在回路与流式：七档 `stream_mode` 与 `astream_events` |
 | 14 | [ch14_deepagents_overview.md](ch14_deepagents_overview.md) | Deep Agents 全景：预装 harness 与 HarnessProfile |
 | 15 | [ch15_deepagents_filesystem.md](ch15_deepagents_filesystem.md) | 虚拟文件系统与执行环境：文件工具、权限、后端 |
 | 16 | [ch16_deepagents_delegation.md](ch16_deepagents_delegation.md) | 规划与委派：`write_todos` 与子代理 |
 | 17 | [ch17_deepagents_context.md](ch17_deepagents_context.md) | 技能与记忆：Skills 渐进式披露与跨会话 Memory |
 | 18 | [ch18_multiagent.md](ch18_multiagent.md) | 多智能体协作：三种拓扑与搭法 |
-| 19 | [ch19_migration_and_deploy.md](ch19_migration_and_deploy.md) | 迁移与部署：一张映射表与上线前检查 |
+| 19 | [ch19_migration_and_deploy.md](ch19_migration_and_deploy.md) | 迁移与部署：映射表、`langgraph.json` 与本地 `dev` |
 
 **推荐学习顺序**：按章顺序通读（1→19 为叙事线）；只关心某一层可跳读——第 2–4 章是基础层（模型、消息、结构化输出），第 5–9 章是 LangChain（含第 8 章 RAG 全链路），第 11–13 章是 LangGraph，第 14–17 章是 Deep Agents，第 18–19 章是多智能体与工程收尾。**可观测（第 10 章）只依赖第 5 章的 `create_agent`**，关心排查与成本的读者可在第 5 章后跳读它，再回到主线。想先搞懂「框架底下发生了什么」的读者，建议先读[手写线](handwritten/README.md)的 S1 → S3 → S4 → S5 → S6 → S7（契约 → 提示词与会话 → 工具 → 封装 → 循环 → 组装），再回框架线对照。
 
@@ -122,12 +122,19 @@
 | Subagent | 独立上下文的子代理，用 `task` 工具派发 | ch16 |
 | Skills | 按需加载的领域知识包（`SKILL.md`），渐进式披露 | ch17 |
 | Memory | 跨会话持久的指令与偏好（`AGENTS.md`） | ch17 |
+| HITL | 人在回路：工具调用前暂停，等人 approve/edit/reject/respond | ch6 |
+| PII | 个人可识别信息；`PIIMiddleware` 按类型做脱敏 | ch6 |
+| MCP server | 以 stdio / HTTP 等传输提供工具的进程 | ch7 |
+| `recursion_limit` | 单次图运行允许的最大 super-step 数（本机默认 10007） | ch11 |
+| `durability` | 检查点落盘时机：`sync` / `async` / `exit` | ch12 |
+| `astream_events` | 按回调事件（模型 token、工具开始/结束）流式输出 | ch13 |
+| `langgraph.json` | Agent Server 的部署清单：依赖、图、环境变量、Python 版本 | ch19 |
 
 ---
 
 ## 示例代码
 
-两套示例**一一对应**，覆盖同样的 17 个主题。**全部离线可跑**——用一个脚本化的假模型替代真实 LLM，**跑示例本身不需要 API Key、不产生网络请求**，结果确定可复现。
+17 个主示例**一一对应**（Python / TypeScript），另有 MCP 辅助样例与 Python-only 部署样例。**全部离线可跑**——用一个脚本化的假模型替代真实 LLM，**跑示例本身不需要 API Key、不产生网络请求**，结果确定可复现（MCP 走本地 stdio 子进程）。
 
 > **2026-10-16 更新**：原先标「未实测」的、只有真实模型才能验证的条目，已用智谱 OpenAI 兼容端点补测完毕；同时对本教程做了一次全量核验，逐条比对「正文声称的实测」与「示例真实输出」。结论与证据存档在 [`_实测输出核验/`](_实测输出核验/README.md)（含 34 份原始输出、6 张模型输出截图、真实模型抓包记录）。正文里凡标 **（源码核对）/（本机核对）** 的内容，都是这次核验中从「实测」降级出来的——**「实测」现在严格等于「示例输出里能看到」**。
 
@@ -139,11 +146,14 @@ cd code/python
 python -m venv .venv && . .venv/Scripts/activate   # Windows
 pip install -r requirements.txt
 python 02_models.py
+python 07_tools.py            # 含本地 MCP stdio（会拉起 07_mcp_server.py）
+python 19_deploy_agent.py     # 部署样例；配合 langgraph.json 使用
 
 # TypeScript
 cd code/typescript
 pnpm install
 pnpm run 02_models
+pnpm run 07_tools             # MCP 段会调用 ../python/.venv
 ```
 
 | 章节 | Python | TypeScript | 演示什么 |
@@ -152,20 +162,23 @@ pnpm run 02_models
 | 3 | `03_messages_prompts.py` | `03_messages_prompts.ts` | 四种消息、历史裁剪、模板的三种调用方式 |
 | 4 | `04_structured_output.py` | `04_structured_output.ts` | 四种 schema 模式、校验失败、工具策略自动重试 |
 | 5 | `05_create_agent.py` | `05_create_agent.ts` | Agent Loop、状态只追加、结构化输出 |
-| 6 | `06_middleware.py` | `06_middleware.ts` | 六个钩子的真实触发顺序 |
-| 7 | `07_tools.py` | `07_tools.ts` | 工具定义、`ToolRuntime` 注入、工具内改状态 |
+| 6 | `06_middleware.py` | `06_middleware.ts` | 六个钩子顺序、HITL 审批、PII 脱敏、限额/重试/回退 |
+| 7 | `07_tools.py` | `07_tools.ts` | 工具定义、`ToolRuntime` 注入、工具内改状态、MCP stdio 客户端 |
 | 8 | `08_rag.py` | `08_rag.ts` | 加载、切分、假嵌入、内存向量库、检索器接成工具 |
 | 9 | `09_context.py` | `09_context.ts` | 摘要压缩触发、工具输出卸载 |
 | 10 | `10_observability.py` | `10_observability.ts` | trace 结构（离线桩） |
-| 11 | `11_state_graph.py` | `11_state_graph.ts` | Reducer 语义、条件边、`Send` 并行 |
-| 12 | `12_persistence.py` | `12_persistence.ts` | 检查点、时间旅行、Store 跨线程 |
-| 13 | `13_hitl_stream.py` | `13_hitl_stream.ts` | `interrupt`/`resume`、`stream_mode` |
+| 11 | `11_state_graph.py` | `11_state_graph.ts` | Reducer、条件边、`Send`、顺序/扇入、循环上限、重试/缓存、Functional API |
+| 12 | `12_persistence.py` | `12_persistence.ts` | 检查点、时间旅行、Store、子图 namespace、durability |
+| 13 | `13_hitl_stream.py` | `13_hitl_stream.ts` | `interrupt`/`resume`、七档 `stream_mode`、list+subgraphs、`astream_events` |
 | 14 | `14_deep_agent.py` | `14_deep_agent.ts` | 预装工具集、HarnessProfile |
 | 15 | `15_filesystem.py` | `15_filesystem.ts` | 文件工具与权限判定 |
 | 16 | `16_delegation.py` | `16_delegation.ts` | 规划与子代理派发 |
 | 17 | `17_skills_memory.py` | `17_skills_memory.ts` | 技能加载与记忆注入 |
 | 18 | `18_multiagent.py` | `18_multiagent.ts` | 多智能体拓扑与迁移映射（同时服务第 19 章） |
+| 19 | `19_deploy_agent.py` + `langgraph.json` | — | 部署清单、`langgraph validate` / `dev` / `/ok`（Python-only） |
 
+> 第 19 章的部署样例是 **Python-only**（`langgraph-cli` 由 Python 侧分发；TS 侧没有等价的本地 `dev` 样例），其余 17 个主示例双语言一一对应。
+>
 > 详细说明见 [`code/README.md`](code/README.md)。
 
 ---
@@ -191,27 +204,33 @@ node scripts/svg-to-png.mjs "docs/agent开发教程/assets"
 | 图 9 | 状态与两类作用域（thread_id / context） | ch05 |
 | 图 10 | 六个钩子在一次工具调用中的真实触发顺序 | ch06 |
 | 图 11 | 六大能力域 × 预置中间件 | ch06 |
-| 图 12 | 工具调用往返与 `ToolRuntime` 注入 | ch07 |
-| 图 13 | MCP 接入与多服务器聚合 | ch07 |
-| 图 14 | RAG 检索链路 | ch08 |
-| 图 15 | 文档切分与向量化 | ch08 |
-| 图 16 | 上下文四种手段 | ch09 |
-| 图 17 | 缓存前缀边界 | ch09 |
-| 图 18 | 图的基本构件 | ch11 |
-| 图 19 | Reducer 合并语义 | ch11 |
-| 图 20 | 条件边与 `Send` 并行 | ch11 |
-| 图 21 | Store 跨线程分层 | ch12 |
-| 图 22 | 检查点落盘与恢复 | ch12 |
-| 图 23 | 时间旅行 | ch12 |
-| 图 24 | interrupt / resume 时序 | ch13 |
-| 图 25 | stream_mode 的七种投影 | ch13 |
-| 图 26 | Deep Agents 预装中间件栈 | ch14 |
-| 图 27 | 文件工具集与权限判定 | ch15 |
-| 图 28 | 规划循环 | ch16 |
-| 图 29 | 子代理的上下文防火墙 | ch16 |
-| 图 30 | 技能渐进式披露与记忆时间尺度 | ch17 |
-| 图 31 | trace 结构与可观测三层 | ch10 |
-| 图 32 | 多智能体拓扑 | ch18 |
+| 图 12 | 治理中间件栈：HITL / PII / 限额 / 重试在模型与工具调用上的位置 | ch06 |
+| 图 13 | 工具调用往返与 `ToolRuntime` 注入 | ch07 |
+| 图 14 | MCP 接入与多服务器聚合 | ch07 |
+| 图 15 | MCP client–server 的 stdio 管道与工具发现 | ch07 |
+| 图 16 | RAG 检索链路 | ch08 |
+| 图 17 | 文档切分与向量化 | ch08 |
+| 图 18 | 上下文四种手段 | ch09 |
+| 图 19 | 缓存前缀边界 | ch09 |
+| 图 20 | trace 结构与可观测三层 | ch10 |
+| 图 21 | 图的基本构件 | ch11 |
+| 图 22 | Reducer 合并语义 | ch11 |
+| 图 23 | 条件边与 `Send` 并行 | ch11 |
+| 图 24 | 控制流原语与容错面 | ch11 |
+| 图 25 | Store 跨线程分层 | ch12 |
+| 图 26 | 检查点落盘与恢复 | ch12 |
+| 图 27 | 时间旅行 | ch12 |
+| 图 28 | 子图命名空间与 durability 时间线 | ch12 |
+| 图 29 | interrupt / resume 时序 | ch13 |
+| 图 30 | stream_mode 的七种投影 | ch13 |
+| 图 31 | 七档投影与 astream_events 事件面 | ch13 |
+| 图 32 | Deep Agents 预装中间件栈 | ch14 |
+| 图 33 | 文件工具集与权限判定 | ch15 |
+| 图 34 | 规划循环 | ch16 |
+| 图 35 | 子代理的上下文防火墙 | ch16 |
+| 图 36 | 技能渐进式披露与记忆时间尺度 | ch17 |
+| 图 37 | 多智能体拓扑 | ch18 |
+| 图 38 | `langgraph.json` → Agent Server → Studio / AgentChatUI 部署链路 | ch19 |
 
 ---
 
@@ -241,10 +260,11 @@ node scripts/svg-to-png.mjs "docs/agent开发教程/assets"
 
 ## 已知限制
 
-- **真实模型只做了协议层探针，不是全部示例的端到端实测**：17 组示例仍用脚本化假模型跑框架机制；2026-10-16 另用智谱 OpenAI 兼容端点补测了流式分块、token / 缓存字段、结构化输出请求体与 `create_agent` 消息序列，证据在 `_实测输出核验/`。仍未实测的是**工具选择倾向、提示词遵从度、模型质量、跨供应商行为**——正文中逐处标注「需真实模型，未实测」。
+- **真实模型只做了协议层探针，不是全部示例的端到端实测**：17 组主示例仍用脚本化假模型跑框架机制（MCP 与部署样例另计）；2026-10-16 另用智谱 OpenAI 兼容端点补测了流式分块、token / 缓存字段、结构化输出请求体与 `create_agent` 消息序列，证据在 `_实测输出核验/`。仍未实测的是**工具选择倾向、提示词遵从度、模型质量、跨供应商行为**——正文中逐处标注「需真实模型，未实测」。
 - **LangSmith 上报未实测**：`LANGSMITH_TRACING` 相关的端到端上报需要账号，ch10 的 trace 结构用离线桩演示，字段名以官方文档为准。
-- **TypeScript 类型检查未通过**：`pnpm run typecheck`（`tsc --noEmit`）当前是 `exit=1`、44 个 `error TS`（2026-10-20 修复 `07_tools.ts` 的 `InMemoryStore` 导入后从 45 降到 44）；示例靠 `tsx` 运行，**「17/17 通过」只指运行时**。完整清单见 [`code/README.md`](code/README.md) 的「已知未通过项」。
-- **MCP 真实服务器未实测**：MCP 接入的代码路径以官方文档为准，正文标注。
+- **TypeScript 类型检查未通过**：`pnpm run typecheck`（`tsc --noEmit`）当前是 `exit=1`、**73 个 `error TS`**（2026-10 增补轮后从 44 增至 73，新增集中在 11/12/13 的泛型标注与中间件工厂类型）；示例靠 `tsx` 运行，**「17/17 通过」只指运行时**。完整清单见 [`code/README.md`](code/README.md) 的「已知未通过项」。
+- **MCP 第三方服务器未实测**：本地 stdio server（`07_mcp_server.py`）已端到端实测（Python `MCPAdapter` + TS `MultiServerMCPClient`）；第三方远程 server、鉴权与断连未实测。
+- **部署只验证到本地 dev**：`langgraph validate` / `dev` / `/ok` 已实测；Studio / AgentChatUI 页面、Docker build、云端 deploy 未实测。
 - **版本漂移**：三个框架迭代很快，且 `deepagents` 的 Python 包与 JS 包**版本号不同步**。**如与最新版本有出入，以官方文档与仓库实际代码为准。**
 - **图示为机制示意**：图中的节点名、工具名来自实测，但布局与配色是为讲解服务的，不代表框架内部实现结构。
 
@@ -264,7 +284,7 @@ node scripts/svg-to-png.mjs "docs/agent开发教程/assets"
   node scripts/svg-to-png.mjs "docs/agent开发教程/assets"
   ```
   ⚠️ SVG 的 `width`/`height` 必须与 `viewBox` 相同，否则 `--scale 2` 会得到 4×
-- 图号**全局连续**；**图 31 先于图 18–30 出现为既定例外**；新增图按出现顺序递增，插在中间时其后图号顺延，并同步更新本章图注、本 README 配图索引、`_写作大纲与来源登记.md` 配图清单，**并重跑 `_build_html.py`**
+- 图号**严格按正文出现顺序全局连续**（1–38）；新增图插入后其后图号顺延；图注、README 配图索引、`_写作大纲与来源登记.md` 三处联动；改图后必须重渲染 PNG 并重跑 `_build_html.py`
 - HTML 精读版保持**单文件自包含**；内联 SVG 的 marker `id` 必须加图号前缀去重（`_build_html.py` 已处理）
 - 英文逐字引用必附中译
 - 事实性数字必须标注来源与时间；查不到出处的性能数字不采用
@@ -272,7 +292,6 @@ node scripts/svg-to-png.mjs "docs/agent开发教程/assets"
 - **叙事优先（第八轮起）**：章节**叙述层**按 [`_写法规范.md`](_写法规范.md) 执行——问题驱动开场、一句话主线、节首接缝句、表格先框定后出现、口径标签后置、重参考块入节末、最小例子先行、图文码互证。**叙述改写轮次事实层零改动**；若发现代码 / 参数 / 图 / 正文不一致，另开「一致性修复」轮次，按规范 §4.3 允许改事实并登记证据、重跑示例与构建。改章节前先读该规范与 `ch02_models.md`（参考实现）
 
 ---
-
 ## 内容自查记录
 
 写作与核查过程中发现并修正的问题（2026-09-24）：
@@ -539,3 +558,30 @@ node scripts/svg-to-png.mjs "docs/agent开发教程/assets"
 - ch02 / ch10 / ch16 / ch05 / ch15 / 手写线 ch_s01 的旧表述 grep 残留 0（变更记录中的历史引用不计）
 - 示例代码与实测输出块未动；无新增图，图号与配图索引不变
 - `_build_html.py` 框架线连跑两次 md5 一致（`1ebe40ab…`），手写线连跑两次 md5 一致（`41a17627…`）
+
+
+### 第十三轮：2026-10 增补轮（atguigu-note-main）
+
+以 `atguigu-note-main` 课程包为**选题清单**（无 LICENSE；仅参考概念与 API 名称，未复制原文/图片/代码），就地扩写 6 章、新增 6 图，并补齐 guides。课程包锁定 `langchain 1.2.12 / langgraph 1.1.2`，低于本书基线；所有 API 以本机 `1.4.2 / 1.2.12` 实测为准。
+
+| 项 | 变更 |
+|---|---|
+| **ch06** | 新增 §2.5–2.8：HITL、PII、限额、重试/回退；图 12 |
+| **ch07** | 新增 §2.9–2.10：MCP 服务端（FastMCP + stdio）与接入边界；图 15；`07_mcp_server.py` |
+| **ch11** | 新增 §2.9–2.13：`add_sequence`、静态扇入、循环/`recursion_limit`、`RetryPolicy`/async timeout/`CachePolicy`、Functional API；图 24 |
+| **ch12** | 扩展 §2.3 durability；新增 §2.6–2.7 子图持久化与记忆类型学；图 28 |
+| **ch13** | §2.4 改为七档全跑；新增 §2.6–2.8 list+subgraphs、`astream_events`、解析契约；图 31 |
+| **ch19** | 新增 §2.5–2.7 `langgraph.json` / `langgraph dev` / 治理对接；图 38；`19_deploy_agent.py` + `langgraph.json`（Python-only） |
+| **图号** | 32 → **38**；存量 8–32 全量重排（取消「图 31 例外」），图号严格按出现顺序连续 |
+| **示例** | Python 主示例 17 个 + 部署 1 个 + MCP fixture 1 个；TS 17 个；`06/07/11/12/13` 双语言同步扩写 |
+| **guides** | `python-core` 新增 4 篇 + 4 导览；`langchain-rag` 新增 LangGraph 面试篇 + 导览 |
+| **来源** | `_写作大纲与来源登记.md` 新增 T1–T6（仅选题参考）与差异 #26–#36 |
+
+**本轮实测与自检**：
+
+- Python 主示例 **17/17 + 19 部署样例 exit=0**；TypeScript **17/17 通过**；`pnpm run typecheck` 仍 `exit=1`，错误数 **44 → 73**（新增集中在 11/12/13 的泛型与中间件工厂类型，运行时不受影响）。
+- MCP 本地 stdio：Python `MCPAdapter(Path(...))` + TS `MultiServerMCPClient` 均发现 `add` / `echo` 并调用成功；Python 裸名、TS `demo__add` 前缀。
+- 部署：`langgraph validate -c langgraph.json` 通过（1 graph）；`langgraph dev --config ...` 启动后 `/ok` 200；Studio / AgentChatUI / Docker / 云端未实测。
+- 图：38 对 SVG/PNG；PNG 均 2×；章节 / README / 大纲三处图号审计无缺号、无重号、无悬空引用。
+- HTML：`_build_html.py` 连跑两次 md5 一致（`ec630dde…`），38 个 `<figure>`，无外部资源。
+- `atguigu-note-main/` 已加入 `.gitignore`；其 `.env` 移出仓库，notebook 内联密钥替换为占位符；未复制课程包图片与原文。

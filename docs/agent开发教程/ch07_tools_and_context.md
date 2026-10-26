@@ -4,15 +4,15 @@
 
 模型本身只会「说」。它输出一段结构化文本，声明「我想调用 `search_orders`，参数是 `{"query": "退款"}`」——**真正执行的是框架**。这句话听起来平淡，却是理解工具（Tool）的第一把钥匙：把模型当成一个只会说话、不会动手的组件，后面所有设计都顺了。
 
-![图 12　工具调用往返与 ToolRuntime 注入](assets/12_tool_roundtrip.png)
+![图 13　工具调用往返与 ToolRuntime 注入](assets/13_tool_roundtrip.png)
 
-*图 12　工具调用往返与 ToolRuntime 注入*
+*图 13　工具调用往返与 ToolRuntime 注入*
 
-本章要回答八个问题：① 一次工具调用怎么往返（2.1）；② 工具本身怎么定义、描述怎么写、调不调用谁说了算（2.2）；③ schema 三要素从哪来（2.3）；④ 工具怎么读到图状态、单次运行配置、长期记忆（2.4）；⑤ 老代码里的注入写法怎么改（2.5）；⑥ 工具怎么反过来改图状态、返回值有几类（2.6）；⑦ 工具执行失败怎么办（2.7）；⑧ 工具由别人提供（MCP）时怎么接（2.8）。
+本章要回答十个问题：① 一次工具调用怎么往返（2.1）；② 工具本身怎么定义、描述怎么写、调不调用谁说了算（2.2）；③ schema 三要素从哪来（2.3）；④ 工具怎么读到图状态、单次运行配置、长期记忆（2.4）；⑤ 老代码里的注入写法怎么改（2.5）；⑥ 工具怎么反过来改图状态、返回值有几类（2.6）；⑦ 工具执行失败怎么办（2.7）；⑧ 工具由别人提供（MCP）时客户端怎么接（2.8）；⑨ 怎么自己写一个 MCP server（2.9）；⑩ 接 MCP 的边界与坑（2.10）。
 
-**本章回答：工具这条路，从自己写（2.1–2.7）到别人供给（2.8），每一环由什么机制兜底、各有什么坑。**八个问题按「跟着一次调用走一遍」的顺序排：先跟完全程，再逐个拆环节。
+**本章回答：工具这条路，从自己写（2.1–2.7）到别人供给（2.8–2.10），每一环由什么机制兜底、各有什么坑。**十个问题按「跟着一次调用走一遍」的顺序排：先跟完全程，再逐个拆环节。
 
-前七个**由 `code/` 示例覆盖**，最后一个是规模化之后必然遇到的新问题。但「覆盖」不等于「每条都是实测」——本节里 `@tool` 参数校验的报错文案、`tool_choice` 的请求载荷、`runtime` 保留参数名的报错、`execution_info` 五字段、迁移对照表等都属**源码核对 / 本机核对**，2.7 的「默认行为两语言相反」更是**没做过对照实验**（见该节标注）。读的时候按第 1 章的四级口径区分。至于「知识在外部」——也就是检索增强（RAG）——已独立成第 8 章。
+前七个**由 `code/` 示例覆盖**；2.8–2.10 是 MCP 的客户端、服务端与边界，本轮用本地 stdio server 做了端到端实测。但「覆盖」不等于「每条都是实测」——本节里 `@tool` 参数校验的报错文案、`tool_choice` 的请求载荷、`runtime` 保留参数名的报错、`execution_info` 五字段、迁移对照表等都属**源码核对 / 本机核对**，2.7 的「默认行为两语言相反」更是**没做过对照实验**（见该节标注）。读的时候按第 1 章的四级口径区分。至于「知识在外部」——也就是检索增强（RAG）——已独立成第 8 章。
 
 ## 二、机制与原理
 
@@ -197,13 +197,55 @@ def force_tools(request, handler):
 
 自己写工具的路到 2.7 走完了，最后一节换一种供给方式——工具不由自己写。模型上下文协议（MCP, Model Context Protocol）把「工具供给」标准化了：工具不是自己写的，而是别人以服务形式提供的。
 
-![图 13　MCP 接入与多服务器聚合](assets/13_mcp_aggregation.png)
+![图 14　MCP 接入与多服务器聚合](assets/14_mcp_aggregation.png)
 
-*图 13　MCP 接入与多服务器聚合*
+*图 14　MCP 接入与多服务器聚合*
 
 Python 侧的接入点是 `MCPAdapter`（`langchain.mcp`，需额外安装 `langchain[mcp]>=1.4.0`，**beta**，import 时打印一次 `LangChainBetaWarning`）。**传输方式由目标类型推断**：字符串必须是 `http(s)` URL；`Path` 走 stdio（每个适配器起一个子进程）；进程内 `FastMCP` 实例走内存；`MCPConfig` 字典可把多台服务器塞进一个适配器。**工具在 `list_tools()` 时被发现**，适配成框架工具后直接 `tools=[*自己的工具, *mcp_tools]`——对 agent 来说，MCP 工具与普通工具没有区别。两个必须记住的点：① 需要额外装包；② **MCP 工具是全量下发的**，服务器工具一多，光工具 schema 就吃掉大量上下文——这正是第 9 章要处理的问题。
 
-> ⚠️ **未实测**：本机已确认 `langchain[mcp]` 可安装、`langchain.mcp` 可 import，但**没有连接真实 MCP 服务器跑过端到端**。上述 API 形态以官方文档为准，实际行为未验证。
+> 口径：本轮已用 `fastmcp` 4.1.3 / `mcp` 2.3.0 在本地 stdio 上跑通端到端（`MCPAdapter(Path("07_mcp_server.py"))` → `list_tools()` → `ainvoke`）；**第三方远程 server 仍未实测**。`MCPAdapter` 的字符串目标必须是 `http(s)`，本地 server 要用 `Path`（**源码核对**）。
+
+### 2.9 MCP 服务端：把工具暴露成 stdio server
+
+2.8 是「用别人的 server」；这一节反过来，回答 **server 端怎么写**。MCP 是语言无关的协议：server 可以用 Python、TypeScript 或任何语言写，客户端只关心「有哪些工具、schema 是什么」。
+
+`FastMCP` 把「注册工具 + 起传输」压成两步：
+
+```python
+from fastmcp import FastMCP
+
+mcp = FastMCP("demo-tools")
+
+@mcp.tool()
+def add(a: int, b: int) -> int:
+    """Return the sum of two integers."""
+    return a + b
+
+if __name__ == "__main__":
+    mcp.run(transport="stdio")
+```
+
+三种传输要分清：**stdio**（客户端拉起子进程，本地开发最常用）、**streamable HTTP**（远程、可跨机器）、**SSE**（旧式远程流）。本章只实测 stdio。
+
+stdio 有一条硬纪律：**server 的 stdout 只能走 JSON-RPC**。任何 `print()` 都会污染协议，日志必须写 stderr。FastMCP 的启动 banner 走 stderr，所以端到端能跑通；自己加调试输出时别用 `print`。
+
+![图 15　MCP client–server 的 stdio 管道与工具发现](assets/15_mcp_stdio.png)
+
+*图 15　MCP client–server 的 stdio 管道与工具发现*
+
+### 2.10 MCP 接入的边界：工具预算、命名与失败隔离
+
+2.9 让 server 跑起来了；最后一节回答「接上之后会撞到什么」。这些不是 API 问题，是规模化之后的工程边界：
+
+| 边界 | 现象 | 处置 |
+|---|---|---|
+| 工具预算 | server 有多少工具就下发多少 schema，上下文会被吃满 | 只接需要的 server；用 `LLMToolSelectorMiddleware` 或第 9 章的上下文治理 |
+| 命名冲突 | 两个 server 都有 `search` | Python `MCPAdapter` 给裸工具名；TS `MultiServerMCPClient` 给 `server__tool` 前缀（**本机实测**）；同名时 TS 会直接报错 |
+| 进程生命周期 | stdio 子进程不关，客户端进程不退出 | Python 用 `async with MCPAdapter(...)`；TS 显式 `await client.close()`（必要时 `process.exit(0)`） |
+| 信任边界 | 第三方 server 能返回任意内容、诱导模型调用别的工具 | 只接可信 server；对返回值做校验；不要把密钥放进 server 可读的环境 |
+| 断连/超时 | 远程 server 挂了，工具调用卡住 | 设超时；把 MCP 工具当不可靠依赖，准备好降级路径 |
+
+> 口径：Python / TS 两种命名规则、`async with` 与 `close()` 的生命周期为**示例实测**；工具预算与信任边界为**架构判断**；远程 server 的断连/超时**未实测**。
 
 ## 三、代码：Python 与 TypeScript
 
@@ -339,6 +381,55 @@ const handleToolErrors = createMiddleware({
 });
 ```
 
+**⑤ MCP：客户端连接本地 stdio server**——server 端见 `07_mcp_server.py`，两种语言连同一个 server：
+
+```python
+import asyncio
+from pathlib import Path
+from langchain.mcp import MCPAdapter
+
+async def mcp_demo() -> None:
+    server = Path(__file__).with_name("07_mcp_server.py")
+    async with MCPAdapter(server) as adapter:
+        tools = await adapter.list_tools()
+        print([t.name for t in tools])          # ['add', 'echo']（Python 侧裸名）
+        add_tool = next(t for t in tools if t.name == "add")
+        result = await add_tool.ainvoke({"a": 2, "b": 3})
+        print(result[0]["text"])                # '5'
+
+asyncio.run(mcp_demo())
+```
+
+```typescript
+import { MultiServerMCPClient } from "@langchain/mcp-adapters";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const pythonDir = join(dirname(fileURLToPath(import.meta.url)), "..", "python");
+const pythonExe = join(pythonDir, ".venv", "Scripts", "python.exe");   // Windows
+const mcpServer = join(pythonDir, "07_mcp_server.py");
+
+const client = new MultiServerMCPClient({
+  servers: {
+    demo: {
+      transport: "stdio",
+      command: pythonExe,
+      args: [mcpServer],
+      env: { PYTHONUTF8: "1", PYTHONIOENCODING: "utf-8" },
+      stderr: "ignore",
+    },
+  },
+});
+try {
+  const tools = await client.listTools();
+  console.log(tools.map((t) => t.name));       // ['demo__add', 'demo__echo']（带 server 前缀）
+  const addTool = tools.find((t) => t.name.endsWith("add"))!;
+  console.log(await addTool.invoke({ a: 2, b: 3 }));   // '5'
+} finally {
+  await client.close();
+}
+```
+
 ## 四、常见坑与边界条件
 
 - **JS 侧 `InMemoryStore` 的导入源**（实测）：`langchain` 也导出了一个同名 `InMemoryStore`，但它**没有** `batch` / `put`；传给 `createAgent({store})` 后，`runtime.store.put` 报 `TypeError: this.store.batch is not a function`。**修复办法是改从 `@langchain/langgraph` 导入**——示例代码已按此修正，② 节的 `store 回读` 就是实测证据；错误导入的报错形态保留在差异清单 #16。Python 侧从 `langgraph.store.memory` 导入。
@@ -348,6 +439,11 @@ const handleToolErrors = createMiddleware({
 - **`runtime` 不是安全边界**：模型看不到 `runtime`，不等于用户影响不到它。`context` 由调用方传入，`state` 由消息驱动，敏感数据不要仅靠「模型看不见」来保护。
 - **工具描述含糊 → 选错工具**：真实模型才暴露的行为（本教程用脚本模型，**未实测**），但机制上很直接——描述是模型唯一的判断依据；同理，工具 schema 每个都占上下文，MCP 是**全量下发**，接三台服务器可能一下多出几十个工具。
 - **`return_direct` 只在整批都设置时才短路**；`Command` 的 `graph` 指向父图时才免除 `ToolMessage` 要求。
+- **Python 的 `MCPAdapter` 需要额外装 `fastmcp`**（`langchain[mcp]` 的 extra 要求 `fastmcp>=4.0.1,<5`），且 import 时会打一次 `LangChainBetaWarning`；本地 server 要用 `Path`，字符串目标必须是 `http(s)`（**源码核对**）。
+- **MCP 工具名两语言不同**：Python `MCPAdapter` 给裸名（`add` / `echo`），TS `MultiServerMCPClient` 给 `server__tool` 前缀（`demo__add` / `demo__echo`，**示例实测**）。同名工具在 TS 侧会冲突报错，接多个 server 时要规划命名。
+- **stdio server 的 stdout 只能走协议**：任何 `print()` 都会污染 JSON-RPC，表现为「客户端能连上但工具列表为空/解析失败」。日志一律写 stderr。
+- **TS 的 MCP 客户端要显式 `close()`**：stdio 子进程句柄会拖住 Node 事件循环；`await client.close()` 后仍不退，就在脚本末尾 `process.exit(0)`（**示例实测**）。
+- **第三方 MCP server 是信任边界**：它能返回任意内容、诱导模型调用别的工具、读取你传给它的环境变量。只接可信 server；不要把长期密钥放进 server 的环境。远程 server 的断连/超时**未实测**。
 
 ## 五、关键结论
 
@@ -355,9 +451,9 @@ const handleToolErrors = createMiddleware({
 2. **`ToolRuntime` 是工具访问环境的唯一入口**：`.state` / `.context` / `.store` / `.stream_writer`（JS 为 `.writer`）/ `.execution_info` / `.tool_call_id`（JS camelCase）；它对模型隐藏。旧的 `InjectedState` / `InjectedStore` / `get_runtime()` / `InjectedToolCallId` 已统一迁移到它。
 3. **返回值四类**：字符串 / 对象 / 多模态 / `Command`；只有 `Command` 会改状态，且必须自带匹配 `tool_call_id` 的 `ToolMessage`。
 4. **错误处理换写法**：v1 不再推荐 `ToolException` / `handle_tool_error`（API 仍在包里），改用 `@wrap_tool_call` 或 `ToolErrorMiddleware`（JS 为 `toolErrorMiddleware`）。
-5. **MCP 让工具供给标准化**：`MCPAdapter` 按目标类型推断传输方式，工具经 `list_tools()` 发现后与本地工具混用；需额外安装 `langchain[mcp]`，beta，未连真实服务器实测。
+5. **MCP 客户端与服务端都已本地跑通**：server 用 `FastMCP` 起 stdio，客户端 Python 用 `MCPAdapter(Path(...))`、TS 用 `MultiServerMCPClient`；工具经 `list_tools()` 发现后与本地工具混用。Python 侧工具名是裸名、TS 侧带 `server__tool` 前缀；第三方远程 server 与断连/超时**未实测**。
 
-> 口径：工具定义、`ToolRuntime` 注入、`Command` 状态更新与错误处理中间件为示例实测（`07_tools.*`）；`tool_choice` 只验证到载荷，真实语义未实测；MCP 未连真实服务器；其余源码 / 本机核对见各节。
+> 口径：工具定义、`ToolRuntime` 注入、`Command` 状态更新、错误处理中间件、MCP 本地 stdio 端到端为**示例实测**（`07_tools.*`、`07_mcp_server.py`）；`tool_choice` 只验证到载荷，真实语义未实测；第三方 MCP server 未实测；其余源码 / 本机核对见各节。
 
 ## 本章要点回顾
 
@@ -366,6 +462,6 @@ const handleToolErrors = createMiddleware({
 - 返回值四类：字符串 / 对象 / 多模态 / `Command`；**返回 `Command` 必须自带匹配 `tool_call_id` 的 `ToolMessage`**，否则 `ValueError`；`return_direct` 只在**整批工具**都设置时才短路循环。
 - 错误处理：v1 不再推荐 `ToolException` / `handle_tool_error`（**未删除**，只是换了入口），改用 `@wrap_tool_call` 或 `ToolErrorMiddleware`；**默认行为两语言相反**——Python 异常**原样抛出**、JS 才被 `ToolNode` 吞成 error `ToolMessage`（见 2.7 节对照表）。
 - JS 侧 `InMemoryStore` 要从 `@langchain/langgraph` 导入，否则 `runtime.store.put` 报 `this.store.batch is not a function`（实测；示例已修正并回读成功）。
-- MCP：`MCPAdapter` + `langchain[mcp]`（beta，**未连真实服务器实测**）；外部知识怎么接（RAG）见第 8 章。
+- MCP：server 用 `FastMCP` + `mcp.run(transport="stdio")`；Python 客户端 `MCPAdapter(Path(...))`、TS 客户端 `MultiServerMCPClient`；**本地 stdio 已实测**。工具名 Python 侧裸名、TS 侧 `server__tool`；stdout 只能走协议；第三方 server 未实测。外部知识怎么接（RAG）见第 8 章。
 - **定义工具不止 `@tool`**：裸函数（`tools=[fn]`，`create_agent` 会自动转成 `BaseTool`）与 `StructuredTool` 都行；三者的差别是「能改哪一层」。`@tool` 的三个参数 `description` / `name_or_callable` / `args_schema` 分别覆盖描述、名字、参数 schema，**`description` 压过 docstring，且两者必须有一个**（见 2.2 节）。
 - **`tool_choice` 决定模型有没有得选**：`"none"` / `"auto"` / `"required"` / 指定工具名；`"any"` 与 `True` 都等价 `"required"`，`None` 与 `False` **不写进载荷**。`create_agent` **没有** `tool_choice` 参数，预绑定会被它覆盖，只能在 `wrap_model_call` 里 `request.override(tool_choice=...)`；**真实模型下的实际效果未实测**（见 2.2 节）。

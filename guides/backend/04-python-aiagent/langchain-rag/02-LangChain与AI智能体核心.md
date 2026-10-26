@@ -584,7 +584,7 @@ workflow.add_conditional_edges(
 LangGraph支持中断执行，等待人类输入后再继续：
 
 ```python
-from langgraph.checkpoint import MemorySaver
+from langgraph.checkpoint.memory import MemorySaver
 from langgraph.config import get_stream_writer
 
 checkpointer = MemorySaver()
@@ -615,7 +615,7 @@ LangGraph可以轻松实现多个Agent协作：
 - 顺序工作流：Agent1 → Agent2 → Agent3
 - 自由协作：Agent之间可以互相通信
 
-### 7.4 LangGraph Streaming流式输出
+### 7.6 LangGraph Streaming流式输出
 
 LangGraph支持多种流式输出模式，适用于实时展示Agent思考过程和中间结果。
 
@@ -687,7 +687,7 @@ async def stream_agent():
 asyncio.run(stream_agent())
 ```
 
-### 7.5 LangGraph Memory与状态持久化
+### 7.7 LangGraph Memory与状态持久化
 
 LangGraph的Checkpointer机制实现了会话记忆和断点恢复，支持多轮对话状态保持。
 
@@ -782,6 +782,8 @@ print(result["draft"])  # 查看草稿
 graph.invoke({"approved": True}, 
              {"configurable": {"thread_id": "1"}})
 ```
+
+> 更完整的 LangGraph 面试口径（控制流、子图、durability、七档流式、部署）见 [05-LangGraph核心机制与面试要点](./05-LangGraph核心机制与面试要点.md)。
 
 ---
 

@@ -326,7 +326,7 @@
 
 ---
 
-### 7.4 LangGraph Streaming流式输出
+### 7.6 LangGraph Streaming流式输出
 
 | 维度 | 内容 |
 |------|------|
@@ -338,7 +338,7 @@
 
 ---
 
-### 7.5 LangGraph Memory与状态持久化
+### 7.7 LangGraph Memory与状态持久化
 
 | 维度 | 内容 |
 |------|------|

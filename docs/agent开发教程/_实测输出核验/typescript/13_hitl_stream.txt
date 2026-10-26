@@ -36,20 +36,49 @@
 ③ 坑：agent 放进父图当子图后，内部消息默认不透传
 ==============================================================================
   A. 直接 stream 子 agent —— 3 个分块，内部消息一览无余：
-       ns=() node=model_request [AIMessage] ""
+       ns=() node=model_request [AIMessageChunk] ""
        ns=() node=tools [ToolMessage] "x 的结果"
-       ns=() node=model_request [AIMessage] "查完了。"
+       ns=() node=model_request [AIMessageChunk] "查完了。"
 
   B. 父图 stream，**不加** subgraphs —— 1 个分块：
-       ns=() node=model_request [AIMessage] "查完了。"
+       ns=() node=model_request [AIMessageChunk] "查完了。"
        ↑ 只剩跨边界的少数几条，模型内部的 token 全没了
          （具体条数取决于版本与实现，Python 侧实测是 2 条、JS 侧是 1 条——
           重点是「子图内部的消息被吞掉了」这件事，不是数字）
 
   C. 父图 stream，**加** subgraphs —— 1 个分块：
-       ns=agent node=model_request [AIMessage] "查完了。"
+       ns=agent node=model_request [AIMessageChunk] "查完了。"
        ↑ 分块带上了 namespace，能区分「这是哪个子图吐出来的」
 
   ⚠️ 因为 createAgent 返回的是**已编译的图**，把它当节点加进父图，它就变成了子图。
      子图的内部输出默认不透传——这就是「图能跑、结果也对，
      但打字机效果莫名其妙没了」的原因。要透传就显式加 subgraphs: true。
+
+==============================================================================
+④ 七档 streamMode：每种投影给你什么形状
+==============================================================================
+  values       2 个分块，首块类型 object
+  updates      1 个分块，首块类型 object
+  custom       1 个分块，首块类型 string
+  checkpoints  3 个分块，首块类型 object
+  tasks        2 个分块，首块类型 object
+  debug        5 个分块，首块类型 object
+  messages     1 个分块
+  → values/updates/custom/checkpoints/tasks/debug 不需要模型；messages 需要图里有模型节点。
+
+==============================================================================
+⑤ list-mode + subgraphs：分块形状怎么解
+==============================================================================
+  streamMode=['updates','custom'] → [["custom","进度：正在处理第 1 步"],["updates",{"step":{"n":1,"note":"第 1 步完成"}}]]
+  → JS 每块是 [mode, payload] 数组；Python 每块是 (mode, payload) 二元组。
+  ns=child mode=custom payload="进度：正在处理第 1 步"
+  ns=child mode=updates payload={"step":{"n":1,"note":"第 1 步完成"}}
+  ns=() mode=updates payload={"child":{"n":1,"note":"第 1 步完成"}}
+  → 加 subgraphs: true 后是 [namespace, mode, payload] 数组；Python 侧是三元组。
+
+==============================================================================
+⑥ astreamEvents：模型级事件流
+==============================================================================
+  model.streamEvents → ["on_chat_model_start","on_chat_model_stream","on_chat_model_end"]
+  ⚠️ agent.streamEvents 在 1.4.17 只给 start/end；
+     逐 token 用 agent.stream({streamMode:'messages'})，模型自身的 streamEvents 才会给 stream 事件。

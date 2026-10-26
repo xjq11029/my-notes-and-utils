@@ -65,7 +65,7 @@
 **两条线并行**：框架线（19 章 Markdown 教程 `chNN_英文小写下划线.md` + 单文件 HTML 精读版）与手写线（`handwritten/`，S1–S11 共 11 章 `ch_sNN_*.md` + Python 手写代码包）。
 
 - **章节骨架固定**：框架线 `## 一、这一章要解决的问题` → `## 二、机制与原理` → `## 三、代码：Python 与 TypeScript` → `## 四、常见坑与边界条件` → `## 五、关键结论` → `## 本章要点回顾`；手写线相同（第三节为 `## 三、代码：Python`，方法论章无代码）
-- **配图与 HTML 同源**：`assets/` 里的深色面板 SVG 既导出 2× PNG 给 Markdown，也被内联进 HTML。⚠️ 内联时 SVG 的 `id`（`ar1` 这类 marker）会全局冲突，**必须加图号前缀去重**并同步改写 `url(#…)`；手写线图号 `h1`–`h11` 与框架线图 1–32 相互独立，marker 前缀 `arNh`
+- **配图与 HTML 同源**：`assets/` 里的深色面板 SVG 既导出 2× PNG 给 Markdown，也被内联进 HTML。⚠️ 内联时 SVG 的 `id`（`ar1` 这类 marker）会全局冲突，**必须加图号前缀去重**并同步改写 `url(#…)`；手写线图号 `h1`–`h11` 与框架线图 1–38 相互独立，marker 前缀 `arNh`
 - **HTML 由脚本生成**：`_build_html.py` 从章节 + `assets/` 生成 HTML，**幂等**。改任何章节或配图后**必须重跑**，否则 HTML 与章节不一致：
   ```bash
   python docs/agent开发教程/_build_html.py
@@ -120,21 +120,23 @@
 
 ## 四、统计口径
 
-**排除**：`.git/`、`.workbuddy/`、`.workbuddy-ai/`、`node_modules/`、**`.venv/`**、**`__pycache__/`**、**`*.pyc`**。
+**排除**：`.git/`、`.workbuddy/`、`.workbuddy-ai/`、`node_modules/`、**`.venv/`**、**`__pycache__/`**、**`*.pyc`**、**`atguigu-note-main/`**（外部课程包，已 gitignore）。
 
 > ⚠️ `.venv/` 是 2026-10-16 补进排除列表的：本仓库 `docs/agent开发教程/code/python/.venv/` 有 **2.2 万个文件**，不排除时「总文件数」会报成 23149（真实值 920），「MD 篇数」会多算 35 篇（依赖包自带的 README）。旧版口径漏了它，所以历史统计数字都不可信。
+>
+> ⚠️ `atguigu-note-main/` 是 2026-10 导入的外部课程包（125 MB，无 LICENSE，含密钥文件），已加入 `.gitignore`；统计时必须排除，否则文件数会虚高 1112、Markdown 虚高 159。
 >
 > ⚠️ `__pycache__/` 与 `*.pyc` 是 2026-10-19 补进的：二者已被 `.gitignore` 排除（属构建产物），现有 20 个 `.pyc`（集中在 `docs/agent开发教程/` 的示例运行残留），不排除时各目录计数虚高。
 
 ```bash
 # 总文件数
-find . -type f ! -path './.git/*' ! -path './.workbuddy/*' ! -path './.workbuddy-ai/*' ! -path '*/node_modules/*' ! -path '*/.venv/*' ! -path '*/__pycache__/*' ! -name '*.pyc' | wc -l
+find . -type f ! -path './.git/*' ! -path './.workbuddy/*' ! -path './.workbuddy-ai/*' ! -path '*/node_modules/*' ! -path '*/.venv/*' ! -path '*/__pycache__/*' ! -name '*.pyc' ! -path './atguigu-note-main/*' | wc -l
 
 # Markdown 篇数
-find . -type f -name '*.md' ! -path './.git/*' ! -path './.workbuddy/*' ! -path './.workbuddy-ai/*' ! -path '*/node_modules/*' ! -path '*/.venv/*' ! -path '*/__pycache__/*' | wc -l
+find . -type f -name '*.md' ! -path './.git/*' ! -path './.workbuddy/*' ! -path './.workbuddy-ai/*' ! -path '*/node_modules/*' ! -path '*/.venv/*' ! -path '*/__pycache__/*' ! -path './atguigu-note-main/*' | wc -l
 
 # Markdown 总行数（必须用 -exec cat {} +；用 xargs wc -l 会分批截断）
-find . -type f -name '*.md' ! -path './.git/*' ! -path './.workbuddy/*' ! -path './.workbuddy-ai/*' ! -path '*/node_modules/*' ! -path '*/.venv/*' ! -path '*/__pycache__/*' -exec cat {} + | wc -l
+find . -type f -name '*.md' ! -path './.git/*' ! -path './.workbuddy/*' ! -path './.workbuddy-ai/*' ! -path '*/node_modules/*' ! -path '*/.venv/*' ! -path '*/__pycache__/*' ! -path './atguigu-note-main/*' -exec cat {} + | wc -l
 
 # 单目录文件数（必须排除依赖目录，否则会被 node_modules 污染）
 find docs -type f ! -path '*/node_modules/*' ! -path '*/.venv/*' ! -path '*/__pycache__/*' ! -name '*.pyc' | wc -l

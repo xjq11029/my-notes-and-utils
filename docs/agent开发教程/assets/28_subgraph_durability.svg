@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 430" width="680" height="430" role="img">
+<title>子图命名空间与 durability 时间线</title>
+<desc>父图与子图各有自己的 checkpoint_ns；durability 三档落盘次数不同。</desc>
+
+<rect x="0" y="0" width="680" height="430" fill="#111721"/>
+<text x="34" y="38" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="17" font-weight="700" fill="#dfe6ee">子图命名空间与 durability</text>
+<text x="34" y="62" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="12" fill="#7d8b9c">左侧是「状态存在哪」，右侧是「什么时候写」</text>
+
+<!-- left panel -->
+<rect x="30" y="84" width="310" height="300" rx="8" fill="#151d28" stroke="#2a3646"/>
+<text x="48" y="108" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="12" font-weight="700" fill="#8ecbff">子图命名空间：两层历史</text>
+
+<rect x="56" y="122" width="258" height="34" rx="6" fill="#1b2532" stroke="#3a4a5e"/>
+<text x="185" y="144" text-anchor="middle" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">thread_id = sub-demo</text>
+<path d="M185 156 L185 176" stroke="#4dabf7" stroke-width="1.1"/><path d="M181 172 L185 179 L189 172" fill="#4dabf7"/>
+
+<rect x="56" y="180" width="258" height="34" rx="6" fill="#1d2b3d" stroke="#4dabf7"/>
+<text x="185" y="202" text-anchor="middle" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10.5" fill="#8ecbff">parent checkpoint_ns = ""</text>
+<path d="M185 214 L185 234" stroke="#e8a34b" stroke-width="1.1"/><path d="M181 230 L185 237 L189 230" fill="#e8a34b"/>
+
+<rect x="56" y="238" width="258" height="74" rx="6" fill="#2a2320" stroke="#e8a34b"/>
+<text x="185" y="258" text-anchor="middle" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#f3c47a">child:&lt;uuid&gt;</text>
+<text x="72" y="280" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10" fill="#dfe6ee">values = {'x': 1}</text>
+<text x="72" y="298" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10" fill="#dfe6ee">next   = ('child_pause',)</text>
+
+<text x="48" y="338" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10" fill="#93a1b1">暂停态用 get_state(cfg, subgraphs=True)</text>
+<text x="48" y="356" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10" fill="#93a1b1">读取 tasks[].state；跑完后 tasks 为空</text>
+
+<!-- right panel -->
+<rect x="360" y="84" width="290" height="300" rx="8" fill="#151d28" stroke="#2a3646"/>
+<text x="378" y="108" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="12" font-weight="700" fill="#f3c47a">durability：落盘次数</text>
+<text x="378" y="128" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10" fill="#93a1b1">同一张两节点图、同一输入</text>
+
+<!-- sync -->
+<text x="378" y="164" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="11" fill="#dfe6ee">sync</text>
+<path d="M430 160 L620 160" stroke="#3a4a5e" stroke-width="1"/>
+<circle cx="450" cy="160" r="4" fill="#4dabf7"/><circle cx="500" cy="160" r="4" fill="#4dabf7"/><circle cx="550" cy="160" r="4" fill="#4dabf7"/><circle cx="600" cy="160" r="4" fill="#4dabf7"/>
+<text x="628" y="164" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10" fill="#8ecbff">4</text>
+
+<!-- async -->
+<text x="378" y="214" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="11" fill="#dfe6ee">async</text>
+<path d="M430 210 L620 210" stroke="#3a4a5e" stroke-width="1"/>
+<circle cx="450" cy="210" r="4" fill="#4dabf7"/><circle cx="500" cy="210" r="4" fill="#4dabf7"/><circle cx="550" cy="210" r="4" fill="#4dabf7"/><circle cx="600" cy="210" r="4" fill="#4dabf7"/>
+<text x="628" y="214" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10" fill="#8ecbff">4</text>
+
+<!-- exit -->
+<text x="378" y="264" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="11" fill="#dfe6ee">exit</text>
+<path d="M430 260 L620 260" stroke="#3a4a5e" stroke-width="1"/>
+<circle cx="600" cy="260" r="4" fill="#f0655f"/>
+<text x="628" y="264" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10" fill="#ffb3ae">1</text>
+
+<text x="378" y="300" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10" fill="#93a1b1">● 一个检查点快照</text>
+<text x="378" y="322" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10" fill="#ffb3ae">exit 中途崩溃会丢整段运行</text>
+<text x="378" y="344" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10" fill="#93a1b1">本机默认 async；关键流程用 sync</text>
+</svg>

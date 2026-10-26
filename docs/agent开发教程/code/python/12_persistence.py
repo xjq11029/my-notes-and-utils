@@ -1,12 +1,15 @@
 # -*- coding: utf-8 -*-
 """第 12 章示例：持久化与持久执行。
 
-演示五件事：
+演示八件事：
   1. checkpointer 让「同一线程」的第二次调用接着上次的状态跑
   2. get_state / get_state_history —— 看清检查点长什么样
   3. update_state —— 时间旅行：改历史再重放
   4. Store —— 跨线程的长期记忆（与 checkpointer 的分工）
   5. Store 的命名空间与前缀搜索语义
+  6. 子图持久化：checkpoint_ns 与两层历史
+  7. durability：sync / async / exit 的快照数量差异
+  8. 记忆的类型学：短期 / 长期 / 语义 / 程序性
 
 运行：python 12_persistence.py
 """
@@ -20,6 +23,7 @@ if hasattr(sys.stdout, "reconfigure"):
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.store.memory import InMemoryStore
+from langgraph.types import Command, interrupt
 
 
 class Counter(TypedDict):
@@ -188,3 +192,106 @@ print()
 print("  ⚠️ 生产环境别用 InMemorySaver / InMemoryStore —— 进程一重启就全没了。")
 print("     持久化检查点需另装：pip install langgraph-checkpoint-sqlite（本地）")
 print("     或 langgraph-checkpoint-postgres（生产）。")
+
+
+# ---------------------------------------------------------------------------
+# 6. 子图持久化
+# ---------------------------------------------------------------------------
+print()
+print("=" * 78)
+print("⑥ 子图持久化：checkpoint_ns 与两层历史")
+print("=" * 78)
+
+
+class ChildState(TypedDict):
+    x: int
+
+
+def child_step(state: ChildState) -> dict:
+    return {"x": state["x"] + 1}
+
+
+def child_pause(state: ChildState) -> dict:
+    decision = interrupt({"ask": "continue?"})
+    return {"x": state["x"] + (1 if decision else 0)}
+
+
+child = (
+    StateGraph(ChildState)
+    .add_node("child_step", child_step)
+    .add_node("child_pause", child_pause)
+    .add_edge(START, "child_step")
+    .add_edge("child_step", "child_pause")
+    .add_edge("child_pause", END)
+    .compile()
+)
+
+
+class ParentState(TypedDict):
+    x: int
+
+
+parent = (
+    StateGraph(ParentState)
+    .add_node("child", child)
+    .add_edge(START, "child")
+    .add_edge("child", END)
+    .compile(checkpointer=InMemorySaver())
+)
+sub_cfg = {"configurable": {"thread_id": "sub-demo"}}
+parent.invoke({"x": 0}, sub_cfg)
+
+snapshot = parent.get_state(sub_cfg, subgraphs=True)
+print(f"  父图 values = {snapshot.values}，next = {snapshot.next}（停在子图节点上）")
+for task in snapshot.tasks:
+    ns = task.state.config["configurable"]["checkpoint_ns"]
+    print(f"  子图 task = {task.name}")
+    print(f"    子图 values = {task.state.values}，next = {task.state.next}")
+    print(f"    checkpoint_ns = {ns.split(':')[0]}:<uuid>  ← 子图在父图里的命名空间")
+print(f"  恢复后父图 = {parent.invoke(Command(resume=True), sub_cfg)}")
+print("  → 父图与子图各自有一层检查点；get_state(..., subgraphs=True) 才能在暂停态下钻。")
+print("    get_state_history 没有 subgraphs 参数——历史只能按当前图的命名空间翻。")
+
+
+# ---------------------------------------------------------------------------
+# 7. durability
+# ---------------------------------------------------------------------------
+print()
+print("=" * 78)
+print("⑦ durability：sync / async / exit 的快照数量差异")
+print("=" * 78)
+
+for durability in ("sync", "async", "exit"):
+    durable_graph = (
+        StateGraph(Counter)
+        .add_node("bump", bump)
+        .add_node("double", double)
+        .add_edge(START, "bump")
+        .add_edge("bump", "double")
+        .add_edge("double", END)
+        .compile(checkpointer=InMemorySaver())
+    )
+    dur_cfg = {"configurable": {"thread_id": f"dur-{durability}"}}
+    durable_graph.invoke({"n": 1, "trail": []}, dur_cfg, durability=durability)
+    count = len(list(durable_graph.get_state_history(dur_cfg)))
+    print(f"  durability={durability:<6} → 历史快照 {count} 个")
+
+print("  → sync 每步落盘、async 异步落盘（invoke 返回时已补写）、exit 只在结束时写一次；")
+print("    不配 checkpointer 时 durability 无效（没有地方可写）。")
+
+
+# ---------------------------------------------------------------------------
+# 8. 记忆的类型学
+# ---------------------------------------------------------------------------
+print()
+print("=" * 78)
+print("⑧ 记忆的类型学：短期 / 长期 / 语义 / 程序性")
+print("=" * 78)
+print("  记忆类型       载体                 作用域 / 检索方式")
+print("  短期对话       checkpointer         线程内，按 thread_id + checkpoint_ns")
+print("  长期事实       Store                跨线程，按 namespace / key")
+print("  语义记忆       Store index          跨线程，按 embedding 相似度")
+print("  程序性记忆     Skills / AGENTS.md   文件，按需加载进提示词")
+print("  → 四种记忆不是四个 API，而是「用哪层存储 + 怎么取」的四种组合；")
+print("    选错层的典型症状：把用户偏好写进 checkpointer（换线程就丢），")
+print("    或把整段对话塞进 Store（检索噪声大、成本高）。")

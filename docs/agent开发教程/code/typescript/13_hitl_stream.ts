@@ -2,11 +2,14 @@
  * 第 13 章示例（TypeScript 版，与 13_hitl_stream.py 对应）：
  * 人在回路与流式输出。
  *
- * 演示四件事：
+ * 演示七件事：
  *   1. interrupt() / new Command({ resume }) 的完整往返
  *   2. **恢复时整个节点从头重跑** —— 这是理解一切人在回路坑的钥匙
- *   3. streamMode 各档投影分别给你什么
+ *   3. streamMode 的基础投影
  *   4. agent 作为子图时，不加 subgraphs 就拿不到内部消息
+ *   5. 七档 streamMode 全量与前置条件
+ *   6. list-mode + subgraphs 的 namespace 形状
+ *   7. astreamEvents 与模型级事件流
  *
  * 运行：pnpm run 13_hitl_stream
  */
@@ -194,3 +197,84 @@ console.log();
 console.log("  ⚠️ 因为 createAgent 返回的是**已编译的图**，把它当节点加进父图，它就变成了子图。");
 console.log("     子图的内部输出默认不透传——这就是「图能跑、结果也对，");
 console.log("     但打字机效果莫名其妙没了」的原因。要透传就显式加 subgraphs: true。");
+
+// ---------------------------------------------------------------------------
+console.log();
+console.log("=".repeat(78));
+console.log("④ 七档 streamMode：每种投影给你什么形状");
+console.log("=".repeat(78));
+
+for (const mode of ["values", "updates", "custom", "checkpoints", "tasks", "debug"] as const) {
+  const chunks: any[] = [];
+  for await (const c of await talk.stream(
+    { n: 0, note: "" },
+    { configurable: { thread_id: `shape-${mode}` }, streamMode: mode },
+  )) {
+    chunks.push(c);
+  }
+  const first = chunks[0];
+  console.log(`  ${mode.padEnd(12)} ${chunks.length} 个分块，首块类型 ${Array.isArray(first) ? "array" : typeof first}`);
+}
+
+const messageAgent = createAgent({
+  model: new ScriptedChatModel({ script: [reply("流式消息。")] }) as any,
+  tools: [lookup],
+});
+const messageChunks: any[] = [];
+for await (const c of await messageAgent.stream(
+  { messages: [new HumanMessage("查 x")] },
+  { streamMode: "messages" },
+)) {
+  messageChunks.push(c);
+}
+console.log(`  ${"messages".padEnd(12)} ${messageChunks.length} 个分块`);
+console.log("  → values/updates/custom/checkpoints/tasks/debug 不需要模型；messages 需要图里有模型节点。");
+
+// ---------------------------------------------------------------------------
+console.log();
+console.log("=".repeat(78));
+console.log("⑤ list-mode + subgraphs：分块形状怎么解");
+console.log("=".repeat(78));
+
+const combined: any[] = [];
+for await (const c of await talk.stream(
+  { n: 0, note: "" },
+  { configurable: { thread_id: "list-1" }, streamMode: ["updates", "custom"] },
+)) {
+  combined.push(c);
+}
+console.log(`  streamMode=['updates','custom'] → ${JSON.stringify(combined)}`);
+console.log("  → JS 每块是 [mode, payload] 数组；Python 每块是 (mode, payload) 二元组。");
+
+const talkParent = new StateGraph(Talk)
+  .addNode("child", talk)
+  .addEdge(START, "child")
+  .addEdge("child", END)
+  .compile({ checkpointer: new MemorySaver() });
+const taggedList: any[] = [];
+for await (const c of await talkParent.stream(
+  { n: 0, note: "" },
+  { configurable: { thread_id: "sub-list-1" }, streamMode: ["updates", "custom"], subgraphs: true },
+)) {
+  taggedList.push(c);
+}
+for (const chunk of taggedList) {
+  const [ns, mode, payload] = chunk;
+  console.log(`  ns=${String(ns?.[0] ?? "()").split(":")[0]} mode=${mode} payload=${JSON.stringify(payload)}`);
+}
+console.log("  → 加 subgraphs: true 后是 [namespace, mode, payload] 数组；Python 侧是三元组。");
+
+// ---------------------------------------------------------------------------
+console.log();
+console.log("=".repeat(78));
+console.log("⑥ astreamEvents：模型级事件流");
+console.log("=".repeat(78));
+
+const eventModel = new ScriptedChatModel({ script: [reply("hello")] });
+const modelEvents: string[] = [];
+for await (const ev of eventModel.streamEvents([new HumanMessage("hi")], { version: "v2" })) {
+  if (ev.event.includes("chat_model")) modelEvents.push(ev.event);
+}
+console.log(`  model.streamEvents → ${JSON.stringify(modelEvents)}`);
+console.log("  ⚠️ agent.streamEvents 在 1.4.17 只给 start/end；");
+console.log("     逐 token 用 agent.stream({streamMode:'messages'})，模型自身的 streamEvents 才会给 stream 事件。");

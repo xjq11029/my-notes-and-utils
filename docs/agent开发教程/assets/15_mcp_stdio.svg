@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 400" width="680" height="400" role="img">
+<title>MCP client 与 stdio server 的管道</title>
+<desc>客户端拉起 server 子进程，stdin/stdout 走 JSON-RPC，stderr 只写日志。</desc>
+
+<rect x="0" y="0" width="680" height="400" fill="#111721"/>
+<text x="34" y="38" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="17" font-weight="700" fill="#dfe6ee">MCP 的 stdio 管道：谁在跟谁说话</text>
+<text x="34" y="62" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="12" fill="#7d8b9c">server 由客户端拉起；stdout 被 JSON-RPC 独占，日志必须走 stderr</text>
+
+<!-- client -->
+<rect x="40" y="92" width="200" height="190" rx="9" fill="#1d2b3d" stroke="#4dabf7"/>
+<text x="140" y="120" text-anchor="middle" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="13" font-weight="700" fill="#8ecbff">Client（agent 进程）</text>
+<text x="60" y="150" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="11" fill="#dfe6ee">Python: MCPAdapter(Path(...))</text>
+<text x="60" y="172" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="11" fill="#dfe6ee">TS: MultiServerMCPClient</text>
+<text x="60" y="200" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="11" fill="#93a1b1">1. list_tools() → 发现 schema</text>
+<text x="60" y="222" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="11" fill="#93a1b1">2. tool.invoke(args) → 调用</text>
+<text x="60" y="252" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10.5" fill="#6b7a8d">工具与本地工具混用</text>
+
+<!-- server -->
+<rect x="440" y="92" width="200" height="190" rx="9" fill="#2a2320" stroke="#e8a34b"/>
+<text x="540" y="120" text-anchor="middle" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="13" font-weight="700" fill="#f3c47a">Server（子进程）</text>
+<text x="460" y="150" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="11" fill="#dfe6ee">FastMCP("demo-tools")</text>
+<text x="460" y="172" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="11" fill="#dfe6ee">@mcp.tool() def add / echo</text>
+<text x="460" y="200" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="11" fill="#93a1b1">mcp.run(transport="stdio")</text>
+<text x="460" y="228" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10.5" fill="#f3c47a">只认协议，不认语言</text>
+<text x="460" y="250" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10.5" fill="#6b7a8d">Python / TS / 任何语言都能写</text>
+
+<!-- arrows -->
+<path d="M240 150 L436 150" stroke="#4dabf7" stroke-width="1.3"/>
+<path d="M430 145 L438 150 L430 155" fill="#4dabf7"/>
+<text x="338" y="140" text-anchor="middle" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10.5" fill="#8ecbff">stdin：tools/list / tools/call</text>
+
+<path d="M436 210 L244 210" stroke="#e8a34b" stroke-width="1.3"/>
+<path d="M250 205 L242 210 L250 215" fill="#e8a34b"/>
+<text x="338" y="200" text-anchor="middle" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10.5" fill="#f3c47a">stdout：JSON-RPC 响应（只能走协议）</text>
+
+<path d="M540 282 L540 322" stroke="#f0655f" stroke-width="1.1" stroke-dasharray="4 4"/>
+<text x="540" y="342" text-anchor="middle" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10.5" fill="#ffb3ae">stderr：日志 / 启动 banner（不参与协议）</text>
+
+<text x="34" y="382" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="10.5" fill="#6b7a8d">最常见的坏法：server 里写了一句 print()，stdout 混入非 JSON 内容，客户端解析失败。</text>
+</svg>

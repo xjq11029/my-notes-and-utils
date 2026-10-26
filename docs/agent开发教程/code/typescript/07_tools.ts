@@ -2,17 +2,22 @@
  * 第 7 章示例（TypeScript 版，与 07_tools.py 对应）：
  * 工具、运行时上下文注入与错误处理。
  *
- * 演示四件事：
+ * 演示五件事：
  *   1. tool() 的 schema 从哪来
  *   2. runtime 注入：工具里怎么读到 state / context / store
  *   3. 工具返回 Command —— 直接修改图状态
  *   4. 工具抛异常时，用 wrapToolCall 把它变成模型能读懂的 ToolMessage
+ *   5. MCP：连接 07_mcp_server.py（Python fixture），发现并调用工具
  *
  * 运行：pnpm run 07_tools
  */
 
 import { createAgent, createMiddleware, tool, ToolMessage, HumanMessage } from "langchain";
 import { Command, InMemoryStore } from "@langchain/langgraph"; // ⚠️ InMemoryStore 必须从这里导入
+import { MultiServerMCPClient } from "@langchain/mcp-adapters";
+import { existsSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { z } from "zod";
 import { ScriptedChatModel, reply, show, toolCall } from "./_fakeModel";
 
@@ -171,3 +176,46 @@ show(errOut.messages);
 console.log();
 console.log("  ⚠️ 注意：v1 已经**不再**使用 ToolException / handleToolError 这套旧 API。");
 console.log("     要么像上面这样自己写 wrapToolCall，要么用内置的 toolErrorMiddleware。");
+
+// ---------------------------------------------------------------------------
+console.log();
+console.log("=".repeat(72));
+console.log("⑤ MCP：连接一个真实的 stdio server");
+console.log("=".repeat(72));
+
+const here = dirname(fileURLToPath(import.meta.url));
+const pythonDir = join(here, "..", "python");
+const pythonExe =
+  process.platform === "win32"
+    ? join(pythonDir, ".venv", "Scripts", "python.exe")
+    : join(pythonDir, ".venv", "bin", "python");
+const mcpServer = join(pythonDir, "07_mcp_server.py");
+
+if (!existsSync(pythonExe)) {
+  console.log("  跳过：找不到 Python venv。先按 code/README.md 建好 Python 环境。");
+} else {
+  const client = new MultiServerMCPClient({
+    servers: {
+      demo: {
+        transport: "stdio",
+        command: pythonExe,
+        args: [mcpServer],
+        env: { PYTHONUTF8: "1", PYTHONIOENCODING: "utf-8" },
+        stderr: "ignore",
+      },
+    },
+  });
+  try {
+    const tools = await client.listTools();
+    console.log(`  发现工具：${JSON.stringify(tools.map((t) => t.name))}`);
+    const addTool = tools.find((t) => t.name.endsWith("add"));
+    if (!addTool) throw new Error("server 没有暴露 add 工具");
+    const result = await addTool.invoke({ a: 2, b: 3 });
+    console.log(`  add(2, 3) → ${JSON.stringify(result)}`);
+    console.log("  → TS 侧工具名带 server 前缀（demo__add）；Python 侧是裸名（add）。");
+    console.log("    MCP 是语言无关协议：server 用 Python 写，TS 客户端照样能连。");
+  } finally {
+    await client.close();
+    process.exit(0);   // MCP 子进程句柄会拖住事件循环，显式退出
+  }
+}

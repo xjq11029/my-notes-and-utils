@@ -2,23 +2,28 @@
  * 第 12 章示例（TypeScript 版，与 12_persistence.py 对应）：
  * 持久化与持久执行。
  *
- * 演示五件事：
+ * 演示八件事：
  *   1. checkpointer 让「同一线程」的第二次调用接着上次的状态跑
  *   2. getState / getStateHistory —— 看清检查点长什么样
  *   3. updateState —— 时间旅行：改历史再重放
  *   4. Store —— 跨线程的长期记忆（与 checkpointer 的分工）
  *   5. Store 的命名空间与前缀搜索语义
+ *   6. 子图持久化：checkpoint_ns 与两层历史
+ *   7. durability：sync / async / exit 的快照数量差异
+ *   8. 记忆的类型学：短期 / 长期 / 语义 / 程序性
  *
  * 运行：pnpm run 12_persistence
  */
 
 import {
   Annotation,
+  Command,
   END,
   MemorySaver,
   START,
   StateGraph,
   InMemoryStore,
+  interrupt,
 } from "@langchain/langgraph";
 
 const Counter = Annotation.Root({
@@ -179,3 +184,83 @@ console.log("             用户偏好 / 长期事实 / 共享知识");
 console.log();
 console.log("  ⚠️ 生产环境别用 MemorySaver / InMemoryStore —— 进程一重启就全没了。");
 console.log("     持久化检查点要用 @langchain/langgraph-checkpoint-* 系列包。");
+
+// ---------------------------------------------------------------------------
+console.log();
+console.log("=".repeat(78));
+console.log("⑥ 子图持久化：checkpoint_ns 与两层历史");
+console.log("=".repeat(78));
+
+const ChildState = Annotation.Root({
+  x: Annotation<number>({ default: () => 0 }),
+});
+const child = new StateGraph(ChildState)
+  .addNode("child_step", (s: any) => ({ x: s.x + 1 }))
+  .addNode("child_pause", (s: any) => {
+    const decision = interrupt({ ask: "continue?" });
+    return { x: s.x + (decision ? 1 : 0) };
+  })
+  .addEdge(START, "child_step")
+  .addEdge("child_step", "child_pause")
+  .addEdge("child_pause", END)
+  .compile();
+
+const ParentState = Annotation.Root({
+  x: Annotation<number>({ default: () => 0 }),
+});
+const parent = new StateGraph(ParentState)
+  .addNode("child", child)
+  .addEdge(START, "child")
+  .addEdge("child", END)
+  .compile({ checkpointer: new MemorySaver() });
+const subCfg = { configurable: { thread_id: "sub-demo" } };
+await parent.invoke({ x: 0 }, subCfg);
+
+const subSnap: any = await parent.getState(subCfg, { subgraphs: true });
+console.log(`  父图 values = ${JSON.stringify(subSnap.values)}，next = ${JSON.stringify(subSnap.next)}（停在子图节点上）`);
+for (const task of subSnap.tasks) {
+  const ns = task.state.config.configurable.checkpoint_ns;
+  console.log(`  子图 task = ${task.name}`);
+  console.log(`    子图 values = ${JSON.stringify(task.state.values)}，next = ${JSON.stringify(task.state.next)}`);
+  console.log(`    checkpoint_ns = ${String(ns).split(":")[0]}:<uuid>  ← 子图在父图里的命名空间`);
+}
+const resumed: any = await parent.invoke(new Command({ resume: true }), subCfg);
+console.log(`  恢复后父图 = ${JSON.stringify(resumed)}`);
+console.log("  → 父图与子图各自有一层检查点；getState(..., { subgraphs: true }) 才能在暂停态下钻。");
+
+// ---------------------------------------------------------------------------
+console.log();
+console.log("=".repeat(78));
+console.log("⑦ durability：sync / async / exit 的快照数量差异");
+console.log("=".repeat(78));
+
+for (const mode of ["sync", "async", "exit"] as const) {
+  const durableGraph = new StateGraph(Counter)
+    .addNode("bump", bump)
+    .addNode("double", double)
+    .addEdge(START, "bump")
+    .addEdge("bump", "double")
+    .addEdge("double", END)
+    .compile({ checkpointer: new MemorySaver() });
+  const durCfg = { configurable: { thread_id: `dur-${mode}` } };
+  await durableGraph.invoke({ n: 1, trail: [] }, { ...durCfg, durability: mode });
+  const history: any[] = [];
+  for await (const s of await durableGraph.getStateHistory(durCfg)) history.push(s);
+  console.log(`  durability=${mode.padEnd(6)} → 历史快照 ${history.length} 个`);
+}
+console.log("  → sync 每步落盘、async 异步落盘（invoke 返回时已补写）、exit 只在结束时写一次；");
+console.log("    不配 checkpointer 时 durability 无效（没有地方可写）。");
+
+// ---------------------------------------------------------------------------
+console.log();
+console.log("=".repeat(78));
+console.log("⑧ 记忆的类型学：短期 / 长期 / 语义 / 程序性");
+console.log("=".repeat(78));
+console.log("  记忆类型       载体                 作用域 / 检索方式");
+console.log("  短期对话       checkpointer         线程内，按 thread_id + checkpoint_ns");
+console.log("  长期事实       Store                跨线程，按 namespace / key");
+console.log("  语义记忆       Store index          跨线程，按 embedding 相似度");
+console.log("  程序性记忆     Skills / AGENTS.md   文件，按需加载进提示词");
+console.log("  → 四种记忆不是四个 API，而是「用哪层存储 + 怎么取」的四种组合；");
+console.log("    选错层的典型症状：把用户偏好写进 checkpointer（换线程就丢），");
+console.log("    或把整段对话塞进 Store（检索噪声大、成本高）。");

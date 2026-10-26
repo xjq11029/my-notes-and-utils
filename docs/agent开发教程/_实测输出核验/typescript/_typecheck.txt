@@ -1,6 +1,40 @@
-11_state_graph.ts(32,31): error TS2345: Argument of type '{ default: () => number; }' is not assignable to parameter of type 'SingleReducer<number, number>'.
+
+> agent-tutorial-examples@ typecheck D:\ProjectCode\my-notes-and-utils\docs\agent开发教程\code\typescript
+> tsc --noEmit
+
+06_middleware.ts(173,3): error TS2345: Argument of type '{ messages: [HumanMessage<MessageStructure<MessageToolSet>>]; }' is not assignable to parameter of type 'InvokeStateParameter<AgentTypeConfig<ResponseFormatUndefined, undefined, AnyAnnotationRoot, readonly [AgentMiddleware<undefined, ZodObject<{ interruptOn: ZodOptional<ZodRecord<ZodString, ZodUnion<[ZodBoolean, ZodObject<...>]>>>; descriptionPrefix: ZodDefault<...>; }, "strip", ZodTypeAny, { ...; }, { ...; }>, { ...; ...'.
+  Type '{ messages: [HumanMessage<MessageStructure<MessageToolSet>>]; }' is not assignable to type '{ messages: Messages; } & FilterPrivateProps<InferStateSchemaUpdate<StateSchemaFields>>'.
+    Type '{ messages: [HumanMessage<MessageStructure<MessageToolSet>>]; }' is not assignable to type 'FilterPrivateProps<InferStateSchemaUpdate<StateSchemaFields>>'.
+      Property 'messages' is incompatible with index signature.
+        Type '[HumanMessage<MessageStructure<MessageToolSet>>]' is not assignable to type 'never'.
+06_middleware.ts(188,26): error TS2345: Argument of type '{ messages: [HumanMessage<MessageStructure<MessageToolSet>>]; }' is not assignable to parameter of type 'InvokeStateParameter<AgentTypeConfig<ResponseFormatUndefined, undefined, AnyAnnotationRoot, readonly [AgentMiddleware<undefined, ZodObject<{ interruptOn: ZodOptional<ZodRecord<ZodString, ZodUnion<[ZodBoolean, ZodObject<...>]>>>; descriptionPrefix: ZodDefault<...>; }, "strip", ZodTypeAny, { ...; }, { ...; }>, { ...; ...'.
+  Type '{ messages: [HumanMessage<MessageStructure<MessageToolSet>>]; }' is not assignable to type '{ messages: Messages; } & FilterPrivateProps<InferStateSchemaUpdate<StateSchemaFields>>'.
+    Type '{ messages: [HumanMessage<MessageStructure<MessageToolSet>>]; }' is not assignable to type 'FilterPrivateProps<InferStateSchemaUpdate<StateSchemaFields>>'.
+      Property 'messages' is incompatible with index signature.
+        Type '[HumanMessage<MessageStructure<MessageToolSet>>]' is not assignable to type 'never'.
+06_middleware.ts(212,23): error TS2345: Argument of type '{ messages: [HumanMessage<MessageStructure<MessageToolSet>>]; }' is not assignable to parameter of type 'InvokeStateParameter<AgentTypeConfig<ResponseFormatUndefined, undefined, AnyAnnotationRoot, readonly [AgentMiddleware<undefined, ZodObject<{ applyToInput: ZodOptional<ZodBoolean>; applyToOutput: ZodOptional<...>; applyToToolResults: ZodOptional<...>; }, "strip", ZodTypeAny, { ...; }, { ...; }>, { ...; }, readonly (S...'.
+  Type '{ messages: [HumanMessage<MessageStructure<MessageToolSet>>]; }' is not assignable to type '{ messages: Messages; } & FilterPrivateProps<InferStateSchemaUpdate<StateSchemaFields>>'.
+    Type '{ messages: [HumanMessage<MessageStructure<MessageToolSet>>]; }' is not assignable to type 'FilterPrivateProps<InferStateSchemaUpdate<StateSchemaFields>>'.
+      Property 'messages' is incompatible with index signature.
+        Type '[HumanMessage<MessageStructure<MessageToolSet>>]' is not assignable to type 'never'.
+06_middleware.ts(287,47): error TS2345: Argument of type '{ messages: [HumanMessage<MessageStructure<MessageToolSet>>]; }' is not assignable to parameter of type 'InvokeStateParameter<AgentTypeConfig<ResponseFormatUndefined, undefined, AnyAnnotationRoot, readonly [AgentMiddleware<undefined, ZodObject<{ tools: ZodOptional<ZodArray<ZodUnion<[ZodType<ClientTool, ZodTypeDef, ClientTool>, ZodType<...>, ZodString]>, "many">>; onFailure: ZodDefault<...>; } & { ...; }, "strip", ZodTy...'.
+  Type '{ messages: [HumanMessage<MessageStructure<MessageToolSet>>]; }' is not assignable to type '{ messages: Messages; } & FilterPrivateProps<InferStateSchemaUpdate<StateSchemaFields>>'.
+    Type '{ messages: [HumanMessage<MessageStructure<MessageToolSet>>]; }' is not assignable to type 'FilterPrivateProps<InferStateSchemaUpdate<StateSchemaFields>>'.
+      Property 'messages' is incompatible with index signature.
+        Type '[HumanMessage<MessageStructure<MessageToolSet>>]' is not assignable to type 'never'.
+06_middleware.ts(308,57): error TS2345: Argument of type '{ messages: [HumanMessage<MessageStructure<MessageToolSet>>]; }' is not assignable to parameter of type 'InvokeStateParameter<AgentTypeConfig<ResponseFormatUndefined, undefined, AnyAnnotationRoot, readonly [AgentMiddleware<undefined, ZodObject<{ onFailure: ZodDefault<ZodUnion<[ZodLiteral<"error">, ZodLiteral<...>, ZodFunction<...>]>>; } & { ...; }, "strip", ZodTypeAny, { ...; }, { ...; }>, { ...; }, readonly (ServerToo...'.
+  Type '{ messages: [HumanMessage<MessageStructure<MessageToolSet>>]; }' is not assignable to type '{ messages: Messages; } & FilterPrivateProps<InferStateSchemaUpdate<StateSchemaFields>>'.
+    Type '{ messages: [HumanMessage<MessageStructure<MessageToolSet>>]; }' is not assignable to type 'FilterPrivateProps<InferStateSchemaUpdate<StateSchemaFields>>'.
+      Property 'messages' is incompatible with index signature.
+        Type '[HumanMessage<MessageStructure<MessageToolSet>>]' is not assignable to type 'never'.
+06_middleware.ts(324,53): error TS2345: Argument of type '{ messages: [HumanMessage<MessageStructure<MessageToolSet>>]; }' is not assignable to parameter of type 'InvokeStateParameter<AgentTypeConfig<ResponseFormatUndefined, undefined, AnyAnnotationRoot, readonly [AgentMiddleware<undefined, undefined, unknown, readonly (ServerTool | ClientTool)[], readonly []>], readonly (ServerTool | ClientTool)[], readonly []>>'.
+  Type '{ messages: [HumanMessage<MessageStructure<MessageToolSet>>]; }' is not assignable to type '{ messages: Messages; } & FilterPrivateProps<InferStateSchemaUpdate<StateSchemaFields>>'.
+    Type '{ messages: [HumanMessage<MessageStructure<MessageToolSet>>]; }' is not assignable to type 'FilterPrivateProps<InferStateSchemaUpdate<StateSchemaFields>>'.
+      Property 'messages' is incompatible with index signature.
+        Type '[HumanMessage<MessageStructure<MessageToolSet>>]' is not assignable to type 'never'.
+11_state_graph.ts(41,31): error TS2345: Argument of type '{ default: () => number; }' is not assignable to parameter of type 'SingleReducer<number, number>'.
   Property 'value' is missing in type '{ default: () => number; }' but required in type '{ value: BinaryOperator<number, number>; default?: () => number; }'.
-11_state_graph.ts(42,17): error TS2769: No overload matches this call.
+11_state_graph.ts(51,17): error TS2769: No overload matches this call.
   The last overload gave the following error.
     Argument of type '() => { counter: number; log: string[]; messages: string[]; }' is not assignable to parameter of type 'NodeAction<StateType<{ counter: BaseChannel<number, ValueType | OverwriteValue<number>, unknown>; log: BaseChannel<string[], string[] | OverwriteValue<string[]>, unknown>; messages: BaseChannel<...>; }>, UpdateType<...>, StateDefinition, unknown, unknown>'.
       Type '() => { counter: number; log: string[]; messages: string[]; }' is not assignable to type 'RunnableFunc$1<StateType<{ counter: BaseChannel<number, ValueType | OverwriteValue<number>, unknown>; log: BaseChannel<string[], string[] | OverwriteValue<string[]>, unknown>; messages: BaseChannel<...>; }>, UpdateType<...> & Record<...>, Runtime<...>>'.
@@ -9,7 +43,7 @@
             Type '{ counter: number; log: string[]; messages: string[]; }' is not assignable to type 'UpdateType<{ counter: BaseChannel<number, ValueType | OverwriteValue<number>, unknown>; log: BaseChannel<string[], string[] | OverwriteValue<string[]>, unknown>; messages: BaseChannel<...>; }>'.
               Types of property 'counter' are incompatible.
                 Type 'number' is not assignable to type 'ValueType | OverwriteValue<number>'.
-11_state_graph.ts(43,17): error TS2769: No overload matches this call.
+11_state_graph.ts(52,17): error TS2769: No overload matches this call.
   The last overload gave the following error.
     Argument of type '() => { counter: number; log: string[]; messages: string[]; }' is not assignable to parameter of type 'NodeAction<StateType<{ counter: BaseChannel<number, ValueType | OverwriteValue<number>, unknown>; log: BaseChannel<string[], string[] | OverwriteValue<string[]>, unknown>; messages: BaseChannel<...>; }>, UpdateType<...>, StateDefinition, unknown, unknown>'.
       Type '() => { counter: number; log: string[]; messages: string[]; }' is not assignable to type 'RunnableFunc$1<StateType<{ counter: BaseChannel<number, ValueType | OverwriteValue<number>, unknown>; log: BaseChannel<string[], string[] | OverwriteValue<string[]>, unknown>; messages: BaseChannel<...>; }>, UpdateType<...> & Record<...>, Runtime<...>>'.
@@ -18,16 +52,16 @@
             Type '{ counter: number; log: string[]; messages: string[]; }' is not assignable to type 'UpdateType<{ counter: BaseChannel<number, ValueType | OverwriteValue<number>, unknown>; log: BaseChannel<string[], string[] | OverwriteValue<string[]>, unknown>; messages: BaseChannel<...>; }>'.
               Types of property 'counter' are incompatible.
                 Type 'number' is not assignable to type 'ValueType | OverwriteValue<number>'.
-11_state_graph.ts(49,35): error TS2322: Type 'number' is not assignable to type 'ValueType | OverwriteValue<number>'.
-11_state_graph.ts(62,25): error TS2345: Argument of type '{ default: () => number; }' is not assignable to parameter of type 'SingleReducer<number, number>'.
+11_state_graph.ts(58,35): error TS2322: Type 'number' is not assignable to type 'ValueType | OverwriteValue<number>'.
+11_state_graph.ts(71,25): error TS2345: Argument of type '{ default: () => number; }' is not assignable to parameter of type 'SingleReducer<number, number>'.
   Property 'value' is missing in type '{ default: () => number; }' but required in type '{ value: BinaryOperator<number, number>; default?: () => number; }'.
-11_state_graph.ts(113,32): error TS2345: Argument of type '{ default: () => string; }' is not assignable to parameter of type 'SingleReducer<string, string>'.
+11_state_graph.ts(122,32): error TS2345: Argument of type '{ default: () => string; }' is not assignable to parameter of type 'SingleReducer<string, string>'.
   Property 'value' is missing in type '{ default: () => string; }' but required in type '{ value: BinaryOperator<string, string>; default?: () => string; }'.
-11_state_graph.ts(114,29): error TS2345: Argument of type '{ default: () => string; }' is not assignable to parameter of type 'SingleReducer<string, string>'.
+11_state_graph.ts(123,29): error TS2345: Argument of type '{ default: () => string; }' is not assignable to parameter of type 'SingleReducer<string, string>'.
   Property 'value' is missing in type '{ default: () => string; }' but required in type '{ value: BinaryOperator<string, string>; default?: () => string; }'.
-11_state_graph.ts(115,30): error TS2345: Argument of type '{ default: () => string; }' is not assignable to parameter of type 'SingleReducer<string, string>'.
+11_state_graph.ts(124,30): error TS2345: Argument of type '{ default: () => string; }' is not assignable to parameter of type 'SingleReducer<string, string>'.
   Property 'value' is missing in type '{ default: () => string; }' but required in type '{ value: BinaryOperator<string, string>; default?: () => string; }'.
-11_state_graph.ts(119,24): error TS2769: No overload matches this call.
+11_state_graph.ts(128,24): error TS2769: No overload matches this call.
   The last overload gave the following error.
     Argument of type '(s: any) => { route: string; }' is not assignable to parameter of type 'NodeAction<any, UpdateType<{ question: BaseChannel<string, ValueType | OverwriteValue<string>, unknown>; route: BaseChannel<string, ValueType | OverwriteValue<string>, unknown>; answer: BaseChannel<...>; }>, StateDefinition, unknown, unknown>'.
       Type '(s: any) => { route: string; }' is not assignable to type 'RunnableFunc$1<any, UpdateType<{ question: BaseChannel<string, ValueType | OverwriteValue<string>, unknown>; route: BaseChannel<string, ValueType | OverwriteValue<string>, unknown>; answer: BaseChannel<...>; }> & Record<...>, Runtime<...>>'.
@@ -36,7 +70,7 @@
             Type '{ route: string; }' is not assignable to type 'UpdateType<{ question: BaseChannel<string, ValueType | OverwriteValue<string>, unknown>; route: BaseChannel<string, ValueType | OverwriteValue<string>, unknown>; answer: BaseChannel<...>; }>'.
               Types of property 'route' are incompatible.
                 Type 'string' is not assignable to type 'ValueType | OverwriteValue<string>'.
-11_state_graph.ts(120,23): error TS2769: No overload matches this call.
+11_state_graph.ts(129,23): error TS2769: No overload matches this call.
   The last overload gave the following error.
     Argument of type '(s: any) => { answer: string; }' is not assignable to parameter of type 'NodeAction<any, UpdateType<{ question: BaseChannel<string, ValueType | OverwriteValue<string>, unknown>; route: BaseChannel<string, ValueType | OverwriteValue<string>, unknown>; answer: BaseChannel<...>; }>, StateDefinition, unknown, unknown>'.
       Type '(s: any) => { answer: string; }' is not assignable to type 'RunnableFunc$1<any, UpdateType<{ question: BaseChannel<string, ValueType | OverwriteValue<string>, unknown>; route: BaseChannel<string, ValueType | OverwriteValue<string>, unknown>; answer: BaseChannel<...>; }> & Record<...>, Runtime<...>>'.
@@ -45,7 +79,7 @@
             Type '{ answer: string; }' is not assignable to type 'UpdateType<{ question: BaseChannel<string, ValueType | OverwriteValue<string>, unknown>; route: BaseChannel<string, ValueType | OverwriteValue<string>, unknown>; answer: BaseChannel<...>; }>'.
               Types of property 'answer' are incompatible.
                 Type 'string' is not assignable to type 'ValueType | OverwriteValue<string>'.
-11_state_graph.ts(121,20): error TS2769: No overload matches this call.
+11_state_graph.ts(130,20): error TS2769: No overload matches this call.
   The last overload gave the following error.
     Argument of type '(s: any) => { answer: string; }' is not assignable to parameter of type 'NodeAction<any, UpdateType<{ question: BaseChannel<string, ValueType | OverwriteValue<string>, unknown>; route: BaseChannel<string, ValueType | OverwriteValue<string>, unknown>; answer: BaseChannel<...>; }>, StateDefinition, unknown, unknown>'.
       Type '(s: any) => { answer: string; }' is not assignable to type 'RunnableFunc$1<any, UpdateType<{ question: BaseChannel<string, ValueType | OverwriteValue<string>, unknown>; route: BaseChannel<string, ValueType | OverwriteValue<string>, unknown>; answer: BaseChannel<...>; }> & Record<...>, Runtime<...>>'.
@@ -54,18 +88,35 @@
             Type '{ answer: string; }' is not assignable to type 'UpdateType<{ question: BaseChannel<string, ValueType | OverwriteValue<string>, unknown>; route: BaseChannel<string, ValueType | OverwriteValue<string>, unknown>; answer: BaseChannel<...>; }>'.
               Types of property 'answer' are incompatible.
                 Type 'string' is not assignable to type 'ValueType | OverwriteValue<string>'.
-11_state_graph.ts(132,45): error TS2322: Type 'string' is not assignable to type 'ValueType | OverwriteValue<string>'.
-11_state_graph.ts(143,31): error TS2345: Argument of type '{ default: () => any[]; }' is not assignable to parameter of type 'SingleReducer<string[], string[]>'.
+11_state_graph.ts(141,45): error TS2322: Type 'string' is not assignable to type 'ValueType | OverwriteValue<string>'.
+11_state_graph.ts(152,31): error TS2345: Argument of type '{ default: () => any[]; }' is not assignable to parameter of type 'SingleReducer<string[], string[]>'.
   Property 'value' is missing in type '{ default: () => any[]; }' but required in type '{ value: BinaryOperator<string[], string[]>; default?: () => string[]; }'.
-11_state_graph.ts(157,40): error TS2322: Type 'string[]' is not assignable to type 'ValueType | OverwriteValue<string[]>'.
+11_state_graph.ts(166,40): error TS2322: Type 'string[]' is not assignable to type 'ValueType | OverwriteValue<string[]>'.
   Type 'string[]' is not assignable to type 'ValueType'.
     'ValueType' could be instantiated with an arbitrary type which could be unrelated to 'string[]'.
-11_state_graph.ts(174,41): error TS2322: Type 'number' is not assignable to type 'ValueType | OverwriteValue<number>'.
-12_persistence.ts(25,25): error TS2345: Argument of type '{ default: () => number; }' is not assignable to parameter of type 'SingleReducer<number, number>'.
+11_state_graph.ts(183,41): error TS2322: Type 'number' is not assignable to type 'ValueType | OverwriteValue<number>'.
+11_state_graph.ts(231,25): error TS2345: Argument of type '{ default: () => number; }' is not assignable to parameter of type 'SingleReducer<number, number>'.
   Property 'value' is missing in type '{ default: () => number; }' but required in type '{ value: BinaryOperator<number, number>; default?: () => number; }'.
-12_persistence.ts(26,31): error TS2345: Argument of type '{ default: () => any[]; }' is not assignable to parameter of type 'SingleReducer<string[], string[]>'.
+11_state_graph.ts(239,69): error TS2322: Type 'number' is not assignable to type 'ValueType | OverwriteValue<number>'.
+11_state_graph.ts(242,23): error TS2322: Type 'number' is not assignable to type 'ValueType | OverwriteValue<number>'.
+11_state_graph.ts(259,5): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type '() => { n: number; }' is not assignable to parameter of type 'NodeAction<StateType<{ n: BaseChannel<number, ValueType | OverwriteValue<number>, unknown>; }>, UpdateType<{ n: BaseChannel<number, ValueType | OverwriteValue<...>, unknown>; }>, StateDefinition, unknown, unknown>'.
+      Type '() => { n: number; }' is not assignable to type 'RunnableFunc$1<StateType<{ n: BaseChannel<number, ValueType | OverwriteValue<number>, unknown>; }>, UpdateType<{ n: BaseChannel<number, ValueType | OverwriteValue<...>, unknown>; }> & Record<...>, Runtime<...>>'.
+        Type '{ n: number; }' is not assignable to type 'Promise<UpdateType<{ n: BaseChannel<number, ValueType | OverwriteValue<number>, unknown>; }> & Record<string, any>> | (UpdateType<...> & Record<...>)'.
+          Type '{ n: number; }' is not assignable to type 'UpdateType<{ n: BaseChannel<number, ValueType | OverwriteValue<number>, unknown>; }> & Record<string, any>'.
+            Type '{ n: number; }' is not assignable to type 'UpdateType<{ n: BaseChannel<number, ValueType | OverwriteValue<number>, unknown>; }>'.
+              Types of property 'n' are incompatible.
+                Type 'number' is not assignable to type 'ValueType | OverwriteValue<number>'.
+11_state_graph.ts(269,88): error TS2322: Type 'number' is not assignable to type 'ValueType | OverwriteValue<number>'.
+11_state_graph.ts(285,31): error TS2322: Type 'number' is not assignable to type 'ValueType | OverwriteValue<number>'.
+11_state_graph.ts(303,27): error TS2322: Type 'number' is not assignable to type 'ValueType | OverwriteValue<number>'.
+11_state_graph.ts(304,27): error TS2322: Type 'number' is not assignable to type 'ValueType | OverwriteValue<number>'.
+12_persistence.ts(30,25): error TS2345: Argument of type '{ default: () => number; }' is not assignable to parameter of type 'SingleReducer<number, number>'.
+  Property 'value' is missing in type '{ default: () => number; }' but required in type '{ value: BinaryOperator<number, number>; default?: () => number; }'.
+12_persistence.ts(31,31): error TS2345: Argument of type '{ default: () => any[]; }' is not assignable to parameter of type 'SingleReducer<string[], string[]>'.
   Property 'value' is missing in type '{ default: () => any[]; }' but required in type '{ value: BinaryOperator<string[], string[]>; default?: () => string[]; }'.
-12_persistence.ts(40,20): error TS2769: No overload matches this call.
+12_persistence.ts(45,20): error TS2769: No overload matches this call.
   The last overload gave the following error.
     Argument of type '(state: any) => { n: any; trail: any[]; }' is not assignable to parameter of type 'NodeAction<any, UpdateType<{ n: BaseChannel<number, ValueType | OverwriteValue<number>, unknown>; trail: BaseChannel<string[], ValueType | OverwriteValue<string[]>, unknown>; }>, StateDefinition, unknown, unknown>'.
       Type '(state: any) => { n: any; trail: any[]; }' is not assignable to type 'RunnableFunc$1<any, UpdateType<{ n: BaseChannel<number, ValueType | OverwriteValue<number>, unknown>; trail: BaseChannel<string[], ValueType | OverwriteValue<string[]>, unknown>; }> & Record<...>, Runtime<...>>'.
@@ -76,12 +127,12 @@
                 Type 'any[]' is not assignable to type 'ValueType | OverwriteValue<string[]>'.
                   Type 'any[]' is not assignable to type 'ValueType'.
                     'ValueType' could be instantiated with an arbitrary type which could be unrelated to 'any[]'.
-12_persistence.ts(46,38): error TS2322: Type 'number' is not assignable to type 'ValueType | OverwriteValue<number>'.
-12_persistence.ts(46,44): error TS2322: Type 'undefined[]' is not assignable to type 'ValueType | OverwriteValue<string[]>'.
+12_persistence.ts(51,38): error TS2322: Type 'number' is not assignable to type 'ValueType | OverwriteValue<number>'.
+12_persistence.ts(51,44): error TS2322: Type 'undefined[]' is not assignable to type 'ValueType | OverwriteValue<string[]>'.
   Type 'undefined[]' is not assignable to type 'ValueType'.
     'ValueType' could be instantiated with an arbitrary type which could be unrelated to 'undefined[]'.
-12_persistence.ts(52,38): error TS2322: Type 'number' is not assignable to type 'ValueType | OverwriteValue<number>'.
-12_persistence.ts(118,20): error TS2769: No overload matches this call.
+12_persistence.ts(57,38): error TS2322: Type 'number' is not assignable to type 'ValueType | OverwriteValue<number>'.
+12_persistence.ts(123,20): error TS2769: No overload matches this call.
   The last overload gave the following error.
     Argument of type '(state: any) => { n: any; trail: any[]; }' is not assignable to parameter of type 'NodeAction<any, UpdateType<{ n: BaseChannel<number, ValueType | OverwriteValue<number>, unknown>; trail: BaseChannel<string[], ValueType | OverwriteValue<string[]>, unknown>; }>, StateDefinition, unknown, unknown>'.
       Type '(state: any) => { n: any; trail: any[]; }' is not assignable to type 'RunnableFunc$1<any, UpdateType<{ n: BaseChannel<number, ValueType | OverwriteValue<number>, unknown>; trail: BaseChannel<string[], ValueType | OverwriteValue<string[]>, unknown>; }> & Record<...>, Runtime<...>>'.
@@ -92,7 +143,7 @@
                 Type 'any[]' is not assignable to type 'ValueType | OverwriteValue<string[]>'.
                   Type 'any[]' is not assignable to type 'ValueType'.
                     'ValueType' could be instantiated with an arbitrary type which could be unrelated to 'any[]'.
-12_persistence.ts(118,44): error TS2769: No overload matches this call.
+12_persistence.ts(123,44): error TS2769: No overload matches this call.
   The last overload gave the following error.
     Argument of type '(state: any) => { n: number; trail: any[]; }' is not assignable to parameter of type 'NodeAction<any, UpdateType<{ n: BaseChannel<number, ValueType | OverwriteValue<number>, unknown>; trail: BaseChannel<string[], ValueType | OverwriteValue<string[]>, unknown>; }>, StateDefinition, unknown, unknown>'.
       Type '(state: any) => { n: number; trail: any[]; }' is not assignable to type 'RunnableFunc$1<any, UpdateType<{ n: BaseChannel<number, ValueType | OverwriteValue<number>, unknown>; trail: BaseChannel<string[], ValueType | OverwriteValue<string[]>, unknown>; }> & Record<...>, Runtime<...>>'.
@@ -101,7 +152,7 @@
             Type '{ n: number; trail: any[]; }' is not assignable to type 'UpdateType<{ n: BaseChannel<number, ValueType | OverwriteValue<number>, unknown>; trail: BaseChannel<string[], ValueType | OverwriteValue<string[]>, unknown>; }>'.
               Types of property 'n' are incompatible.
                 Type 'number' is not assignable to type 'ValueType | OverwriteValue<number>'.
-12_persistence.ts(118,67): error TS2769: No overload matches this call.
+12_persistence.ts(123,67): error TS2769: No overload matches this call.
   The last overload gave the following error.
     Argument of type '(state: any) => { trail: any[]; }' is not assignable to parameter of type 'NodeAction<any, UpdateType<{ n: BaseChannel<number, ValueType | OverwriteValue<number>, unknown>; trail: BaseChannel<string[], ValueType | OverwriteValue<string[]>, unknown>; }>, StateDefinition, unknown, unknown>'.
       Type '(state: any) => { trail: any[]; }' is not assignable to type 'RunnableFunc$1<any, UpdateType<{ n: BaseChannel<number, ValueType | OverwriteValue<number>, unknown>; trail: BaseChannel<string[], ValueType | OverwriteValue<string[]>, unknown>; }> & Record<...>, Runtime<...>>'.
@@ -112,15 +163,49 @@
                 Type 'any[]' is not assignable to type 'ValueType | OverwriteValue<string[]>'.
                   Type 'any[]' is not assignable to type 'ValueType'.
                     'ValueType' could be instantiated with an arbitrary type which could be unrelated to 'any[]'.
-12_persistence.ts(122,40): error TS2322: Type 'number' is not assignable to type 'ValueType | OverwriteValue<number>'.
-12_persistence.ts(122,46): error TS2322: Type 'undefined[]' is not assignable to type 'ValueType | OverwriteValue<string[]>'.
+12_persistence.ts(127,40): error TS2322: Type 'number' is not assignable to type 'ValueType | OverwriteValue<number>'.
+12_persistence.ts(127,46): error TS2322: Type 'undefined[]' is not assignable to type 'ValueType | OverwriteValue<string[]>'.
   Type 'undefined[]' is not assignable to type 'ValueType'.
     'ValueType' could be instantiated with an arbitrary type which could be unrelated to 'undefined[]'.
-13_hitl_stream.ts(36,30): error TS2345: Argument of type '{ default: () => number; }' is not assignable to parameter of type 'SingleReducer<number, number>'.
+12_persistence.ts(195,25): error TS2345: Argument of type '{ default: () => number; }' is not assignable to parameter of type 'SingleReducer<number, number>'.
   Property 'value' is missing in type '{ default: () => number; }' but required in type '{ value: BinaryOperator<number, number>; default?: () => number; }'.
-13_hitl_stream.ts(37,30): error TS2345: Argument of type '{ default: () => string; }' is not assignable to parameter of type 'SingleReducer<string, string>'.
+12_persistence.ts(209,25): error TS2345: Argument of type '{ default: () => number; }' is not assignable to parameter of type 'SingleReducer<number, number>'.
+  Property 'value' is missing in type '{ default: () => number; }' but required in type '{ value: BinaryOperator<number, number>; default?: () => number; }'.
+12_persistence.ts(212,21): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type 'CompiledStateGraph<{ x: number; }, { x?: ValueType | OverwriteValue<number>; }, "__start__" | "child_pause" | "child_step", { x: BaseChannel<number, ValueType | OverwriteValue<...>, unknown>; }, ... 5 more ..., []>' is not assignable to parameter of type 'NodeAction<CommandInstance<unknown, { x?: ValueType | OverwriteValue<number>; }, "__start__" | "child_pause" | "child_step"> | UpdateType<{ x: BaseChannel<number, ValueType | OverwriteValue<...>, unknown>; }>, UpdateType<...>, StateDefinition, unknown, unknown>'.
+      Type 'CompiledStateGraph<{ x: number; }, { x?: ValueType | OverwriteValue<number>; }, "__start__" | "child_pause" | "child_step", { x: BaseChannel<number, ValueType | OverwriteValue<...>, unknown>; }, ... 5 more ..., []>' is not assignable to type 'RunnableMapLike<CommandInstance<unknown, { x?: ValueType | OverwriteValue<number>; }, "__start__" | "child_pause" | "child_step"> | UpdateType<{ x: BaseChannel<number, ValueType | OverwriteValue<...>, unknown>; }>, UpdateType<...> & Record<...>>'.
+        Index signature for type 'string' is missing in type 'CompiledStateGraph<{ x: number; }, { x?: ValueType | OverwriteValue<number>; }, "__start__" | "child_pause" | "child_step", { x: BaseChannel<number, ValueType | OverwriteValue<...>, unknown>; }, ... 5 more ..., []>'.
+12_persistence.ts(217,23): error TS2322: Type 'number' is not assignable to type 'ValueType | OverwriteValue<number>'.
+12_persistence.ts(239,22): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type '(state: any) => { n: any; trail: any[]; }' is not assignable to parameter of type 'NodeAction<any, UpdateType<{ n: BaseChannel<number, ValueType | OverwriteValue<number>, unknown>; trail: BaseChannel<string[], ValueType | OverwriteValue<string[]>, unknown>; }>, StateDefinition, unknown, unknown>'.
+      Type '(state: any) => { n: any; trail: any[]; }' is not assignable to type 'RunnableFunc$1<any, UpdateType<{ n: BaseChannel<number, ValueType | OverwriteValue<number>, unknown>; trail: BaseChannel<string[], ValueType | OverwriteValue<string[]>, unknown>; }> & Record<...>, Runtime<...>>'.
+        Type '{ n: any; trail: any[]; }' is not assignable to type 'Promise<UpdateType<{ n: BaseChannel<number, ValueType | OverwriteValue<number>, unknown>; trail: BaseChannel<string[], ValueType | OverwriteValue<string[]>, unknown>; }> & Record<...>> | (UpdateType<...> & Record<...>)'.
+          Type '{ n: any; trail: any[]; }' is not assignable to type 'UpdateType<{ n: BaseChannel<number, ValueType | OverwriteValue<number>, unknown>; trail: BaseChannel<string[], ValueType | OverwriteValue<string[]>, unknown>; }> & Record<...>'.
+            Type '{ n: any; trail: any[]; }' is not assignable to type 'UpdateType<{ n: BaseChannel<number, ValueType | OverwriteValue<number>, unknown>; trail: BaseChannel<string[], ValueType | OverwriteValue<string[]>, unknown>; }>'.
+              Types of property 'trail' are incompatible.
+                Type 'any[]' is not assignable to type 'ValueType | OverwriteValue<string[]>'.
+                  Type 'any[]' is not assignable to type 'ValueType'.
+                    'ValueType' could be instantiated with an arbitrary type which could be unrelated to 'any[]'.
+12_persistence.ts(240,24): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type '(state: any) => { n: number; trail: any[]; }' is not assignable to parameter of type 'NodeAction<any, UpdateType<{ n: BaseChannel<number, ValueType | OverwriteValue<number>, unknown>; trail: BaseChannel<string[], ValueType | OverwriteValue<string[]>, unknown>; }>, StateDefinition, unknown, unknown>'.
+      Type '(state: any) => { n: number; trail: any[]; }' is not assignable to type 'RunnableFunc$1<any, UpdateType<{ n: BaseChannel<number, ValueType | OverwriteValue<number>, unknown>; trail: BaseChannel<string[], ValueType | OverwriteValue<string[]>, unknown>; }> & Record<...>, Runtime<...>>'.
+        Type '{ n: number; trail: any[]; }' is not assignable to type 'Promise<UpdateType<{ n: BaseChannel<number, ValueType | OverwriteValue<number>, unknown>; trail: BaseChannel<string[], ValueType | OverwriteValue<string[]>, unknown>; }> & Record<...>> | (UpdateType<...> & Record<...>)'.
+          Type '{ n: number; trail: any[]; }' is not assignable to type 'UpdateType<{ n: BaseChannel<number, ValueType | OverwriteValue<number>, unknown>; trail: BaseChannel<string[], ValueType | OverwriteValue<string[]>, unknown>; }> & Record<...>'.
+            Type '{ n: number; trail: any[]; }' is not assignable to type 'UpdateType<{ n: BaseChannel<number, ValueType | OverwriteValue<number>, unknown>; trail: BaseChannel<string[], ValueType | OverwriteValue<string[]>, unknown>; }>'.
+              Types of property 'n' are incompatible.
+                Type 'number' is not assignable to type 'ValueType | OverwriteValue<number>'.
+12_persistence.ts(246,31): error TS2322: Type 'number' is not assignable to type 'ValueType | OverwriteValue<number>'.
+12_persistence.ts(246,37): error TS2322: Type 'undefined[]' is not assignable to type 'ValueType | OverwriteValue<string[]>'.
+  Type 'undefined[]' is not assignable to type 'ValueType'.
+    'ValueType' could be instantiated with an arbitrary type which could be unrelated to 'undefined[]'.
+13_hitl_stream.ts(39,30): error TS2345: Argument of type '{ default: () => number; }' is not assignable to parameter of type 'SingleReducer<number, number>'.
+  Property 'value' is missing in type '{ default: () => number; }' but required in type '{ value: BinaryOperator<number, number>; default?: () => number; }'.
+13_hitl_stream.ts(40,30): error TS2345: Argument of type '{ default: () => string; }' is not assignable to parameter of type 'SingleReducer<string, string>'.
   Property 'value' is missing in type '{ default: () => string; }' but required in type '{ value: BinaryOperator<string, string>; default?: () => string; }'.
-13_hitl_stream.ts(56,22): error TS2769: No overload matches this call.
+13_hitl_stream.ts(59,22): error TS2769: No overload matches this call.
   The last overload gave the following error.
     Argument of type '() => { status: string; }' is not assignable to parameter of type 'NodeAction<StateType<{ amount: BaseChannel<number, ValueType | OverwriteValue<number>, unknown>; status: BaseChannel<string, ValueType | OverwriteValue<string>, unknown>; }>, UpdateType<...>, StateDefinition, unknown, unknown>'.
       Type '() => { status: string; }' is not assignable to type 'RunnableFunc$1<StateType<{ amount: BaseChannel<number, ValueType | OverwriteValue<number>, unknown>; status: BaseChannel<string, ValueType | OverwriteValue<string>, unknown>; }>, UpdateType<...> & Record<...>, Runtime<...>>'.
@@ -129,7 +214,7 @@
             Type '{ status: string; }' is not assignable to type 'UpdateType<{ amount: BaseChannel<number, ValueType | OverwriteValue<number>, unknown>; status: BaseChannel<string, ValueType | OverwriteValue<string>, unknown>; }>'.
               Types of property 'status' are incompatible.
                 Type 'string' is not assignable to type 'ValueType | OverwriteValue<string>'.
-13_hitl_stream.ts(57,25): error TS2769: No overload matches this call.
+13_hitl_stream.ts(60,25): error TS2769: No overload matches this call.
   The last overload gave the following error.
     Argument of type '() => { status: string; }' is not assignable to parameter of type 'NodeAction<StateType<{ amount: BaseChannel<number, ValueType | OverwriteValue<number>, unknown>; status: BaseChannel<string, ValueType | OverwriteValue<string>, unknown>; }>, UpdateType<...>, StateDefinition, unknown, unknown>'.
       Type '() => { status: string; }' is not assignable to type 'RunnableFunc$1<StateType<{ amount: BaseChannel<number, ValueType | OverwriteValue<number>, unknown>; status: BaseChannel<string, ValueType | OverwriteValue<string>, unknown>; }>, UpdateType<...> & Record<...>, Runtime<...>>'.
@@ -138,13 +223,13 @@
             Type '{ status: string; }' is not assignable to type 'UpdateType<{ amount: BaseChannel<number, ValueType | OverwriteValue<number>, unknown>; status: BaseChannel<string, ValueType | OverwriteValue<string>, unknown>; }>'.
               Types of property 'status' are incompatible.
                 Type 'string' is not assignable to type 'ValueType | OverwriteValue<string>'.
-13_hitl_stream.ts(65,37): error TS2322: Type 'number' is not assignable to type 'ValueType | OverwriteValue<number>'.
-13_hitl_stream.ts(65,50): error TS2322: Type 'string' is not assignable to type 'ValueType | OverwriteValue<string>'.
-13_hitl_stream.ts(92,25): error TS2345: Argument of type '{ default: () => number; }' is not assignable to parameter of type 'SingleReducer<number, number>'.
+13_hitl_stream.ts(68,37): error TS2322: Type 'number' is not assignable to type 'ValueType | OverwriteValue<number>'.
+13_hitl_stream.ts(68,50): error TS2322: Type 'string' is not assignable to type 'ValueType | OverwriteValue<string>'.
+13_hitl_stream.ts(95,25): error TS2345: Argument of type '{ default: () => number; }' is not assignable to parameter of type 'SingleReducer<number, number>'.
   Property 'value' is missing in type '{ default: () => number; }' but required in type '{ value: BinaryOperator<number, number>; default?: () => number; }'.
-13_hitl_stream.ts(93,28): error TS2345: Argument of type '{ default: () => string; }' is not assignable to parameter of type 'SingleReducer<string, string>'.
+13_hitl_stream.ts(96,28): error TS2345: Argument of type '{ default: () => string; }' is not assignable to parameter of type 'SingleReducer<string, string>'.
   Property 'value' is missing in type '{ default: () => string; }' but required in type '{ value: BinaryOperator<string, string>; default?: () => string; }'.
-13_hitl_stream.ts(97,20): error TS2769: No overload matches this call.
+13_hitl_stream.ts(100,20): error TS2769: No overload matches this call.
   The last overload gave the following error.
     Argument of type '(state: any) => { n: any; note: string; }' is not assignable to parameter of type 'NodeAction<any, UpdateType<{ n: BaseChannel<number, ValueType | OverwriteValue<number>, unknown>; note: BaseChannel<string, ValueType | OverwriteValue<string>, unknown>; }>, StateDefinition, unknown, unknown>'.
       Type '(state: any) => { n: any; note: string; }' is not assignable to type 'RunnableFunc$1<any, UpdateType<{ n: BaseChannel<number, ValueType | OverwriteValue<number>, unknown>; note: BaseChannel<string, ValueType | OverwriteValue<string>, unknown>; }> & Record<...>, Runtime<...>>'.
@@ -153,8 +238,19 @@
             Type '{ n: any; note: string; }' is not assignable to type 'UpdateType<{ n: BaseChannel<number, ValueType | OverwriteValue<number>, unknown>; note: BaseChannel<string, ValueType | OverwriteValue<string>, unknown>; }>'.
               Types of property 'note' are incompatible.
                 Type 'string' is not assignable to type 'ValueType | OverwriteValue<string>'.
-13_hitl_stream.ts(108,45): error TS2322: Type 'number' is not assignable to type 'ValueType | OverwriteValue<number>'.
-13_hitl_stream.ts(108,51): error TS2322: Type 'string' is not assignable to type 'ValueType | OverwriteValue<string>'.
+13_hitl_stream.ts(111,45): error TS2322: Type 'number' is not assignable to type 'ValueType | OverwriteValue<number>'.
+13_hitl_stream.ts(111,51): error TS2322: Type 'string' is not assignable to type 'ValueType | OverwriteValue<string>'.
+13_hitl_stream.ts(210,7): error TS2322: Type 'number' is not assignable to type 'ValueType | OverwriteValue<number>'.
+13_hitl_stream.ts(210,13): error TS2322: Type 'string' is not assignable to type 'ValueType | OverwriteValue<string>'.
+13_hitl_stream.ts(241,5): error TS2322: Type 'number' is not assignable to type 'ValueType | OverwriteValue<number>'.
+13_hitl_stream.ts(241,11): error TS2322: Type 'string' is not assignable to type 'ValueType | OverwriteValue<string>'.
+13_hitl_stream.ts(250,21): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type 'CompiledStateGraph<{ n: number; note: string; }, { n?: ValueType | OverwriteValue<number>; note?: ValueType | OverwriteValue<string>; }, "__start__" | "step", ... 6 more ..., []>' is not assignable to parameter of type 'NodeAction<CommandInstance<unknown, { n?: ValueType | OverwriteValue<number>; note?: ValueType | OverwriteValue<string>; }, "__start__" | "step"> | UpdateType<...>, UpdateType<...>, StateDefinition, unknown, unknown>'.
+      Type 'CompiledStateGraph<{ n: number; note: string; }, { n?: ValueType | OverwriteValue<number>; note?: ValueType | OverwriteValue<string>; }, "__start__" | "step", ... 6 more ..., []>' is not assignable to type 'RunnableMapLike<CommandInstance<unknown, { n?: ValueType | OverwriteValue<number>; note?: ValueType | OverwriteValue<string>; }, "__start__" | "step"> | UpdateType<...>, UpdateType<...> & Record<...>>'.
+        Index signature for type 'string' is missing in type 'CompiledStateGraph<{ n: number; note: string; }, { n?: ValueType | OverwriteValue<number>; note?: ValueType | OverwriteValue<string>; }, "__start__" | "step", ... 6 more ..., []>'.
+13_hitl_stream.ts(256,5): error TS2322: Type 'number' is not assignable to type 'ValueType | OverwriteValue<number>'.
+13_hitl_stream.ts(256,11): error TS2322: Type 'string' is not assignable to type 'ValueType | OverwriteValue<string>'.
 14_deep_agent.ts(69,3): error TS2345: Argument of type '{ messages: [{ role: "user"; content: string; }]; }' is not assignable to parameter of type 'InvokeStateParameter<DeepAgentTypeConfig<ResponseFormatUndefined, undefined, InteropZodObject, readonly [AgentMiddleware<StateSchema<{ files: ReducedValue<FilesRecord, FilesRecordUpdate>; }>, undefined, unknown, (DynamicStructuredTool<...> | ... 6 more ... | DynamicStructuredTool<...>)[], readonly []>, AgentMiddlewa...'.
   Type '{ messages: [{ role: "user"; content: string; }]; }' is not assignable to type '{ messages: Messages; } & FilterPrivateProps<InferStateSchemaUpdate<{ files: ReducedValue<FilesRecord, FilesRecordUpdate>; }>> & FilterPrivateProps<...> & FilterPrivateProps<...>'.
     Type '{ messages: [{ role: "user"; content: string; }]; }' is not assignable to type 'FilterPrivateProps<InferStateSchemaUpdate<StateSchemaFields>>'.
@@ -188,3 +284,4 @@
                 Type 'string' is not assignable to type 'ValueType | OverwriteValue<string>'.
 18_multiagent.ts(93,29): error TS2345: Argument of type '{ default: () => string; }' is not assignable to parameter of type 'SingleReducer<string, string>'.
   Property 'value' is missing in type '{ default: () => string; }' but required in type '{ value: BinaryOperator<string, string>; default?: () => string; }'.
+ ELIFECYCLE  Command failed with exit code 1.

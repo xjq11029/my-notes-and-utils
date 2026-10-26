@@ -1,0 +1,15 @@
+$ python 19_deploy_agent.py
+{'question': 'hello', 'answer': 'echo: hello'}
+
+$ langgraph validate -c langgraph.json
+Configuration file D:\ProjectCode\my-notes-and-utils\docs\agent开发教程\code\python\langgraph.json is valid. (1 graph found)
+
+$ langgraph dev --config langgraph.json --no-browser --no-reload --port 2025
+# ... Application started up in 0.582s
+$ curl http://127.0.0.1:2025/ok
+{"ok":true,"services":{}}
+
+# 说明：
+# - validate 用 -c；dev 用 --config（两者不通用，本机实测）
+# - Windows 上需先装 colorama，否则 structlog 彩色输出会在日志配置阶段抛 SystemError
+# - Studio / AgentChatUI 页面、Docker build、云端 deploy 未实测

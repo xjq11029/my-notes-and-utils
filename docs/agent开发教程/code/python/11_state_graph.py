@@ -1,16 +1,21 @@
 # -*- coding: utf-8 -*-
 """第 11 章示例：LangGraph 的图与状态。
 
-演示五件事：
+演示九件事：
   1. State schema 与 reducer —— 默认覆盖 vs Annotated 合并
   2. 同一线程再次 invoke 时，两种字段的不同命运
   3. 条件边：按状态决定下一步去哪
   4. Send：从一条边派发 N 个并行分支（map-reduce）
   5. Overwrite：绕过 reducer 强制覆盖
+  6. add_sequence 与静态扇入：多起点边会等所有起点完成
+  7. 循环与 recursion_limit：默认上限、GraphRecursionError、RemainingSteps
+  8. 节点级容错：RetryPolicy、async timeout、CachePolicy
+  9. Functional API：用 @entrypoint / @task 写同一类工作流
 
 运行：python 11_state_graph.py
 """
 
+import asyncio
 import operator
 import sys
 from typing import Annotated, TypedDict
@@ -19,8 +24,12 @@ if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
 from langchain_core.messages import AIMessage, HumanMessage
+from langgraph.cache.memory import InMemoryCache
+from langgraph.errors import GraphRecursionError, NodeTimeoutError
+from langgraph.func import entrypoint, task
 from langgraph.graph import END, START, StateGraph, add_messages
-from langgraph.types import Overwrite, Send
+from langgraph.managed import RemainingSteps
+from langgraph.types import CachePolicy, Overwrite, RetryPolicy, Send
 
 
 # ---------------------------------------------------------------------------
@@ -234,3 +243,237 @@ g3 = (
 print(f"  不包 Overwrite：log = ['旧值'] + [] = ['旧值']  ← 清不掉")
 print(f"  包了 Overwrite：log = {g3.invoke({'counter': 0, 'log': ['旧值'], 'messages': []})['log']}")
 print("  → Overwrite 是绕过 reducer 的显式指令，专门用来「我就是要覆盖」。")
+
+
+# ---------------------------------------------------------------------------
+# 6. 顺序与静态扇入
+# ---------------------------------------------------------------------------
+print()
+print("=" * 78)
+print("⑥ add_sequence 与静态扇入：顺序、并行汇合")
+print("=" * 78)
+
+
+class Flow(TypedDict):
+    trail: Annotated[list[str], operator.add]
+
+
+def seq_a(state: Flow) -> dict:
+    return {"trail": ["a"]}
+
+
+def seq_b(state: Flow) -> dict:
+    return {"trail": ["b"]}
+
+
+sequence = (
+    StateGraph(Flow)
+    .add_sequence([seq_a, seq_b])
+    .add_edge(START, "seq_a")
+    .add_edge("seq_b", END)
+    .compile()
+)
+print(f"  add_sequence([a, b]) → {sequence.invoke({'trail': []})['trail']}")
+
+
+def left(state: Flow) -> dict:
+    return {"trail": ["left"]}
+
+
+def right(state: Flow) -> dict:
+    return {"trail": ["right"]}
+
+
+def join(state: Flow) -> dict:
+    return {"trail": [f"join<-{','.join(sorted(state['trail']))}"]}
+
+
+fan_in = (
+    StateGraph(Flow)
+    .add_node("left", left)
+    .add_node("right", right)
+    .add_node("join", join)
+    .add_edge(START, "left")
+    .add_edge(START, "right")
+    .add_edge(["left", "right"], "join")
+    .add_edge("join", END)
+    .compile()
+)
+print(f"  静态扇入 START→left/right→join → {fan_in.invoke({'trail': []})['trail']}")
+print("  → add_edge([a, b], 'join') 的含义是「等 a、b 都完成后再跑 join」；")
+print("    Python 侧一次传 list 即可，TS 侧同样是 addEdge(['left','right'], 'join')。")
+
+
+# ---------------------------------------------------------------------------
+# 7. 循环与递归上限
+# ---------------------------------------------------------------------------
+print()
+print("=" * 78)
+print("⑦ 循环与 recursion_limit：本机默认 10007")
+print("=" * 78)
+
+
+class Loop(TypedDict):
+    n: int
+
+
+def inc(state: Loop) -> dict:
+    return {"n": state["n"] + 1}
+
+
+def keep_going(state: Loop) -> str:
+    return "inc" if state["n"] < 3 else END
+
+
+loop = (
+    StateGraph(Loop)
+    .add_node("inc", inc)
+    .add_edge(START, "inc")
+    .add_conditional_edges("inc", keep_going, {"inc": "inc", END: END})
+    .compile()
+)
+print(f"  循环到 n>=3 自动退出 → {loop.invoke({'n': 0})}")
+
+try:
+    loop.invoke({"n": 0}, {"recursion_limit": 3})
+except GraphRecursionError as exc:
+    print(f"  recursion_limit=3 → {type(exc).__name__}: {str(exc).splitlines()[0]}")
+
+print("  → 本机 langgraph 1.2.12 的默认上限是 10007（源码核对）；")
+print("    讲义/旧文档里的 25、1000、10000 都随版本变化，生产代码请显式传值。")
+
+
+class StepState(TypedDict):
+    n: int
+    remaining_steps: RemainingSteps
+
+
+def report_steps(state: StepState) -> dict:
+    print(f"  节点看到的 remaining_steps = {state['remaining_steps']}")
+    return {"n": state["n"] + 1}
+
+
+step_graph = (
+    StateGraph(StepState)
+    .add_node("report", report_steps)
+    .add_edge(START, "report")
+    .add_edge("report", END)
+    .compile()
+)
+print(f"  recursion_limit=5 时 → {step_graph.invoke({'n': 0}, {'recursion_limit': 5})}")
+print("  → RemainingSteps 是 LangGraph 注入的 managed 值：进入节点时还剩几步；")
+print("    Python 侧从 langgraph.managed 导入；JS 1.4.17 没有同名导出（差异已登记）。")
+
+
+# ---------------------------------------------------------------------------
+# 8. 节点级容错与缓存
+# ---------------------------------------------------------------------------
+print()
+print("=" * 78)
+print("⑧ RetryPolicy / async timeout / CachePolicy")
+print("=" * 78)
+
+attempts = {"n": 0}
+
+
+def flaky(state: Loop) -> dict:
+    attempts["n"] += 1
+    if attempts["n"] < 3:
+        raise ValueError("boom")
+    return {"n": 1}
+
+
+retry_graph = (
+    StateGraph(Loop)
+    .add_node(
+        "flaky",
+        flaky,
+        retry_policy=RetryPolicy(max_attempts=3, initial_interval=0.01, jitter=False, retry_on=ValueError),
+    )
+    .add_edge(START, "flaky")
+    .add_edge("flaky", END)
+    .compile()
+)
+print(f"  RetryPolicy(max_attempts=3) → {retry_graph.invoke({'n': 0})}，实际尝试 {attempts['n']} 次")
+
+
+async def slow(state: Loop) -> dict:
+    await asyncio.sleep(0.2)
+    return {"n": 1}
+
+
+timeout_graph = (
+    StateGraph(Loop)
+    .add_node("slow", slow, timeout=0.05)
+    .add_edge(START, "slow")
+    .add_edge("slow", END)
+    .compile()
+)
+try:
+    asyncio.run(timeout_graph.ainvoke({"n": 0}))
+except NodeTimeoutError as exc:
+    print(f"  async 节点 timeout=0.05s → {type(exc).__name__}: {str(exc).split(' (elapsed')[0]}")
+
+print("  ⚠️ 同步节点不能设 timeout：compile() 会直接抛 ValueError（Python 无法安全取消同步执行），")
+print("     所以示例用 async 节点；这条不是配置问题，是运行时限制。")
+
+runs = {"n": 0}
+
+
+def pure(state: Loop) -> dict:
+    runs["n"] += 1
+    return {"n": state["n"] + 1}
+
+
+cache_graph = (
+    StateGraph(Loop)
+    .add_node("pure", pure, cache_policy=CachePolicy(ttl=60))
+    .add_edge(START, "pure")
+    .add_edge("pure", END)
+    .compile(cache=InMemoryCache())
+)
+cache_graph.invoke({"n": 1})
+cache_graph.invoke({"n": 1})
+print(f"  同一输入调用两次 CachePolicy(ttl=60) → 节点实际执行 {runs['n']} 次")
+print("  → 只缓存「纯节点」；有副作用（写库、发消息、扣款）的节点不要开缓存。")
+
+
+# ---------------------------------------------------------------------------
+# 9. Functional API
+# ---------------------------------------------------------------------------
+print()
+print("=" * 78)
+print("⑨ Functional API：@entrypoint / @task")
+print("=" * 78)
+
+
+@task
+def add_one(x: int) -> int:
+    return x + 1
+
+
+@task
+def triple(x: int) -> int:
+    return x * 3
+
+
+@entrypoint()
+def pipeline(x: int) -> int:
+    a = add_one(x).result()
+    b = triple(a).result()
+    return b
+
+
+print(f"  @entrypoint 串行：3 → add_one → triple = {pipeline.invoke(3)}")
+
+
+@entrypoint()
+def fan_tasks(x: int) -> int:
+    f1 = add_one(x)
+    f2 = triple(x)
+    return f1.result() + f2.result()
+
+
+print(f"  两个 @task 并行后汇总：(3+1) + (3×3) = {fan_tasks.invoke(3)}")
+print("  → Graph API 用节点/边描述形状；Functional API 用普通函数调用描述同一件事。")
+print("    需要可视化、中断、子图时优先 Graph API；逻辑本身就是一条函数链时 Functional 更直接。")

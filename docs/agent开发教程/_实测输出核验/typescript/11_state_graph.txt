@@ -50,3 +50,36 @@
   log = []
   → 直接返回 [] 是**没用的**（concat 会把 [] 拼上去，旧值还在）；
     包一层 new Overwrite([]) 才是「我就是要覆盖」的显式指令。
+
+==============================================================================
+⑥ addSequence 与静态扇入：顺序、并行汇合
+==============================================================================
+  addSequence([a, b]) → ["a","b"]
+  静态扇入 START→left/right→join → ["left","right","join<-left,right"]
+  → addEdge(['left','right'], 'join') 的含义是「等两个起点都完成后再跑 join」。
+
+==============================================================================
+⑦ 循环与 recursionLimit：本机 langgraph 1.4.17 的默认值随版本变化
+==============================================================================
+  循环到 n>=3 自动退出 → {"n":3}
+  recursionLimit=3 → GraphRecursionError: Recursion limit of 3 reached without hitting a stop condition. You can increase the limit by setting the "recursionLimit" config key.
+  → JS 侧配置键是 recursionLimit（驼峰），Python 侧是 recursion_limit（下划线）。
+    RemainingSteps：JS 1.4.17 未导出同名 managed 值，本节只演示 Python 侧。
+
+==============================================================================
+⑧ retryPolicy / async timeout / cachePolicy
+==============================================================================
+Retrying task "flaky" after 1.00ms (attempt 1) after Error: Error: boom
+Retrying task "flaky" after 2.00ms (attempt 2) after Error: Error: boom
+  retryPolicy(maxAttempts=3) → {"n":1}，实际尝试 3 次
+  → JS 的 initialInterval 单位是毫秒；Python 的 initial_interval 单位是秒（差异已登记）。
+  async 节点 timeout=50ms → NodeTimeoutError: Node "slow" exceeded its run timeout of 50ms
+  同一输入调用两次 cachePolicy(ttl=60) → 节点实际执行 1 次
+  → JS 的内置 InMemoryCache 在 @langchain/langgraph-checkpoint 包里，不在 @langchain/langgraph 顶层。
+
+==============================================================================
+⑨ Functional API：entrypoint / task
+==============================================================================
+  entrypoint 串行：3 → add_one → triple = 12
+  两个 task 并行后汇总：(3+1) + (3×3) = 13
+  → Graph API 用节点/边描述形状；Functional API 用普通函数调用描述同一件事。

@@ -30,9 +30,9 @@
 
 `run_type` 常见取值有 `chain`（链 / 图节点）、`llm`（模型调用）、`tool`（工具执行）、`retriever`（检索）等。**层级不是按类型排的，而是按调用关系排的**——`llm` 之所以是 `chain` 的孩子，是因为那次模型调用确实发生在那个链里面。
 
-![图 31　trace 结构与可观测三层：run 的父子关系、每个 run 的输入输出，以及从 trace 到指标的三层](assets/31_trace_structure.png)
+![图 20　trace 结构与可观测三层：run 的父子关系、每个 run 的输入输出，以及从 trace 到指标的三层](assets/20_trace_structure.png)
 
-*图 31　trace 结构与可观测三层：run 的父子关系、每个 run 的输入输出，以及从 trace 到指标的三层*
+*图 20　trace 结构与可观测三层：run 的父子关系、每个 run 的输入输出，以及从 trace 到指标的三层*
 
 ### 2.2 实测：一次 agent 调用产生几个 run？**Python 7 个，JS 10 个**
 
@@ -346,7 +346,7 @@ console.log(`结果：${passed}/${CASES.length} 通过`);
 
 ## 本章要点回顾
 
-- **三个词**：run（最小执行单元）/ trace（整棵 run 树）/ span（OTel 叫法）；见**图 31**。
+- **三个词**：run（最小执行单元）/ trace（整棵 run 树）/ span（OTel 叫法）；见**图 20**。
 - **实测 trace 树**：一次 agent 调用 7 个 run —— 1 根 chain + 2 个 model chain（各挂 1 个 llm）+ 1 个 tools chain（挂 1 个 tool）；run 数直接反映 loop 转了几圈。
 - **能下钻的原因**：每个 run 都带自己的 input / output。
 - **离线搭树**：继承 `BaseCallbackHandler`，在 start / end 里记 `run_id` / `parent_run_id`；Python 工具名在 `serialized["name"]`，JS 在 `handleToolStart` 的第 7 个参数。

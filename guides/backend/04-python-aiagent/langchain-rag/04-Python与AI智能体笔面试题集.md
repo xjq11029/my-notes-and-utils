@@ -553,6 +553,51 @@ Self-Consistency（自一致性）是一种后处理Prompt技巧：对同一个�
 - 上下文保持：记住用户前面提到的订单号等信息，不需要用户重复说
 - 可解释性：记录Agent每一步判断，方便后续优化
 
+
+## 四、LangGraph 专题（10道）
+
+> 本节对应新增的 `05-LangGraph核心机制与面试要点`。回答以 Python `langgraph` 1.2.12 的实测为准；标注「未实测」的地方不要当成既成事实。
+
+### 1. LangGraph 与 `create_agent` 是什么关系？什么时候直接写图？★★
+
+**答：** `create_agent` 是 LangChain v1 的**预置图**：它内部就是一张 LangGraph 图（模型节点 + 工具节点 + 循环），编译后返回 `CompiledStateGraph`。直接写 LangGraph 是为了**改图的形状**：条件分支、并行扇出/扇入、循环、人工中断、子图、自定义状态。需求还在「模型→工具→模型」这个固定循环里时，用 `create_agent` + middleware 更省。
+
+### 2. State、Reducer、`add_messages` 三者的分工是什么？★★
+
+**答：** State 是图共享数据的 schema；Reducer 决定「节点返回的更新如何合并进旧状态」；`add_messages` 是消息专用的内置 reducer（追加 + 按 ID 去重更新）。没有 `Annotated[type, reducer]` 的字段默认**覆盖**；并行分支写同一个无 reducer 字段会抛 `InvalidUpdateError`。`Overwrite` 是绕过合并型 reducer 的显式逃生舱。
+
+### 3. 条件边与 `Send` 的区别？★★★
+
+**答：** 条件边是「**选一条**路」：路由函数返回一个节点名。`Send` 是「**同时走多条**路」：路由函数返回 `Send` 列表，LangGraph 为每项起一个并行任务，在同一个 super-step 执行，结果靠目标字段的 reducer 汇总（map-reduce）。静态多路汇合用 `add_edge([a, b], "join")`，它等所有起点完成；`Send` 是运行期按数据长度动态派发。
+
+### 4. checkpointer 与 Store 的区别？★★
+
+**答：** checkpointer 管**单个线程**的图状态快照（按 `thread_id` 取），用于对话延续、中断恢复、时间旅行；Store 管**跨线程**的键值记忆（按 namespace/key 取），用于用户偏好、长期事实、共享知识。两者不可互替：把用户偏好写进 checkpointer，换线程就丢；把整段对话塞进 Store，检索噪声大。
+
+### 5. `thread_id` / `checkpoint_ns` / `checkpoint_id` 分别定位什么？★★★
+
+**答：** `thread_id` 定位「哪条线程」；`checkpoint_ns` 定位「线程里的哪张图」（顶层为空串，子图是 `child:<uuid>`）；`checkpoint_id` 定位「哪一个快照」。`update_state` 接收一份带 `checkpoint_id` 的历史 config，新建分支，原线程历史不动。子图暂停态用 `get_state(cfg, subgraphs=True)` 读 `tasks[].state`；`get_state_history` 没有 `subgraphs` 参数。
+
+### 6. 为什么 `interrupt()` 恢复时整个节点从头重跑？★★★
+
+**答：** 检查点只落在**超步边界**，存不住节点内部执行到哪一行。恢复时 LangGraph 从上一个检查点把节点**重跑一遍**，跑到 `interrupt()` 那一行发现「这里断过、且带了 resume 值」，把值交还后继续。由此推出四条铁律：不要包 `try/except`、不要重排 `interrupt()`、不要传复杂值、`interrupt()` 之前的副作用必须幂等。真正的副作用要拆成独立节点放在 `interrupt()` 之后。
+
+### 7. `durability` 三档有什么区别？★★
+
+**答：** `sync` 每步同步落盘；`async` 异步落盘（本机默认，`invoke` 返回前补写）；`exit` 只在图结束时写一次。本机一张两节点图实测历史快照数 **sync 4 / async 4 / exit 1**。要「崩溃后从最近一步续跑」至少用 `async`，关键流程用 `sync`；`exit` 中途崩溃会丢整段运行。
+
+### 8. `stream_mode` 七档分别给你什么？list + subgraphs 的分块形状是什么？★★★
+
+**答：** `values` 完整状态、`updates` 节点增量、`messages` 模型 token、`custom` 节点主动事件、`checkpoints` 检查点、`tasks` 任务开始/结束、`debug` 全部+元数据。`messages` 需要图里有模型节点；`checkpoints` 要 checkpointer；`tasks` 不要。list-mode 每块是 `(mode, payload)`（JS 数组 `[mode, payload]`）；加 `subgraphs=True` 后是 **`(namespace, mode, payload)` 三元组**（JS 三元素数组），不是「namespace 包着二元组」。断言看「首块类型 / 事件名 / namespace」，不要按分块个数。
+
+### 9. `RetryPolicy`、`timeout`、`CachePolicy` 各有什么边界？★★
+
+**答：** `RetryPolicy` 配 `max_attempts` / `retry_on` / 退避；`timeout` **只支持 async 节点**，同步节点 `compile()` 直接抛 `ValueError`；`CachePolicy` 按节点输入做键、`ttl` 以秒计，只给**纯节点**，有副作用的节点不要开。JS 的 `initialInterval` 以**毫秒**计，Python 的 `initial_interval` 以**秒**计，照抄数字会差 1000 倍。
+
+### 10. LangGraph 怎么部署？本地怎么验证？★★
+
+**答：** 写 `langgraph.json`（`dependencies` / `graphs` / `env` / `python_version` 等），`graphs` 指向 `模块:变量`。本地用 `langgraph validate -c langgraph.json` 校验，`langgraph dev --config langgraph.json` 起内存版 Agent Server，`/ok` 返回 200 即就绪；Studio/AgentChatUI 是前端。注意 `validate` 用 `-c`、`dev` 用 `--config`，两者不通用；Windows 上还需 `colorama`。Docker build、云端 deploy 与 Studio 页面本轮**未实测**。
+
 ---
 
 ## 🧭 学习导航栏
