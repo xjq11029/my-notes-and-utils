@@ -1,0 +1,55 @@
+<svg viewBox="0 0 680 424" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="成本对比：自建固定成本与两档 API 的月费随日 token 量的变化，标出盈亏平衡带">
+  <rect x="0" y="0" width="680" height="424" fill="#111721"/>
+
+  <text x="340" y="24" fill="#93a1b1" font-size="13" font-weight="700" text-anchor="middle" font-family="sans-serif">自建不是「更便宜」，是「用固定成本换确定性」</text>
+  <text x="340" y="44" fill="#6b7a8d" font-size="11.5" text-anchor="middle" font-family="sans-serif">同一张卡只能跑 27B 级模型；拿它替代旗舰 API，省的是钱，降的是能力</text>
+
+  <!-- plot -->
+  <rect x="80" y="70" width="570" height="230" fill="#141b25" stroke="#2c3949" stroke-width="1"/>
+
+  <!-- y grid -->
+  <line x1="80" y1="180" x2="650" y2="180" stroke="#232e3c" stroke-width="1"/>
+  <line x1="80" y1="125" x2="650" y2="125" stroke="#232e3c" stroke-width="1"/>
+  <text x="74" y="304" fill="#6b7a8d" font-size="9.5" text-anchor="end" font-family="sans-serif">0</text>
+  <text x="74" y="184" fill="#6b7a8d" font-size="9.5" text-anchor="end" font-family="sans-serif">1000</text>
+  <text x="74" y="129" fill="#6b7a8d" font-size="9.5" text-anchor="end" font-family="sans-serif">2000</text>
+  <text x="74" y="79" fill="#6b7a8d" font-size="9.5" text-anchor="end" font-family="sans-serif">3000</text>
+  <text x="40" y="190" fill="#6b7a8d" font-size="10" text-anchor="middle" font-family="sans-serif" transform="rotate(-90 40 190)">月成本（元）</text>
+
+  <!-- x ticks -->
+  <text x="100" y="320" fill="#6b7a8d" font-size="9" text-anchor="middle" font-family="sans-serif">0.1M</text>
+  <text x="208" y="320" fill="#6b7a8d" font-size="9" text-anchor="middle" font-family="sans-serif">0.3M</text>
+  <text x="316" y="320" fill="#6b7a8d" font-size="9" text-anchor="middle" font-family="sans-serif">1M</text>
+  <text x="424" y="320" fill="#6b7a8d" font-size="9" text-anchor="middle" font-family="sans-serif">3M</text>
+  <text x="532" y="320" fill="#6b7a8d" font-size="9" text-anchor="middle" font-family="sans-serif">10M</text>
+  <text x="640" y="320" fill="#6b7a8d" font-size="9" text-anchor="middle" font-family="sans-serif">30M</text>
+  <text x="360" y="338" fill="#6b7a8d" font-size="10" text-anchor="middle" font-family="sans-serif">日 token 量 →</text>
+
+  <!-- critical band -->
+  <rect x="456" y="70" width="106" height="230" fill="#2a2320" opacity="0.55"/>
+  <text x="509" y="88" fill="#e8a34b" font-size="9.5" text-anchor="middle" font-family="sans-serif">临界带</text>
+
+  <!-- self host -->
+  <line x1="80" y1="220" x2="650" y2="220" stroke="#e8a34b" stroke-width="1.6" stroke-dasharray="6 4"/>
+  <text x="86" y="214" fill="#e8a34b" font-size="9.5" font-family="sans-serif">自建 ≈ 900 元/月（4090 整机 2.5 万，36 个月折旧 + 电费，不含人力）</text>
+
+  <!-- flash api -->
+  <polyline points="100,299.6 208,299 316,296 424,288 532,260 640,176" fill="none" stroke="#4dabf7" stroke-width="1.8"/>
+  <text x="642" y="146" fill="#4dabf7" font-size="9.5" text-anchor="end" font-family="sans-serif">Flash 档 API</text>
+  <text x="642" y="160" fill="#4dabf7" font-size="9.5" text-anchor="end" font-family="sans-serif">约 1.5 元/M 混合</text>
+
+  <!-- pro api -->
+  <polyline points="100,298.2 208,294.4 316,281.6 424,244.6 532,115" fill="none" stroke="#f0655f" stroke-width="1.8"/>
+  <polyline points="532,115 610,70" fill="none" stroke="#f0655f" stroke-width="1.2" stroke-dasharray="4 3"/>
+  <text x="596" y="64" fill="#f0655f" font-size="9.5" text-anchor="end" font-family="sans-serif">旗舰档 API（约 7 元/M 混合）→ 30M 时日费远超图表</text>
+
+  <!-- crossovers -->
+  <circle cx="456" cy="220" r="4.5" fill="#f0655f"/>
+  <text x="450" y="238" fill="#f0655f" font-size="9" text-anchor="end" font-family="sans-serif">≈ 400 万/日</text>
+  <circle cx="562" cy="220" r="4.5" fill="#4dabf7"/>
+  <text x="570" y="238" fill="#4dabf7" font-size="9" font-family="sans-serif">≈ 2000 万/日</text>
+
+  <text x="80" y="368" fill="#6b7a8d" font-size="10" font-family="sans-serif">30 万 token/日（20 人日常问答）：API 约 16~68 元/月，自建的 900 元永远算不回来。</text>
+  <text x="80" y="386" fill="#6b7a8d" font-size="10" font-family="sans-serif">真正的分水岭不是用量，是「数据能不能出域」——那笔账不按元算。</text>
+  <text x="340" y="414" fill="#6b7a8d" font-size="11" text-anchor="middle" font-family="sans-serif">图 6</text>
+</svg>

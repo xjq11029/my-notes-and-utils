@@ -70,7 +70,8 @@ class StdioRpc:
                     err = msg["error"]
                     raise RpcError(err.get("code", -32603), err.get("message", "unknown error"))
                 return msg.get("result", {})
-            # 其他消息（服务器主动通知等）忽略
+            # 非本请求的消息一律忽略：通知丢了无妨，但服务器发来的请求（如 ping）
+            # 也会被丢掉——本示例的服务器不会主动发请求，生产实现要分别处理。
 
     def _send(self, payload: dict) -> None:
         if self._closed:

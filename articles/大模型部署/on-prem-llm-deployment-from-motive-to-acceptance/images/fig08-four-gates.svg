@@ -1,0 +1,61 @@
+<svg viewBox="0 0 680 444" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="安全的四道闸与模型供应链的四个检查点">
+  <rect x="0" y="0" width="680" height="444" fill="#111721"/>
+
+  <defs>
+    <marker id="s1" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 z" fill="#6b7a8d"/>
+    </marker>
+  </defs>
+
+  <text x="340" y="24" fill="#93a1b1" font-size="13" font-weight="700" text-anchor="middle" font-family="sans-serif">私有化不等于安全：机器搬进内网，只是把风险搬到自己家</text>
+  <text x="340" y="44" fill="#6b7a8d" font-size="11.5" text-anchor="middle" font-family="sans-serif">四道闸管住数据不出域，四个检查点管住模型供应链</text>
+
+  <!-- center -->
+  <rect x="250" y="140" width="180" height="100" rx="10" fill="#16283c" stroke="#4dabf7" stroke-width="1.4"/>
+  <text x="340" y="176" fill="#4dabf7" font-size="12.5" font-weight="700" text-anchor="middle" font-family="sans-serif">内网数据域</text>
+  <text x="340" y="198" fill="#93a1b1" font-size="10" text-anchor="middle" font-family="sans-serif">模型 · 向量库 · 原文</text>
+  <text x="340" y="216" fill="#93a1b1" font-size="10" text-anchor="middle" font-family="sans-serif">对话日志 · 密钥</text>
+
+  <!-- top gate -->
+  <rect x="250" y="60" width="180" height="44" rx="8" fill="#18202b" stroke="#f0655f" stroke-width="1.2"/>
+  <text x="340" y="80" fill="#f0655f" font-size="11.5" font-weight="700" text-anchor="middle" font-family="sans-serif">网络闸</text>
+  <text x="340" y="96" fill="#93a1b1" font-size="9.5" text-anchor="middle" font-family="sans-serif">推理区不联外网 · 必须联网走白名单</text>
+  <line x1="340" y1="140" x2="340" y2="110" stroke="#6b7a8d" stroke-width="1" marker-end="url(#s1)"/>
+
+  <!-- right gate -->
+  <rect x="470" y="168" width="170" height="44" rx="8" fill="#18202b" stroke="#e8a34b" stroke-width="1.2"/>
+  <text x="555" y="188" fill="#e8a34b" font-size="11.5" font-weight="700" text-anchor="middle" font-family="sans-serif">日志闸</text>
+  <text x="555" y="204" fill="#93a1b1" font-size="9.5" text-anchor="middle" font-family="sans-serif">本地存储 · 脱敏 · 留存策略</text>
+  <line x1="430" y1="190" x2="466" y2="190" stroke="#6b7a8d" stroke-width="1" marker-end="url(#s1)"/>
+
+  <!-- bottom gate -->
+  <rect x="250" y="276" width="180" height="44" rx="8" fill="#18202b" stroke="#2dd4a7" stroke-width="1.2"/>
+  <text x="340" y="296" fill="#2dd4a7" font-size="11.5" font-weight="700" text-anchor="middle" font-family="sans-serif">出口闸</text>
+  <text x="340" y="312" fill="#93a1b1" font-size="9.5" text-anchor="middle" font-family="sans-serif">出方向流量审计 · 防火墙与 DNS 日志</text>
+  <line x1="340" y1="240" x2="340" y2="272" stroke="#6b7a8d" stroke-width="1" marker-end="url(#s1)"/>
+
+  <!-- left gate -->
+  <rect x="40" y="168" width="170" height="44" rx="8" fill="#18202b" stroke="#b197fc" stroke-width="1.2"/>
+  <text x="125" y="188" fill="#b197fc" font-size="11.5" font-weight="700" text-anchor="middle" font-family="sans-serif">客户端闸</text>
+  <text x="125" y="204" fill="#93a1b1" font-size="9.5" text-anchor="middle" font-family="sans-serif">知识库机器禁装远程控制软件</text>
+  <line x1="250" y1="190" x2="214" y2="190" stroke="#6b7a8d" stroke-width="1" marker-end="url(#s1)"/>
+
+  <!-- supply chain -->
+  <text x="24" y="352" fill="#93a1b1" font-size="10.5" font-weight="700" font-family="sans-serif">模型供应链：最被低估的攻击面</text>
+  <rect x="24" y="362" width="148" height="40" rx="7" fill="#1b2431" stroke="#2c3949" stroke-width="1"/>
+  <text x="98" y="379" fill="#dfe6ee" font-size="10" text-anchor="middle" font-family="sans-serif">只用 safetensors / GGUF</text>
+  <text x="98" y="394" fill="#6b7a8d" font-size="9" text-anchor="middle" font-family="sans-serif">禁用 .bin / .pt（pickle）</text>
+
+  <rect x="184" y="362" width="148" height="40" rx="7" fill="#1b2431" stroke="#2c3949" stroke-width="1"/>
+  <text x="258" y="379" fill="#dfe6ee" font-size="10" text-anchor="middle" font-family="sans-serif">关闭 trust_remote_code</text>
+  <text x="258" y="394" fill="#6b7a8d" font-size="9" text-anchor="middle" font-family="sans-serif">必须用时先审代码 + 锁 commit</text>
+
+  <rect x="344" y="362" width="148" height="40" rx="7" fill="#1b2431" stroke="#2c3949" stroke-width="1"/>
+  <text x="418" y="379" fill="#dfe6ee" font-size="10" text-anchor="middle" font-family="sans-serif">校验 SHA256</text>
+  <text x="418" y="394" fill="#6b7a8d" font-size="9" text-anchor="middle" font-family="sans-serif">与官方发布值比对</text>
+
+  <rect x="504" y="362" width="148" height="40" rx="7" fill="#1b2431" stroke="#2c3949" stroke-width="1"/>
+  <text x="578" y="379" fill="#dfe6ee" font-size="10" text-anchor="middle" font-family="sans-serif">镜像固定 digest</text>
+  <text x="578" y="394" fill="#6b7a8d" font-size="9" text-anchor="middle" font-family="sans-serif">不用 latest / main-latest</text>
+  <text x="340" y="434" fill="#6b7a8d" font-size="11" text-anchor="middle" font-family="sans-serif">图 8</text>
+</svg>

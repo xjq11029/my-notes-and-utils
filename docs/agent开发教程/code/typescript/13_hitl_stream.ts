@@ -104,6 +104,15 @@ const talk = new StateGraph(Talk)
   .addEdge(START, "step")
   .addEdge("step", END)
   .compile({ checkpointer: new MemorySaver() });
+// 同一张图、不带 checkpointer 的对照组：④ 用它单独验证 tasks 是否依赖检查点。
+const talkPlain = new StateGraph(Talk)
+  .addNode("step", (state: any) => {
+    getWriter()(`进度：正在处理第 ${state.n + 1} 步`);
+    return { n: state.n + 1, note: `第 ${state.n + 1} 步完成` };
+  })
+  .addEdge(START, "step")
+  .addEdge("step", END)
+  .compile();
 const sCfg = { configurable: { thread_id: "stream-1" } };
 
 for (const mode of ["values", "updates", "custom"] as const) {
@@ -120,7 +129,8 @@ console.log("    values  每步之后的**完整状态**（体积最大，但最
 console.log("    updates 每步节点返回的**增量**（带节点名，适合做进度条）");
 console.log("    custom  节点里用 getWriter() 主动推的事件（适合推「第 3/10 步」）");
 console.log("    debug   checkpoints + tasks 的合并，信息最多");
-console.log("  另有：messages（LLM 逐 token，最常用于打字机效果）、checkpoints / tasks");
+console.log("  另有：messages（LLM 逐 token，最常用于打字机效果）、");
+console.log("        checkpoints（需要 checkpointer）/ tasks（④ 里有不带 checkpointer 的对照）");
 
 // ---------------------------------------------------------------------------
 console.log();
@@ -216,6 +226,17 @@ for (const mode of ["values", "updates", "custom", "checkpoints", "tasks", "debu
   console.log(`  ${mode.padEnd(12)} ${chunks.length} 个分块，首块类型 ${Array.isArray(first) ? "array" : typeof first}`);
 }
 
+const plainTasks: any[] = [];
+for await (const c of await talkPlain.stream(
+  { n: 0, note: "" },
+  { configurable: { thread_id: "shape-tasks-no-cp" }, streamMode: "tasks" },
+)) {
+  plainTasks.push(c);
+}
+console.log(
+  `  ${"tasks(无 cp)".padEnd(12)} ${plainTasks.length} 个分块  ← 同一张图不配 checkpointer 的对照`,
+);
+
 const messageAgent = createAgent({
   model: new ScriptedChatModel({ script: [reply("流式消息。")] }) as any,
   tools: [lookup],
@@ -229,6 +250,7 @@ for await (const c of await messageAgent.stream(
 }
 console.log(`  ${"messages".padEnd(12)} ${messageChunks.length} 个分块`);
 console.log("  → values/updates/custom/checkpoints/tasks/debug 不需要模型；messages 需要图里有模型节点。");
+console.log("    checkpoints 需要 checkpointer；tasks 不需要（上方无 checkpointer 对照组实测）。");
 
 // ---------------------------------------------------------------------------
 console.log();

@@ -36,7 +36,7 @@
 <text x="362" y="234" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">高风险动作前先问人</text>
 <text x="362" y="255" font-family="system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">HumanInTheLoopMiddleware</text>
 <text x="362" y="271" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">需要 checkpointer</text>
-<text x="362" y="287" font-family="system-ui, sans-serif" font-size="10" fill="#6b7a8d">（本书不展开）</text>
+<text x="362" y="287" font-family="system-ui, sans-serif" font-size="10" fill="#6b7a8d">（§2.5 展开）</text>
 
 <!-- 域 5 -->
 <rect x="34" y="306" width="300" height="102" rx="9" fill="#2a1f24" stroke="#f0655f" stroke-width="1.3"/>

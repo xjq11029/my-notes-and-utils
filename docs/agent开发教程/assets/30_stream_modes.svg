@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 420" width="680" height="420" role="img">
 <title>stream_mode 的七种投影</title>
-<desc>values 给完整状态，updates 给增量，messages 给 token，custom 给自定义事件；checkpoints 需要 checkpointer，tasks 不需要；debug 是合并。</desc>
+<desc>values 给完整状态，updates 给增量，messages 给 token，custom 给自定义事件；checkpoints 需要 checkpointer，tasks 不需要（无 checkpointer 对照组实测）；debug 是合并。多档同开时 Python 每块是 (mode, payload) 二元组，JS 是 [mode, payload] 数组。</desc>
 
 <rect x="0" y="0" width="680" height="420" fill="#111721"/>
 
@@ -52,8 +52,8 @@
 <rect x="34" y="316" width="300" height="92" rx="8" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.2"/>
 <text x="50" y="336" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#8ecbff">可以同时要多个</text>
 <text x="50" y="355" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">stream_mode=["updates","custom"]</text>
-<text x="50" y="373" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">新版每个分块是统一的 StreamPart</text>
-<text x="50" y="389" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">用 chunk["type"] 区分来源</text>
+<text x="50" y="371" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">Python 每块 (mode, payload)</text>
+<text x="50" y="387" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">JS 每块 [mode, payload]；加 subgraphs 前置 ns</text>
 
 <!-- 子图坑 -->
 <rect x="346" y="316" width="300" height="92" rx="8" fill="#2a1f24" stroke="#f0655f" stroke-width="1.3"/>

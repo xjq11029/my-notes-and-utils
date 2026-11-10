@@ -1,0 +1,49 @@
+<svg viewBox="0 0 680 424" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="容量规划五步：算并发、定上下文、算显存、算成本、与 API 对比">
+  <rect x="0" y="0" width="680" height="424" fill="#111721"/>
+
+  <text x="340" y="24" fill="#93a1b1" font-size="13" font-weight="700" text-anchor="middle" font-family="sans-serif">容量规划五步：报出来的数字要能扛住质问</text>
+  <text x="340" y="44" fill="#6b7a8d" font-size="11.5" text-anchor="middle" font-family="sans-serif">拍脑袋报配置，是私有化项目翻车的头号原因</text>
+
+  <!-- step 1 -->
+  <rect x="24" y="64" width="632" height="50" rx="8" fill="#18202b" stroke="#4dabf7" stroke-width="1"/>
+  <circle cx="48" cy="89" r="11" fill="#4dabf7"/>
+  <text x="48" y="93" fill="#0f1620" font-size="11" font-weight="700" text-anchor="middle" font-family="sans-serif">1</text>
+  <text x="70" y="86" fill="#dfe6ee" font-size="11.5" font-weight="700" font-family="sans-serif">算并发</text>
+  <text x="70" y="102" fill="#93a1b1" font-size="10" font-family="sans-serif">峰值 ≈ 日活 × 0.1~0.2 × 1.5</text>
+  <text x="400" y="94" fill="#2dd4a7" font-size="10.5" font-family="sans-serif">100 人 / 日活 60 → 18 路</text>
+
+  <!-- step 2 -->
+  <rect x="24" y="122" width="632" height="50" rx="8" fill="#18202b" stroke="#4dabf7" stroke-width="1"/>
+  <circle cx="48" cy="147" r="11" fill="#4dabf7"/>
+  <text x="48" y="151" fill="#0f1620" font-size="11" font-weight="700" text-anchor="middle" font-family="sans-serif">2</text>
+  <text x="70" y="144" fill="#dfe6ee" font-size="11.5" font-weight="700" font-family="sans-serif">定上下文</text>
+  <text x="70" y="160" fill="#93a1b1" font-size="10" font-family="sans-serif">知识库 8K / 长文 16~32K / 代码 32K+</text>
+  <text x="400" y="152" fill="#2dd4a7" font-size="10.5" font-family="sans-serif">32K → 8K，KV 降到 1/4</text>
+
+  <!-- step 3 -->
+  <rect x="24" y="180" width="632" height="50" rx="8" fill="#18202b" stroke="#2dd4a7" stroke-width="1"/>
+  <circle cx="48" cy="205" r="11" fill="#2dd4a7"/>
+  <text x="48" y="209" fill="#0f1620" font-size="11" font-weight="700" text-anchor="middle" font-family="sans-serif">3</text>
+  <text x="70" y="202" fill="#dfe6ee" font-size="11.5" font-weight="700" font-family="sans-serif">算显存</text>
+  <text x="70" y="218" fill="#93a1b1" font-size="10" font-family="sans-serif">权重 + KV Cache + 框架开销，再留 10% 余量</text>
+  <text x="400" y="210" fill="#2dd4a7" font-size="10.5" font-family="sans-serif">27B Q4 → 24 GB 卡</text>
+
+  <!-- step 4 -->
+  <rect x="24" y="238" width="632" height="50" rx="8" fill="#18202b" stroke="#e8a34b" stroke-width="1"/>
+  <circle cx="48" cy="263" r="11" fill="#e8a34b"/>
+  <text x="48" y="267" fill="#0f1620" font-size="11" font-weight="700" text-anchor="middle" font-family="sans-serif">4</text>
+  <text x="70" y="260" fill="#dfe6ee" font-size="11.5" font-weight="700" font-family="sans-serif">算成本</text>
+  <text x="70" y="276" fill="#93a1b1" font-size="10" font-family="sans-serif">折旧（÷36）+ 电费 + 人力 + 机房 / 带宽</text>
+  <text x="400" y="268" fill="#e8a34b" font-size="10.5" font-family="sans-serif">4090 整机 ≈ 900 元/月</text>
+
+  <!-- step 5 -->
+  <rect x="24" y="296" width="632" height="50" rx="8" fill="#18202b" stroke="#f0655f" stroke-width="1.2"/>
+  <circle cx="48" cy="321" r="11" fill="#f0655f"/>
+  <text x="48" y="325" fill="#0f1620" font-size="11" font-weight="700" text-anchor="middle" font-family="sans-serif">5</text>
+  <text x="70" y="318" fill="#dfe6ee" font-size="11.5" font-weight="700" font-family="sans-serif">与 API 比</text>
+  <text x="70" y="334" fill="#93a1b1" font-size="10" font-family="sans-serif">必须同档对比：拿 27B 比旗舰，是「降级换成本」不是「同样服务更便宜」</text>
+  <text x="400" y="326" fill="#f0655f" font-size="10.5" font-family="sans-serif">平衡点在 400 万~2000 万/日</text>
+
+  <text x="340" y="374" fill="#6b7a8d" font-size="10.5" text-anchor="middle" font-family="sans-serif">第 5 步最容易自欺：算出来的不是「省了多少钱」，是「为可控多付了多少钱」</text>
+  <text x="340" y="414" fill="#6b7a8d" font-size="11" text-anchor="middle" font-family="sans-serif">图 5</text>
+</svg>

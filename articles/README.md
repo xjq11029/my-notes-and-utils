@@ -12,6 +12,11 @@ articles/
 │       ├── README.md                           该文的对应关系 / 再生成命令 / 发布状态
 │       ├── llm-three-layers-from-raw-model-to-ai-application.md
 │       └── images/                             fig01–fig09.{svg,png}
+├── 大模型部署/
+│   └── on-prem-llm-deployment-from-motive-to-acceptance/
+│       ├── README.md                           该文的来源对应 / 核验记录 / 发布状态
+│       ├── on-prem-llm-deployment-from-motive-to-acceptance.md
+│       └── images/                             fig01–fig08.{svg,png}
 └── agent-harness/
     └── agent-harness-from-analogy-to-12-components/
         ├── README.md
@@ -28,6 +33,7 @@ articles/
 | 类别 | 文章 | 源 | 规模 | 状态 |
 |---|---|---|---|---|
 | **大模型原理** | [大模型三层架构拆解](大模型原理/llm-three-layers-from-raw-model-to-ai-application/llm-three-layers-from-raw-model-to-ai-application.md) | `docs/大模型与神经网络原理笔记/` 的 `ch01`–`ch03` | 约 1.5 万字 / 9 图 / 29 表 | 待发布 |
+| **大模型部署** | [私有化大模型部署](大模型部署/on-prem-llm-deployment-from-motive-to-acceptance/on-prem-llm-deployment-from-motive-to-acceptance.md) | 公众号文章《本地私有化大模型部署全套方案》（2026-10-31），核验后重写 | 约 1.0 万字 / 8 图 / 38 表 / 12 段代码 | 待发布 |
 | **agent-harness** | [Agent Harness 深度拆解](agent-harness/agent-harness-from-analogy-to-12-components/agent-harness-from-analogy-to-12-components.md) | `docs/harness/agent-harness-deep-dive.html` 的 §0–§3 | 约 1.3 万字 / 13 图 / 10 表 | 已发布 · [掘金](https://juejin.cn/post/7687580061679370290) |
 
 ---

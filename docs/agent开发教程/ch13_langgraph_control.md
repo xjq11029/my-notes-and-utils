@@ -97,10 +97,10 @@
 | `messages` | `(token, metadata)` 二元组 | 打字机效果（最常用） |
 | `custom` | 节点里主动推的事件 | 「第 3/10 步」这类业务进度 |
 | `checkpoints` | 检查点事件 | 需要 checkpointer |
-| `tasks` | 任务开始 / 结束（含结果与错误） | 不需要 checkpointer（实测） |
+| `tasks` | 任务开始 / 结束（含结果与错误） | 不需要 checkpointer（不配 cp 的对照组实测） |
 | `debug` | `checkpoints` + `tasks` 及额外元数据 | 排障；信息最多也最杂 |
 
-> 口径：本章示例现在**七档全跑**（Python 与 JS 各 7 档）。`values/updates/custom/checkpoints/tasks/debug` 用同一张 `talk` 图；`messages` 用带模型节点的 agent。`checkpoints` 需要 checkpointer，`tasks` 不需要（实测）。`debug` 的实际事件序列是 `checkpoint → checkpoint → task → task_result → checkpoint`——里面有 `task_result`，不是「checkpoints + tasks」两个词能概括的。
+> 口径：本章示例现在**七档全跑**（Python 与 JS 各 7 档）。`values/updates/custom/checkpoints/tasks/debug` 用同一张 `talk` 图；`messages` 用带模型节点的 agent。`checkpoints` 需要 checkpointer，`tasks` 不需要（另用同一张图**不配 checkpointer** 的对照组实测）。`debug` 的实际事件序列是 `checkpoint → checkpoint → task → task_result → checkpoint`——里面有 `task_result`，不是「checkpoints + tasks」两个词能概括的。
 
 各档首块长什么样？下表是 **Python 1.2.12 的实测形状**（JS 形状一致，数组/对象类型略有差异）——它回答「拿到一个分块，先看什么」：
 
@@ -404,13 +404,13 @@ astream_events  → on_chat_model_stream ×4 / on_tool_start ×1 / on_tool_end �
 
 ## 五、关键结论
 
-1. **HITL 建立在检查点之上**：三个前置条件是 checkpointer、`thread_id`、可序列化 payload。**流式不在此列**——它不需要 checkpointer；`stream_mode` 里只有 `checkpoints` 要求 checkpointer，`tasks` 不要求（实测）。
+1. **HITL 建立在检查点之上**：三个前置条件是 checkpointer、`thread_id`、可序列化 payload。**流式不在此列**——它不需要 checkpointer；`stream_mode` 里只有 `checkpoints` 要求 checkpointer，`tasks` 不要求（同一张图**不配 checkpointer** 的对照组实测）。
 2. **`interrupt()` 靠抛异常挂起**，因此不能被 `try/except` 吞掉；`Command(resume=...)` 是唯一能当 `invoke` 输入的 `Command` 形态。
 3. **恢复时整个节点从头重跑**（副作用日志实测出现两次）——由此推出四条铁律：不包 `try/except`、不重排、不传复杂值、之前的副作用必须幂等。**真正的副作用要拆成独立节点**放在 `interrupt()` 之后，而不是想办法让副作用幂等。
 4. **静态中断只适合调试**：它只能在节点边界停，且恢复时拿不到结构化的人工输入。
 5. **流式有三个控制面**：`stream_mode` 七档（本章**七档全跑**）、list-mode / `subgraphs` 的分块形状（二元组 → 三元组）、`astream_events` 的事件流。子图要透出内部消息必须 `subgraphs=True`；JS 的 `agent.streamEvents` 在 1.4.17 只给 start/end，逐 token 用 `agent.stream({streamMode:"messages"})`。
 
-> 口径：中断恢复重跑、七档 `stream_mode`、list/subgraphs 形状、Python `astream_events` 为**示例实测**（`13_hitl_stream.*`）；静态中断与 JS `tools` 档未实跑/未使用；`tasks` 不要求 checkpointer 为实测结论；JS agent 级 `streamEvents` 差异为示例实测。
+> 口径：中断恢复重跑、七档 `stream_mode`、list/subgraphs 形状、Python `astream_events` 为**示例实测**（`13_hitl_stream.*`）；静态中断与 JS `tools` 档未实跑/未使用；`tasks` 不要求 checkpointer 为**无 checkpointer 对照组**实测；JS agent 级 `streamEvents` 差异为示例实测。
 
 ## 本章要点回顾
 

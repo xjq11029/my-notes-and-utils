@@ -2,7 +2,7 @@
 
 个人知识库与工具仓库：把**体系化学习指南**、**技术专题深度笔记**、**可复用工具函数**统一归档，便于检索与复用。
 
-仓库以 Markdown 为主要载体（962 个文件，其中 577 篇 Markdown、约 28.2 万行），内容分两条主线：
+仓库以 Markdown 为主要载体（980 个文件，其中 579 篇 Markdown、约 28.3 万行），内容分两条主线：
 
 - **知识线**：`guides/` 的笔面试学习资料库（后端 + 前端）与 `docs/` 的技术专题深度笔记；
 - **工具线**：`src/` 的通用工具函数与 `examples/` 用法示例。
@@ -17,6 +17,7 @@
 my-notes-and-utils/
 ├── articles/                 对外发布稿（唯一发布出口；按类别分目录，一篇文章一个目录）
 │   ├── 大模型原理/              大模型三层架构拆解（9 图）
+│   ├── 大模型部署/              私有化部署全链路（8 图）
 │   └── agent-harness/          Agent Harness 深度拆解（13 图）
 ├── docs/                     技术专题深度笔记（自成体系的交付物）
 │   ├── harness/                Agent Harness 深度讲解 + 可运行最小实现
@@ -85,11 +86,11 @@ my-notes-and-utils/
 
 | 项目 | 数值 |
 |------|------|
-| 文件总数 | 962（不含 `.git/`、`.workbuddy*/`、外部课程包 `atguigu-note-main/`，以及构建 / 依赖产物 `node_modules/`、`.venv/`、`__pycache__/`、`*.pyc`） |
-| Markdown 文档 | 577 篇 / 282,317 行（约 28.2 万） |
+| 文件总数 | 980（不含 `.git/`、`.workbuddy*/`、外部课程包 `atguigu-note-main/`，以及构建 / 依赖产物 `node_modules/`、`.venv/`、`__pycache__/`、`*.pyc`） |
+| Markdown 文档 | 579 篇 / 283,306 行（约 28.3 万） |
 | `guides/backend/` | 269 个文件 / 268 篇 Markdown |
 | `guides/frontend/` | 201 个文件 / 200 篇 Markdown |
-| `articles/` | 49 个文件 / 5 篇 Markdown（2 个类别 / 2 篇文章） |
+| `articles/` | 67 个文件 / 7 篇 Markdown（3 个类别 / 3 篇文章） |
 | `docs/` | 410 个文件 |
 | `src/` | 8 个文件 |
 

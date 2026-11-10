@@ -121,7 +121,7 @@
 | `write_todos` | 任务规划工具，维护结构化待办列表 | ch16 |
 | Subagent | 独立上下文的子代理，用 `task` 工具派发 | ch16 |
 | Skills | 按需加载的领域知识包（`SKILL.md`），渐进式披露 | ch17 |
-| Memory | 跨会话持久的指令与偏好（`AGENTS.md`） | ch17 |
+| Memory | 记忆文件（`AGENTS.md`）；默认仅当前线程，跨会话需 StoreBackend / 磁盘 | ch17 |
 | HITL | 人在回路：工具调用前暂停，等人 approve/edit/reject/respond | ch6 |
 | PII | 个人可识别信息；`PIIMiddleware` 按类型做脱敏 | ch6 |
 | MCP server | 以 stdio / HTTP 等传输提供工具的进程 | ch7 |
@@ -585,3 +585,28 @@ node scripts/svg-to-png.mjs "docs/agent开发教程/assets"
 - 图：38 对 SVG/PNG；PNG 均 2×；章节 / README / 大纲三处图号审计无缺号、无重号、无悬空引用。
 - HTML：`_build_html.py` 连跑两次 md5 一致（`ec630dde…`），38 个 `<figure>`，无外部资源。
 - `atguigu-note-main/` 已加入 `.gitignore`；其 `.env` 移出仓库，notebook 内联密钥替换为占位符；未复制课程包图片与原文。
+
+### 第十四轮：图文一致性审查修复（2026-11-10）
+
+逐图逐条核对正文 / 示例 / 配图后的集中修复，重点处理「图与正文契约不一致」与「结论超出证据」两类问题。
+
+| 项 | 变更 |
+|---|---|
+| **图 30 分块契约** | 原写「新版每块是统一 StreamPart，用 `chunk["type"]` 区分来源」，与本章 1.2.12 / 1.4.17 的实测形状冲突 → 改为「Python `(mode, payload)` / JS `[mode, payload]`，加 `subgraphs` 再前置 namespace」，与正文 §2.6 和示例解包代码一致 |
+| **ch13 `tasks` 证据** | 原「tasks 不需要 checkpointer（实测）」用的是**带** `InMemorySaver` 的图，证据不成立；且同一脚本曾同时打印「tasks 需要」与「tasks 不需要」→ 两个示例各补一张**不配 checkpointer 的对照图**（`talk_plain` / `talkPlain`），实跑 `tasks` 仍出 2 块，正文与口径改为「无 checkpointer 对照组实测」；两份存档同步重跑 |
+| **MCP 传输表述** | 原「换 HTTP 时消息一个字节都不用变，只是换成 HTTP 请求体」与协议事实不符 → 改为「JSON-RPC 消息体与三步语义可复用，端点 / 帧格式 / HTTP 头都要换」，并说明 2024-11-05 的 HTTP+SSE 是双端点 + `endpoint` 事件、2025-03-26 起还要 `MCP-Session-Id` 等头；同步改图 h10 底注、手写线 README、`time_server.py` 与 `jsonrpc.py` 注释 |
+| **MCP「三步」定位** | 「全部协议义务只有三步」→「把工具交出去的最小集」，并点明 ping / 取消 / 进度 / 分页 / `list_changed` 未实现；修正「上一章 S9 会看到」的时态（S9 已是上一章） |
+| **ch08 离线/在线边界** | 补「查询侧也要 `embed_query`」，把「只有 Retrieve 在线」改为「取用侧（查询嵌入 + 检索）在线」，结论与要点回顾同步 |
+| **ch08 质量上限** | 「上限由检索质量决定，不在模型侧」→「第一瓶颈在检索侧」，并补「检索对了也不保证答对」；`08_rag.ts` 输出与存档同步 |
+| **图 36 / 术语表 Memory** | 「跨会话持久」是配了后端才成立的能力 → 图改「跨会话需 StoreBackend」，标题补「默认仅当前线程」；README 术语表同步 |
+| **图 11 导航** | `HumanInTheLoopMiddleware` 下「（本书不展开）」与 ch06 §2.5 的实际展开冲突 → 改「（§2.5 展开）」 |
+| **图 7 末端节点** | 「Pydantic 实例」易被读成所有 schema 的统一产物 → 改「实例 / dict」，`desc` 同步说明只有 Pydantic 校验 |
+| **图 16 底注** | 结论框最后一行基线正好压在框线上 → 框体上移并加高，三行文字内收 |
+
+**本轮自检结果**：
+
+- `13_hitl_stream` 双语言实跑 `exit=0`；对照组输出 `tasks(无 cp) = 2 块`，与带 checkpointer 时一致——「不需要」第一次有了独立证据
+- `08_rag.ts` 实跑 `exit=0`，`_实测输出核验/typescript/08_rag.txt` 与 `13_hitl_stream` 两份存档均为 stdout 原样转录（diff 仅本轮改动行）
+- 重渲染 PNG 6 张（07 / 11 / 16 / 30 / 36 / h10），与 SVG 成对；h09 / h11 的渲染噪声已还原，未混入无关二进制改动
+- `_build_html.py` 两线各连跑两次 md5 一致（`92bcb206…` / `9ca048d7…`）
+- 审查中确认无问题的项未改动：ch01–ch19 与 S1–S11 章节齐全，图 1–38 与 h1–h11 引用无断链

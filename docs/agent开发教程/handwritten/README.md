@@ -91,6 +91,6 @@ node scripts/svg-to-png.mjs "docs/agent开发教程/handwritten/assets"
   证据：`_实测输出核验/手写线/real_model_e2e.txt`。
 - **两个已确认的缺陷**（详见 `code/README.md`「真实模型实测」）：手写模型层**拿不到 token 账**；流式装配器**扛不住 `include_usage` 的空 `choices` 尾块**。
 - **示例本身仍是假模型离线跑**：10 个脚本 `exit=0`，不需要 API Key、不产生网络请求。
-- **MCP 只实现 stdio 传输**：HTTP（streamable）传输在 `agent/mcp/client.py` 显式报错留作练习——协议三步消息两种传输完全一致。
+- **MCP 只实现 stdio 传输**：HTTP（streamable）传输在 `agent/mcp/client.py` 显式报错留作练习——可复用的是 JSON-RPC 消息体与三步语义，端点、帧格式与 HTTP 头都要另写。
 - **S10 在中文 Windows 下需要 UTF-8 输出**：`StdioRpc` 已为子进程注入 `PYTHONIOENCODING=utf-8` / `PYTHONUTF8=1`，避免 cp936 与父进程 UTF-8 解码冲突。
 - **参考课件的说法按本机实测校准**：课件基于特定模型与 SDK 版本（如 openai 1.74、mcp 1.28），本线只对「协议结构」负责，不绑定具体模型行为。

@@ -191,6 +191,6 @@ const result = await agent.invoke({
 console.log("\nagent 的消息轨迹：");
 show(result.messages);
 console.log("\n  → 检索器只是普通工具的一种；agent 自己决定什么时候去查。");
-console.log("    真实 RAG 的上限由检索质量决定——检索不到，模型再好也答不出。");
+console.log("    真实 RAG 的第一瓶颈是检索——检索不到，模型再好也答不出；但检索对了也不保证答对。");
 
 await rm(TMP, { recursive: true, force: true });

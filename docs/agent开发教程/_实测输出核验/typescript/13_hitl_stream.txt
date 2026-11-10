@@ -30,7 +30,8 @@
     updates 每步节点返回的**增量**（带节点名，适合做进度条）
     custom  节点里用 getWriter() 主动推的事件（适合推「第 3/10 步」）
     debug   checkpoints + tasks 的合并，信息最多
-  另有：messages（LLM 逐 token，最常用于打字机效果）、checkpoints / tasks
+  另有：messages（LLM 逐 token，最常用于打字机效果）、
+        checkpoints（需要 checkpointer）/ tasks（④ 里有不带 checkpointer 的对照）
 
 ==============================================================================
 ③ 坑：agent 放进父图当子图后，内部消息默认不透传
@@ -63,8 +64,10 @@
   checkpoints  3 个分块，首块类型 object
   tasks        2 个分块，首块类型 object
   debug        5 个分块，首块类型 object
+  tasks(无 cp)  2 个分块  ← 同一张图不配 checkpointer 的对照
   messages     1 个分块
   → values/updates/custom/checkpoints/tasks/debug 不需要模型；messages 需要图里有模型节点。
+    checkpoints 需要 checkpointer；tasks 不需要（上方无 checkpointer 对照组实测）。
 
 ==============================================================================
 ⑤ list-mode + subgraphs：分块形状怎么解

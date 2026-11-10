@@ -3,7 +3,8 @@
 把 stdin 的每一行当一条 JSON-RPC 消息，处理后把响应写成一行输出到
 stdout；日志一律走 stderr（stdout 是协议通道，不能被污染）。
 
-协议只要求实现三种消息：initialize / tools/list / tools/call。
+本示例只实现三种消息：initialize / tools/list / tools/call
+（ping、取消、进度等可选工具未实现，见本章 2.2 的说明）。
 提供两个工具：
 - get_current_time：动态结果（时间随运行而变）
 - add：确定性结果（a+b，便于验证协议与复现输出）

@@ -132,6 +132,14 @@ talk = (
     .add_edge("step", END)
     .compile(checkpointer=InMemorySaver())
 )
+# 同一张图、不带 checkpointer 的对照组：④ 用它单独验证 tasks 是否依赖检查点。
+talk_plain = (
+    StateGraph(Talk)
+    .add_node("step", step)
+    .add_edge(START, "step")
+    .add_edge("step", END)
+    .compile()
+)
 s_cfg = {"configurable": {"thread_id": "stream-1"}}
 
 for mode in ("values", "updates", "custom", "debug"):
@@ -151,7 +159,7 @@ print("    updates 每步节点返回的**增量**（带节点名，适合做进
 print("    custom  节点里用 get_stream_writer() 主动推的事件（适合推「第 3/10 步」）")
 print("    debug   checkpoints + tasks 的合并，信息最多")
 print("  另有：messages（LLM 逐 token，最常用于打字机效果）、")
-print("        checkpoints / tasks（需要 checkpointer）")
+print("        checkpoints（需要 checkpointer）/ tasks（④ 里有不带 checkpointer 的对照）")
 
 
 # ---------------------------------------------------------------------------
@@ -255,13 +263,23 @@ for mode in ("values", "updates", "custom", "checkpoints", "tasks", "debug"):
     )
     print(f"  {mode:<12} {len(chunks)} 个分块，首块类型 {type(chunks[0]).__name__}")
 
+plain_tasks = list(
+    talk_plain.stream(
+        {"n": 0, "note": ""},
+        {"configurable": {"thread_id": "shape-tasks-no-cp"}},
+        stream_mode="tasks",
+    )
+)
+print(f"  {'tasks(无 cp)':<12} {len(plain_tasks)} 个分块，首块类型 {type(plain_tasks[0]).__name__}"
+      "  ← 同一张图不配 checkpointer 的对照")
+
 message_agent = create_agent(model=ScriptedChatModel(script=[reply("流式消息。")]), tools=[lookup])
 message_chunks = list(
     message_agent.stream({"messages": [{"role": "user", "content": "查 x"}]}, stream_mode="messages")
 )
 print(f"  {'messages':<12} {len(message_chunks)} 个分块，首块 {type(message_chunks[0][0]).__name__}")
 print("  → values/updates/custom/checkpoints/tasks/debug 都不需要模型；messages 需要图里有模型节点。")
-print("    checkpoints 需要 checkpointer；tasks 不需要（本机 1.2.12 实测）。")
+print("    checkpoints 需要 checkpointer；tasks 不需要（上方无 checkpointer 对照组实测）。")
 
 
 # ---------------------------------------------------------------------------

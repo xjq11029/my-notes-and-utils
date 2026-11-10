@@ -1,0 +1,46 @@
+<svg viewBox="0 0 680 394" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="五个推理引擎的定位：横轴并发能力，纵轴上手成本">
+  <rect x="0" y="0" width="680" height="394" fill="#111721"/>
+
+  <text x="340" y="24" fill="#93a1b1" font-size="13" font-weight="700" text-anchor="middle" font-family="sans-serif">五个推理引擎：不是「谁更强」，是「谁适合这一档」</text>
+  <text x="340" y="44" fill="#6b7a8d" font-size="11.5" text-anchor="middle" font-family="sans-serif">横轴是并发能力（不是 tokens/s），纵轴是上手与运维成本</text>
+
+  <!-- plot frame -->
+  <rect x="80" y="70" width="560" height="240" fill="#141b25" stroke="#2c3949" stroke-width="1"/>
+  <line x1="360" y1="70" x2="360" y2="310" stroke="#2c3949" stroke-width="1" stroke-dasharray="4 4"/>
+  <line x1="80" y1="190" x2="640" y2="190" stroke="#2c3949" stroke-width="1" stroke-dasharray="4 4"/>
+  <text x="372" y="86" fill="#3d4b5c" font-size="10" font-family="sans-serif">生产可用区</text>
+
+  <!-- axis labels -->
+  <text x="360" y="334" fill="#6b7a8d" font-size="10.5" text-anchor="middle" font-family="sans-serif">并发能力（越高越强）→</text>
+  <text x="40" y="190" fill="#6b7a8d" font-size="10.5" text-anchor="middle" font-family="sans-serif" transform="rotate(-90 40 190)">上手成本（越高越难）→</text>
+
+  <!-- points -->
+  <circle cx="140" cy="268" r="6" fill="#4dabf7"/>
+  <text x="152" y="272" fill="#dfe6ee" font-size="11" font-family="sans-serif">Ollama</text>
+  <text x="152" y="288" fill="#6b7a8d" font-size="9.5" font-family="sans-serif">默认并行 1，适合 1~3 人</text>
+
+  <circle cx="110" cy="206" r="6" fill="#4dabf7"/>
+  <text x="122" y="202" fill="#dfe6ee" font-size="11" font-family="sans-serif">llama.cpp</text>
+  <text x="122" y="218" fill="#6b7a8d" font-size="9.5" font-family="sans-serif">CPU / 边缘，--parallel auto</text>
+
+  <circle cx="470" cy="226" r="6" fill="#2dd4a7"/>
+  <text x="482" y="228" fill="#dfe6ee" font-size="11" font-family="sans-serif">vLLM</text>
+  <text x="482" y="244" fill="#6b7a8d" font-size="9.5" font-family="sans-serif">生产主力，默认调度 128 序列</text>
+
+  <circle cx="530" cy="150" r="6" fill="#e8a34b"/>
+  <text x="542" y="154" fill="#dfe6ee" font-size="11" font-family="sans-serif">SGLang</text>
+  <text x="542" y="170" fill="#6b7a8d" font-size="9.5" font-family="sans-serif">前缀复用 / Agent</text>
+
+  <circle cx="592" cy="104" r="6" fill="#f0655f"/>
+  <text x="580" y="90" fill="#dfe6ee" font-size="11" text-anchor="end" font-family="sans-serif">TensorRT-LLM</text>
+  <text x="580" y="74" fill="#6b7a8d" font-size="9.5" text-anchor="end" font-family="sans-serif">极致性能，绑定 NVIDIA</text>
+
+  <!-- callout -->
+  <line x1="530" y1="252" x2="492" y2="234" stroke="#2dd4a7" stroke-width="1" stroke-dasharray="3 3"/>
+  <rect x="470" y="252" width="180" height="48" rx="6" fill="#1b2431" stroke="#2dd4a7" stroke-width="1"/>
+  <text x="560" y="270" fill="#2dd4a7" font-size="9.5" text-anchor="middle" font-family="sans-serif">原文写 vLLM「24~32 并发」</text>
+  <text x="560" y="288" fill="#dfe6ee" font-size="9.5" text-anchor="middle" font-family="sans-serif">实际默认 128 条序列，可调更高</text>
+
+  <text x="40" y="358" fill="#6b7a8d" font-size="10" font-family="sans-serif">注：并发能力与吞吐（tokens/s）是两个量，原文把两者混为一谈，是全文最根本的概念错误。</text>
+  <text x="340" y="384" fill="#6b7a8d" font-size="11" text-anchor="middle" font-family="sans-serif">图 4</text>
+</svg>

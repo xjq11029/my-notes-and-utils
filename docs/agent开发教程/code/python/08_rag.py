@@ -5,7 +5,7 @@
   1. 文档加载器（Loader）的本质：把任意文件变成 Document(page_content, metadata)
   2. 文档切分器（TextSplitter）：三个方法的调用链，以及两种实现的差别
   3. 嵌入模型（Embeddings）：embed_documents 与 embed_query 的区别
-  4. 向量存储（VectorStore）：写入、相似度检索，以及「检索质量决定 RAG 上限」
+  4. 向量存储（VectorStore）：写入、相似度检索，以及「检索质量是第一瓶颈」
   5. 把检索器包成 @tool 交给 agent —— 检索是一个工具，不是一个步骤
 
 ⚠️ 本示例全程离线、零 API Key：

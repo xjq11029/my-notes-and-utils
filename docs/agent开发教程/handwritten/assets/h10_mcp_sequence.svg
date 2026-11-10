@@ -55,5 +55,5 @@
 <text x="340" y="366" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#f3c47a">{content: [{type: "text", text: "579"}]}</text>
 
 <!-- 底注 -->
-<text x="340" y="410" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#7d8b9c">换成 HTTP 传输时，三步协议的消息不变——协议与传输解耦</text>
+<text x="340" y="410" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#7d8b9c">换 HTTP 传输时 JSON-RPC 消息体不变，但端点、帧格式与 HTTP 头都要换</text>
 </svg>

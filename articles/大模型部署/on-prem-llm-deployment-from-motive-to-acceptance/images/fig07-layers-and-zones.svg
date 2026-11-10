@@ -1,0 +1,53 @@
+<svg viewBox="0 0 680 444" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="五层架构与网络分区：接入、网关、应用、推理、数据，对应办公网、应用区、推理区、数据区">
+  <rect x="0" y="0" width="680" height="444" fill="#111721"/>
+
+  <text x="340" y="24" fill="#93a1b1" font-size="13" font-weight="700" text-anchor="middle" font-family="sans-serif">架构分五层，网络分五区：每层只跟相邻层说话</text>
+  <text x="340" y="44" fill="#6b7a8d" font-size="11.5" text-anchor="middle" font-family="sans-serif">私有化最值钱的一条设计，是让推理端口根本不可达</text>
+
+  <!-- rows -->
+  <rect x="24" y="64" width="76" height="44" rx="7" fill="#16283c" stroke="#4dabf7" stroke-width="1"/>
+  <text x="62" y="91" fill="#4dabf7" font-size="10.5" text-anchor="middle" font-family="sans-serif">办公网</text>
+  <rect x="108" y="64" width="360" height="44" rx="7" fill="#18202b" stroke="#3a4757" stroke-width="1"/>
+  <text x="124" y="84" fill="#dfe6ee" font-size="11.5" font-weight="700" font-family="sans-serif">接入层</text>
+  <text x="124" y="100" fill="#93a1b1" font-size="10" font-family="sans-serif">员工终端 / VPN / 浏览器</text>
+  <text x="486" y="90" fill="#f0655f" font-size="10" font-family="sans-serif">只暴露网关，不直连推理端口</text>
+
+  <rect x="24" y="116" width="76" height="44" rx="7" fill="#12302a" stroke="#2dd4a7" stroke-width="1"/>
+  <text x="62" y="143" fill="#2dd4a7" font-size="10.5" text-anchor="middle" font-family="sans-serif">应用区</text>
+  <rect x="108" y="116" width="360" height="44" rx="7" fill="#18202b" stroke="#3a4757" stroke-width="1"/>
+  <text x="124" y="136" fill="#dfe6ee" font-size="11.5" font-weight="700" font-family="sans-serif">网关层</text>
+  <text x="124" y="152" fill="#93a1b1" font-size="10" font-family="sans-serif">统一协议 / 多模型路由 / 限流 / 计量</text>
+  <text x="486" y="142" fill="#e8a34b" font-size="10" font-family="sans-serif">没有网关就没有审计</text>
+
+  <rect x="24" y="168" width="76" height="44" rx="7" fill="#12302a" stroke="#2dd4a7" stroke-width="1"/>
+  <text x="62" y="195" fill="#2dd4a7" font-size="10.5" text-anchor="middle" font-family="sans-serif">应用区</text>
+  <rect x="108" y="168" width="360" height="44" rx="7" fill="#18202b" stroke="#3a4757" stroke-width="1"/>
+  <text x="124" y="188" fill="#dfe6ee" font-size="11.5" font-weight="700" font-family="sans-serif">应用层</text>
+  <text x="124" y="204" fill="#93a1b1" font-size="10" font-family="sans-serif">对话前端 / RAG 编排 / 业务系统</text>
+  <text x="486" y="194" fill="#93a1b1" font-size="10" font-family="sans-serif">提示词模板集中管理</text>
+
+  <rect x="24" y="220" width="76" height="44" rx="7" fill="#332a1c" stroke="#e8a34b" stroke-width="1"/>
+  <text x="62" y="247" fill="#e8a34b" font-size="10.5" text-anchor="middle" font-family="sans-serif">推理区</text>
+  <rect x="108" y="220" width="360" height="44" rx="7" fill="#18202b" stroke="#e8a34b" stroke-width="1.2"/>
+  <text x="124" y="240" fill="#dfe6ee" font-size="11.5" font-weight="700" font-family="sans-serif">推理层</text>
+  <text x="124" y="256" fill="#93a1b1" font-size="10" font-family="sans-serif">vLLM / SGLang 副本 + GPU</text>
+  <text x="486" y="246" fill="#f0655f" font-size="10" font-family="sans-serif">绝不监听 0.0.0.0</text>
+
+  <rect x="24" y="272" width="76" height="44" rx="7" fill="#2a2338" stroke="#b197fc" stroke-width="1"/>
+  <text x="62" y="299" fill="#b197fc" font-size="10.5" text-anchor="middle" font-family="sans-serif">数据区</text>
+  <rect x="108" y="272" width="360" height="44" rx="7" fill="#18202b" stroke="#3a4757" stroke-width="1"/>
+  <text x="124" y="292" fill="#dfe6ee" font-size="11.5" font-weight="700" font-family="sans-serif">数据层</text>
+  <text x="124" y="308" fill="#93a1b1" font-size="10" font-family="sans-serif">模型仓 / 向量库 / 原文 / 日志</text>
+  <text x="486" y="298" fill="#93a1b1" font-size="10" font-family="sans-serif">只允许推理区访问</text>
+
+  <!-- mgmt -->
+  <rect x="24" y="328" width="444" height="34" rx="7" fill="#1b2431" stroke="#3a4757" stroke-width="1" stroke-dasharray="5 4"/>
+  <text x="246" y="350" fill="#93a1b1" font-size="10.5" text-anchor="middle" font-family="sans-serif">管理区：跳板机 / 监控 / 日志归档（独立网段 + 双因素）</text>
+
+  <!-- rules -->
+  <text x="486" y="346" fill="#2dd4a7" font-size="10" font-family="sans-serif">最低配也要做到：</text>
+  <text x="486" y="362" fill="#93a1b1" font-size="9.5" font-family="sans-serif">① 端口只听 127.0.0.1</text>
+  <text x="486" y="376" fill="#93a1b1" font-size="9.5" font-family="sans-serif">② 前端必须登录</text>
+  <text x="486" y="390" fill="#93a1b1" font-size="9.5" font-family="sans-serif">③ 出口只走统一网关</text>
+  <text x="340" y="434" fill="#6b7a8d" font-size="11" text-anchor="middle" font-family="sans-serif">图 7</text>
+</svg>

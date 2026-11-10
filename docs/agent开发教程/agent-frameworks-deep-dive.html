@@ -1284,7 +1284,7 @@ print(type(person))     # &lt;class 'Person'&gt;，不是 str、不是 dict</cod
 <p>结构化输出里，字段的 <code>description</code> 直接充当提示词的一部分，解析与校验由框架完成。下面是它的完整流程：</p>
 <figure id="fig7"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 460" width="680" height="460" role="img">
 <title>with_structured_output 的两种策略</title>
-<desc>schema 声明之后分两条路：工具策略把 schema 包成工具、取模型回传的 tool_call 参数；原生策略把 schema 交给 response_format、解析模型吐出的 JSON 文本。两条路都汇到校验一步。</desc>
+<desc>schema 声明之后分两条路：工具策略把 schema 包成工具、取模型回传的 tool_call 参数；原生策略把 schema 交给 response_format、解析模型吐出的 JSON 文本。两条路都汇到客户端处理，但只有 Pydantic 模式会校验并产出实例，其余模式原样返回 dict。</desc>
 <defs>
 <marker id="f07_ar1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
 <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
@@ -1335,7 +1335,7 @@ print(type(person))     # &lt;class 'Person'&gt;，不是 str、不是 dict</cod
 <path d="M340 368L340 388" fill="none" stroke="#6b7a8d" stroke-width="1.6" marker-end="url(#f07_ar1)"/>
 
 <rect x="250" y="392" width="180" height="40" rx="8" fill="#142b28" stroke="#3fd0b0" stroke-width="1.4"/>
-<text x="268" y="417" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#7fe3cd">Pydantic 实例</text>
+<text x="268" y="417" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#7fe3cd">实例 / dict</text>
 
 <text x="34" y="430" font-family="system-ui, sans-serif" font-size="10.5" fill="#f0655f">只有 Pydantic 模式在 Python 侧校验并抛 ValidationError</text>
 <text x="34" y="448" font-family="system-ui, sans-serif" font-size="10.5" fill="#6b7a8d">JS 基类只走工具策略且不校验；TypedDict / JSON Schema / dataclass 一律返回 dict</text>
@@ -2058,7 +2058,7 @@ def inject_notice(state, runtime):
 <text x="362" y="234" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">高风险动作前先问人</text>
 <text x="362" y="255" font-family="system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">HumanInTheLoopMiddleware</text>
 <text x="362" y="271" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">需要 checkpointer</text>
-<text x="362" y="287" font-family="system-ui, sans-serif" font-size="10" fill="#6b7a8d">（本书不展开）</text>
+<text x="362" y="287" font-family="system-ui, sans-serif" font-size="10" fill="#6b7a8d">（§2.5 展开）</text>
 
 <!-- 域 5 -->
 <rect x="34" y="306" width="300" height="102" rx="9" fill="#2a1f24" stroke="#f0655f" stroke-width="1.3"/>
@@ -2834,10 +2834,10 @@ try {
 <path d="M448 272L468 272" fill="none" stroke="#6b7a8d" stroke-width="1.4" marker-end="url(#f16_ar9)"/>
 
 <!-- 结论 -->
-<rect x="34" y="336" width="612" height="52" rx="8" fill="#2a2320" stroke="#e8a34b" stroke-width="1.2"/>
-<text x="50" y="356" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#f3c47a">在 agent 语境下，检索有两种用法</text>
-<text x="50" y="374" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">① 预检索：先把片段拼进系统提示（简单，但每次都查、且可能不相关）</text>
-<text x="50" y="388" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">② 做成工具：让模型自己决定查不查、查什么（推荐——检索也是「能力」，不是「前置步骤」）</text>
+<rect x="34" y="330" width="612" height="62" rx="8" fill="#2a2320" stroke="#e8a34b" stroke-width="1.2"/>
+<text x="50" y="350" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#f3c47a">在 agent 语境下，检索有两种用法</text>
+<text x="50" y="368" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">① 预检索：先把片段拼进系统提示（简单，但每次都查、且可能不相关）</text>
+<text x="50" y="384" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">② 做成工具：让模型自己决定查不查、查什么（推荐——检索也是「能力」，不是「前置步骤」）</text>
 </svg><figcaption><b>图 16</b>　RAG 检索链路</figcaption></figure>
 <h3 id="ch8-s2">二、机制与原理</h3>
 <h4>2.1 链路五步，以及每一步的产物</h4>
@@ -2853,7 +2853,7 @@ docs = [Document(page_content="退款政策：7 天无理由退货。", metadata
 chunks = RecursiveCharacterTextSplitter(chunk_size=12, chunk_overlap=0).split_documents(docs)
 print(chunks[0].page_content, chunks[0].metadata)</code></pre></div>
 <p>打个比方（类比）：这五步像一条工厂流水线，每台机器只负责把上一步的产物换成另一种形态——文件变成文档、长文档变成短块、文本变成向量——所以每一步在干什么，都可以用「输入什么、输出什么」一句话说清。</p>
-<p>整条链路有一个关键的分界：<strong>前四步（Load / Split / Embed / Store）是离线的</strong>，文档一改才重跑一次；<strong>只有 Retrieve 是在线的</strong>，每次提问都要跑。这个「离线半程 + 在线半程」的切法，决定了后面的部署形态——离线半程可以放进批处理任务，在线半程才需要低延迟。</p>
+<p>整条链路有一个关键的分界：<strong>建库这一半（Load / Split / Embed / Store）是离线的</strong>，文档一改才重跑一次；<strong>取用这一半（Retrieve）是在线的</strong>，每次提问都要跑。注意 Embed 在两侧都出现：建库时用 <code>embed_documents</code> 批量嵌入，提问时还要用 <code>embed_query</code> 把问题也嵌成向量（见 2.4）——所以在线侧不只是「查库」，还包含一次<strong>查询嵌入</strong>。这个「离线半程 + 在线半程」的切法，决定了后面的部署形态——离线半程可以放进批处理任务，在线半程才需要低延迟。</p>
 <h4>2.2 文档加载器：所有 Loader 只做一件事</h4>
 <p>第一站是 Load：文件从磁盘进来，变成框架认得的 <code>Document</code>。<code>langchain-community</code> 里有一长串 Loader，名字按格式排开，很容易被当成一堆需要分别记的 API。但它们做的事完全相同：<strong>读文件，产出 <code>Document</code> 列表</strong>。</p>
 <p>真正的差异只有两点：</p>
@@ -2980,7 +2980,7 @@ def search_docs(query: str) -&gt; str:
     docs = retriever.invoke(query)
     return "\n".join(d.page_content for d in docs)</code></pre></div>
 <p>这一步之后，检索从<strong>一个固定步骤</strong>变成了<strong>一个可选动作</strong>：模型觉得需要外部知识才调它，不需要就直接答。这正是 RAG 与「每次都先检索再回答」那种流水线做法的区别。</p>
-<p><strong>但也别高估它</strong>：检索器给什么，模型就只能看什么。检索不到相关内容时，模型要么说不知道，要么编——后者更常见。所以<strong>RAG 的质量上限由检索质量决定</strong>，不在模型侧。</p>
+<p><strong>但也别高估它</strong>：检索器给什么，模型就只能看什么。检索不到相关内容时，模型要么说不知道，要么编——后者更常见。所以<strong>排查 RAG 的第一顺位是检索</strong>（切分粒度、检索策略、查询改写），不是换更大的模型。但这句话不能读成「模型侧不重要」：检索全对时，模型仍可能忽略片段、张冠李戴或过度概括——上下文怎么拼、提示词怎么写，同样是上限的一部分。</p>
 <h3 id="ch8-s3">三、代码：Python 与 TypeScript</h3>
 <p>两套示例演示同一件事：<code>code/python/08_rag.py</code> 与 <code>code/typescript/08_rag.ts</code>。样例语料由代码现场生成，不依赖任何外部素材；嵌入用假嵌入，全程离线、零 API Key。</p>
 <div class="warn"><span class="t">注意</span><p>⚠️ 但<strong>两边的语料和参数并不相同</strong>，别指望输出逐行对得上：Python 用一段 93 字、<code>chunk_size=30</code> 的中文文本演示切分；TS 用另一段 LangChain 介绍、<code>chunkSize=40</code>、<code>separator="\n"</code>。因此 CSVLoader 在 Python 侧是 <strong>3 个 Document</strong>、TS 侧是 <strong>2 个</strong>；切分器在 Python 侧是 2 / 4 块、<strong>在 TS 侧两种实现给出完全相同的 3 块且没有 WARNING</strong>。下文凡标「Python 实测」的块，TS 侧都要另看。</p></div>
@@ -3055,10 +3055,10 @@ similarity_search_with_score('键盘', k=2)：
 <p>链路讲完，下面七条是它最常见的卡点。</p>
 <ol><li><strong><code>chunk_overlap</code> 不能大于 <code>chunk_size</code>。</strong> <code>&gt;</code> 会抛 <code>ValueError</code>；<strong>相等不会报错</strong>，但会让相邻块大量重叠、切出很多重复块，实际配置应明显小于 <code>chunk_size</code>。经验值是 <code>chunk_size</code> 的 10%–20%。</li><li><strong>空分隔符不是报错，而是按字符切。</strong> <code>CharacterTextSplitter(separator="")</code> 会照常工作，每个字符都成为切分点；要按块大小硬切，用 <code>RecursiveCharacterTextSplitter</code>（它的回退列表最后一项就是空串），或显式设 <code>chunk_size</code>。真正要小心的是空分隔符带来的块数膨胀。</li><li><strong>假嵌入只验机制，不验语义。</strong> 示例里检索排序看着「挺对」，那是巧合——Python 的 <code>DeterministicFakeEmbedding</code> 按文本哈希，Python 的 <code>FakeEmbeddings</code> 每次随机，TS 的 <code>FakeEmbeddings</code> 对所有文本返回同一固定向量（<code>[0.1,0.2,0.3,0.4]</code>）。三者都与语义无关；换成真实嵌入模型之前，任何关于「检索准不准」的结论都不成立。</li><li><strong>入库与检索必须用同一个嵌入模型。</strong> 换模型等于换坐标系，旧向量全部作废，必须重建索引。这不是「最好这样」，是<strong>必须</strong>。</li><li><strong><code>JSONLoader</code> 的两语言语法不同。</strong> Python 是 jq，TS 是 JSON Pointer，写法不通用（见 3.5）。</li><li><strong>PDF 需要额外依赖。</strong> Python 侧要装 <code>pypdf</code>；TS 侧的 <code>PDFLoader</code> 要装 <code>pdf-parse</code>。没装时不是「解析效果差」，是直接 import 失败。</li><li><strong><code>langchain-community</code> 已进入 sunset。</strong> 官方建议迁移到各独立集成包（0.4.2 的 <code>DeprecationWarning</code> 属<strong>本机核对</strong>——本轮 <code>08_rag.py</code> / <code>.ts</code> 的输出里<strong>并没有打印该警告</strong>，别在示例输出里找它）。本章只借它讲「文件 → Document」这件事，与 sunset 无关；但<strong>新项目选型时要知道这一点</strong>。</li></ol>
 <h3 id="ch8-s5">五、关键结论</h3>
-<ol><li><strong>RAG 的五步是形态转换，不是五个组件。</strong> 文件 → Document → 短 Document → 向量 → 可检索的库 → 相关片段。每步只做一件事，排查问题时按这个链条往前找。</li><li><strong>默认用 <code>RecursiveCharacterTextSplitter</code></strong>。它保证不超 <code>chunk_size</code>；<code>CharacterTextSplitter</code> 会静默超长，提示只在默认不可见的日志里。</li><li><strong>检索器就是一个工具。</strong> 包成 <code>@tool</code> 交给 agent 之后，检索从固定步骤变成可选动作——这是 RAG 与流水线式问答的本质区别。</li><li><strong>上限在检索侧，不在模型侧。</strong> 检索不到，模型只能编。所以调 RAG 的第一顺位是切分粒度与检索策略，不是换更大的模型。</li><li><strong>离线半程与在线半程要分开部署。</strong> Load / Split / Embed / Store 只在文档变更时跑；只有 Retrieve 在每次提问时跑。</li></ol>
+<ol><li><strong>RAG 的五步是形态转换，不是五个组件。</strong> 文件 → Document → 短 Document → 向量 → 可检索的库 → 相关片段。每步只做一件事，排查问题时按这个链条往前找。</li><li><strong>默认用 <code>RecursiveCharacterTextSplitter</code></strong>。它保证不超 <code>chunk_size</code>；<code>CharacterTextSplitter</code> 会静默超长，提示只在默认不可见的日志里。</li><li><strong>检索器就是一个工具。</strong> 包成 <code>@tool</code> 交给 agent 之后，检索从固定步骤变成可选动作——这是 RAG 与流水线式问答的本质区别。</li><li><strong>第一瓶颈在检索侧。</strong> 检索不到，模型只能编。所以调 RAG 的第一顺位是切分粒度与检索策略，不是换更大的模型；但「检索对了」不等于「答对了」——生成与上下文拼装仍会丢分。</li><li><strong>离线半程与在线半程要分开部署。</strong> Load / Split / Embed / Store 只在文档变更时跑；取用侧（查询嵌入 + Retrieve）在每次提问时跑。</li></ol>
 <div class="note"><span class="t">说明</span><p>口径：本章的 Loader / Splitter / 假嵌入 / 内存向量库 / 检索器接工具为示例实测（<code>08_rag.*</code>）；真实嵌入与生产向量库未实测；TS 的 JSON Pointer 与包归属见 3.5。</p></div>
 <h3 id="ch8-s6">本章要点回顾</h3>
-<ul><li>RAG 链路：<strong>Load → Split → Embed → Store → Retrieve</strong>，前四步离线、最后一步在线。</li><li>Loader 的产物永远是 <code>Document(page_content, metadata)</code>；差异只在「切几条」与「metadata 留什么」。</li><li><code>split_documents</code> → <code>create_documents</code> → <code>split_text</code> 是一条调用链；日常用最外层那个。</li><li><code>CharacterTextSplitter</code> 只认一个分隔符且会超长；<code>RecursiveCharacterTextSplitter</code> 逐级回退且保证不超。默认选后者。</li><li><code>chunk_overlap</code> 让相邻块共享尾巴，避免答案被切在边界上；但它必须小于 <code>chunk_size</code>。</li><li>嵌入把文本换成向量；入库用 <code>embed_documents</code>、检索用 <code>embed_query</code>，两者不可混用。</li><li>向量库换实现不改业务代码；<code>InMemoryVectorStore</code> / <code>MemoryVectorStore</code> 只适合验证链路。</li><li>检索器包成 <code>@tool</code> 就是普通工具——agent 自己决定何时检索。</li><li><strong>检索质量决定 RAG 上限</strong>；模型再好也补不回检索不到的知识。</li></ul>
+<ul><li>RAG 链路：<strong>Load → Split → Embed → Store → Retrieve</strong>，建库四步离线，取用（查询嵌入 + 检索）在线。</li><li>Loader 的产物永远是 <code>Document(page_content, metadata)</code>；差异只在「切几条」与「metadata 留什么」。</li><li><code>split_documents</code> → <code>create_documents</code> → <code>split_text</code> 是一条调用链；日常用最外层那个。</li><li><code>CharacterTextSplitter</code> 只认一个分隔符且会超长；<code>RecursiveCharacterTextSplitter</code> 逐级回退且保证不超。默认选后者。</li><li><code>chunk_overlap</code> 让相邻块共享尾巴，避免答案被切在边界上；但它必须小于 <code>chunk_size</code>。</li><li>嵌入把文本换成向量；入库用 <code>embed_documents</code>、检索用 <code>embed_query</code>，两者不可混用。</li><li>向量库换实现不改业务代码；<code>InMemoryVectorStore</code> / <code>MemoryVectorStore</code> 只适合验证链路。</li><li>检索器包成 <code>@tool</code> 就是普通工具——agent 自己决定何时检索。</li><li><strong>检索质量是 RAG 的第一瓶颈</strong>；模型再好也补不回检索不到的知识，但检索对了也不保证答对。</li></ul>
 </section>
 
 <section class="chapter" id="chap9">
@@ -4691,14 +4691,14 @@ for (const mode of ["sync", "async", "exit"] as const) {
 <h4>2.4 stream_mode：同一张图，七种投影</h4>
 <p>暂停与恢复讲完了，转到第二个问题：执行过程怎么送给前端。同一张图、同一次执行，<code>stream_mode</code> 决定给你看哪种投影。</p>
 <p>这张表回答「我该用哪个 <code>stream_mode</code>」。注意它不是七个功能，而是<strong>同一次执行的七种看法</strong>。</p>
-<div class="tw"><table><thead><tr><th>取值</th><th>给你什么</th><th>典型用途 / 前置条件</th></tr></thead><tbody><tr><td><code>values</code></td><td>每步之后的<strong>完整状态</strong></td><td>最省心，体积也最大</td></tr><tr><td><code>updates</code></td><td>每步节点返回的<strong>增量</strong>（带节点名）</td><td>做进度条、步骤高亮</td></tr><tr><td><code>messages</code></td><td><code>(token, metadata)</code> 二元组</td><td>打字机效果（最常用）</td></tr><tr><td><code>custom</code></td><td>节点里主动推的事件</td><td>「第 3/10 步」这类业务进度</td></tr><tr><td><code>checkpoints</code></td><td>检查点事件</td><td>需要 checkpointer</td></tr><tr><td><code>tasks</code></td><td>任务开始 / 结束（含结果与错误）</td><td>不需要 checkpointer（实测）</td></tr><tr><td><code>debug</code></td><td><code>checkpoints</code> + <code>tasks</code> 及额外元数据</td><td>排障；信息最多也最杂</td></tr></tbody></table></div>
-<div class="note"><span class="t">说明</span><p>口径：本章示例现在<strong>七档全跑</strong>（Python 与 JS 各 7 档）。<code>values/updates/custom/checkpoints/tasks/debug</code> 用同一张 <code>talk</code> 图；<code>messages</code> 用带模型节点的 agent。<code>checkpoints</code> 需要 checkpointer，<code>tasks</code> 不需要（实测）。<code>debug</code> 的实际事件序列是 <code>checkpoint → checkpoint → task → task_result → checkpoint</code>——里面有 <code>task_result</code>，不是「checkpoints + tasks」两个词能概括的。</p></div>
+<div class="tw"><table><thead><tr><th>取值</th><th>给你什么</th><th>典型用途 / 前置条件</th></tr></thead><tbody><tr><td><code>values</code></td><td>每步之后的<strong>完整状态</strong></td><td>最省心，体积也最大</td></tr><tr><td><code>updates</code></td><td>每步节点返回的<strong>增量</strong>（带节点名）</td><td>做进度条、步骤高亮</td></tr><tr><td><code>messages</code></td><td><code>(token, metadata)</code> 二元组</td><td>打字机效果（最常用）</td></tr><tr><td><code>custom</code></td><td>节点里主动推的事件</td><td>「第 3/10 步」这类业务进度</td></tr><tr><td><code>checkpoints</code></td><td>检查点事件</td><td>需要 checkpointer</td></tr><tr><td><code>tasks</code></td><td>任务开始 / 结束（含结果与错误）</td><td>不需要 checkpointer（不配 cp 的对照组实测）</td></tr><tr><td><code>debug</code></td><td><code>checkpoints</code> + <code>tasks</code> 及额外元数据</td><td>排障；信息最多也最杂</td></tr></tbody></table></div>
+<div class="note"><span class="t">说明</span><p>口径：本章示例现在<strong>七档全跑</strong>（Python 与 JS 各 7 档）。<code>values/updates/custom/checkpoints/tasks/debug</code> 用同一张 <code>talk</code> 图；<code>messages</code> 用带模型节点的 agent。<code>checkpoints</code> 需要 checkpointer，<code>tasks</code> 不需要（另用同一张图<strong>不配 checkpointer</strong> 的对照组实测）。<code>debug</code> 的实际事件序列是 <code>checkpoint → checkpoint → task → task_result → checkpoint</code>——里面有 <code>task_result</code>，不是「checkpoints + tasks」两个词能概括的。</p></div>
 <p>各档首块长什么样？下表是 <strong>Python 1.2.12 的实测形状</strong>（JS 形状一致，数组/对象类型略有差异）——它回答「拿到一个分块，先看什么」：</p>
 <div class="tw"><table><thead><tr><th>档位</th><th>分块数（本例）</th><th>首块类型</th><th>首块里有什么</th></tr></thead><tbody><tr><td><code>values</code></td><td>2</td><td><code>dict</code></td><td>第一步之前的完整状态（输入回显）</td></tr><tr><td><code>updates</code></td><td>1</td><td><code>dict</code></td><td><code>{'step': {'n': 1, 'note': ...}}</code></td></tr><tr><td><code>messages</code></td><td>1（一次模型调用）</td><td><code>AIMessage</code></td><td>模型这次吐出的消息块（假模型一消息一块）</td></tr><tr><td><code>custom</code></td><td>1</td><td><code>str</code></td><td>节点里 <code>get_stream_writer()</code> 推的字符串</td></tr><tr><td><code>checkpoints</code></td><td>3</td><td><code>dict</code></td><td><code>config</code> / <code>values</code> / <code>next</code> 等检查点字段</td></tr><tr><td><code>tasks</code></td><td>2</td><td><code>dict</code></td><td><code>id</code> / <code>name</code> / <code>input</code> / <code>triggers</code></td></tr><tr><td><code>debug</code></td><td>5</td><td><code>dict</code></td><td><code>type</code> / <code>timestamp</code> / <code>payload</code></td></tr></tbody></table></div>
 <div class="warn"><span class="t">注意</span><p>⚠️ <strong>别把分块数当语义</strong>：它是这张图、这个假模型的产物；真实模型 token 多、节点多，数字都会变。要断言就断言<strong>首块类型、字段、事件名</strong>。</p></div>
 <figure id="fig30"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 420" width="680" height="420" role="img">
 <title>stream_mode 的七种投影</title>
-<desc>values 给完整状态，updates 给增量，messages 给 token，custom 给自定义事件；checkpoints 需要 checkpointer，tasks 不需要；debug 是合并。</desc>
+<desc>values 给完整状态，updates 给增量，messages 给 token，custom 给自定义事件；checkpoints 需要 checkpointer，tasks 不需要（无 checkpointer 对照组实测）；debug 是合并。多档同开时 Python 每块是 (mode, payload) 二元组，JS 是 [mode, payload] 数组。</desc>
 
 <rect x="0" y="0" width="680" height="420" fill="#111721"/>
 
@@ -4750,8 +4750,8 @@ for (const mode of ["sync", "async", "exit"] as const) {
 <rect x="34" y="316" width="300" height="92" rx="8" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.2"/>
 <text x="50" y="336" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#8ecbff">可以同时要多个</text>
 <text x="50" y="355" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">stream_mode=["updates","custom"]</text>
-<text x="50" y="373" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">新版每个分块是统一的 StreamPart</text>
-<text x="50" y="389" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">用 chunk["type"] 区分来源</text>
+<text x="50" y="371" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">Python 每块 (mode, payload)</text>
+<text x="50" y="387" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">JS 每块 [mode, payload]；加 subgraphs 前置 ns</text>
 
 <!-- 子图坑 -->
 <rect x="346" y="316" width="300" height="92" rx="8" fill="#2a1f24" stroke="#f0655f" stroke-width="1.3"/>
@@ -5011,8 +5011,8 @@ astream_events  → on_chat_model_stream ×4 / on_tool_start ×1 / on_tool_end �
 <p>十二条坑可以分两组读：前六条围绕中断与恢复（第 1 条是总根源），后六条围绕流式（子图透传、分块形状、档位前置条件、事件流与 JS 类型定义）。</p>
 <ol><li><strong>恢复时节点从头重跑</strong>——所有坑的总根源。凡 <code>interrupt()</code> 之前的代码，都要假设它会跑两次。</li><li><strong>别用 <code>try/except</code> 包 <code>interrupt()</code></strong>。它靠抛异常挂起，吞掉异常等于取消暂停；确实要 catch，必须把异常原样重抛。</li><li><strong>同一个节点里多个 <code>interrupt()</code> 靠调用顺序对应 resume 值</strong>，重排顺序会串位。</li><li><strong>payload 和 resume 值都要可序列化</strong>，别塞对象、函数、数据库连接。</li><li><strong>恢复必须用同一个 <code>thread_id</code></strong>，并且要带上 checkpointer；换线程就是换了一张白纸，<code>interrupt()</code> 会当成第一次执行。</li><li><strong><code>Command(resume=...)</code> 是唯一能当输入用的 <code>Command</code> 形态</strong>；<code>Command(goto=...)</code> 只能在节点里返回。</li><li><strong><code>subgraphs=True</code> 忘了加</strong>，表现是「后端日志正常、前端打字机不动」。判断方法：看流出来的分块里有没有 <code>langgraph_node</code> 是子图内部节点。</li><li><strong><code>stream_mode</code> 传列表后分块形状变了</strong>。Python 变成 <code>(mode, payload)</code>、JS 变成 <code>[mode, payload]</code>，再加 <code>subgraphs=True</code> 则前面多一层 namespace——升级或改配置后要同步改解析代码。</li><li><strong>JS 类型定义里 <code>StreamMode</code> 还多一个 <code>"tools"</code></strong>（<strong>源码核对</strong>——读 <code>@langchain/langgraph</code> 1.4.17 的 <code>dist/pregel/types.d.ts</code>；示例未使用、本章不展开），Python 侧 <code>types.py</code> 的七值里没有 <code>tools</code>。<strong>这是读类型定义读出来的，不是跑出来的。</strong></li><li><strong><code>messages</code> 档需要图里真有模型节点</strong>：拿一张纯函数图去跑 <code>stream_mode="messages"</code>，什么也拿不到。另外假模型要实现 <code>_astream</code>（或 JS 的 <code>_streamResponseChunks</code>），否则只会出 <code>on_chat_model_start/end</code>，没有 <code>on_chat_model_stream</code>。</li><li><strong><code>list + subgraphs</code> 的形状是三元组/三元素数组</strong>，不是「namespace 包着 <code>(mode, payload)</code>」的二元组。Python 解包写 <code>for ns, mode, payload in chunks</code>；JS 写 <code>const [ns, mode, payload] = chunk</code>。</li><li><strong>JS 的 <code>agent.streamEvents</code> 在 1.4.17 只有 start/end</strong>：要逐 token 用 <code>agent.stream({streamMode:"messages"})</code>；要看模型级事件，直接 <code>model.streamEvents(...)</code>。这是本机实测差异，不是写法问题。</li></ol>
 <h3 id="ch13-s5">五、关键结论</h3>
-<ol><li><strong>HITL 建立在检查点之上</strong>：三个前置条件是 checkpointer、<code>thread_id</code>、可序列化 payload。<strong>流式不在此列</strong>——它不需要 checkpointer；<code>stream_mode</code> 里只有 <code>checkpoints</code> 要求 checkpointer，<code>tasks</code> 不要求（实测）。</li><li><strong><code>interrupt()</code> 靠抛异常挂起</strong>，因此不能被 <code>try/except</code> 吞掉；<code>Command(resume=...)</code> 是唯一能当 <code>invoke</code> 输入的 <code>Command</code> 形态。</li><li><strong>恢复时整个节点从头重跑</strong>（副作用日志实测出现两次）——由此推出四条铁律：不包 <code>try/except</code>、不重排、不传复杂值、之前的副作用必须幂等。<strong>真正的副作用要拆成独立节点</strong>放在 <code>interrupt()</code> 之后，而不是想办法让副作用幂等。</li><li><strong>静态中断只适合调试</strong>：它只能在节点边界停，且恢复时拿不到结构化的人工输入。</li><li><strong>流式有三个控制面</strong>：<code>stream_mode</code> 七档（本章<strong>七档全跑</strong>）、list-mode / <code>subgraphs</code> 的分块形状（二元组 → 三元组）、<code>astream_events</code> 的事件流。子图要透出内部消息必须 <code>subgraphs=True</code>；JS 的 <code>agent.streamEvents</code> 在 1.4.17 只给 start/end，逐 token 用 <code>agent.stream({streamMode:"messages"})</code>。</li></ol>
-<div class="note"><span class="t">说明</span><p>口径：中断恢复重跑、七档 <code>stream_mode</code>、list/subgraphs 形状、Python <code>astream_events</code> 为<strong>示例实测</strong>（<code>13_hitl_stream.*</code>）；静态中断与 JS <code>tools</code> 档未实跑/未使用；<code>tasks</code> 不要求 checkpointer 为实测结论；JS agent 级 <code>streamEvents</code> 差异为示例实测。</p></div>
+<ol><li><strong>HITL 建立在检查点之上</strong>：三个前置条件是 checkpointer、<code>thread_id</code>、可序列化 payload。<strong>流式不在此列</strong>——它不需要 checkpointer；<code>stream_mode</code> 里只有 <code>checkpoints</code> 要求 checkpointer，<code>tasks</code> 不要求（同一张图<strong>不配 checkpointer</strong> 的对照组实测）。</li><li><strong><code>interrupt()</code> 靠抛异常挂起</strong>，因此不能被 <code>try/except</code> 吞掉；<code>Command(resume=...)</code> 是唯一能当 <code>invoke</code> 输入的 <code>Command</code> 形态。</li><li><strong>恢复时整个节点从头重跑</strong>（副作用日志实测出现两次）——由此推出四条铁律：不包 <code>try/except</code>、不重排、不传复杂值、之前的副作用必须幂等。<strong>真正的副作用要拆成独立节点</strong>放在 <code>interrupt()</code> 之后，而不是想办法让副作用幂等。</li><li><strong>静态中断只适合调试</strong>：它只能在节点边界停，且恢复时拿不到结构化的人工输入。</li><li><strong>流式有三个控制面</strong>：<code>stream_mode</code> 七档（本章<strong>七档全跑</strong>）、list-mode / <code>subgraphs</code> 的分块形状（二元组 → 三元组）、<code>astream_events</code> 的事件流。子图要透出内部消息必须 <code>subgraphs=True</code>；JS 的 <code>agent.streamEvents</code> 在 1.4.17 只给 start/end，逐 token 用 <code>agent.stream({streamMode:"messages"})</code>。</li></ol>
+<div class="note"><span class="t">说明</span><p>口径：中断恢复重跑、七档 <code>stream_mode</code>、list/subgraphs 形状、Python <code>astream_events</code> 为<strong>示例实测</strong>（<code>13_hitl_stream.*</code>）；静态中断与 JS <code>tools</code> 档未实跑/未使用；<code>tasks</code> 不要求 checkpointer 为<strong>无 checkpointer 对照组</strong>实测；JS agent 级 <code>streamEvents</code> 差异为示例实测。</p></div>
 <h3 id="ch13-s6">本章要点回顾</h3>
 <p>读完自检，下面是可勾选的清单：</p>
 <ul><li><strong>导入路径</strong>：Python <code>from langgraph.types import Command, interrupt</code>；JS <code>import { Command, interrupt } from "@langchain/langgraph"</code>。</li><li><strong>HITL 三个前置条件</strong>：checkpointer、<code>thread_id</code>、可序列化 payload（<strong>流式不需要 checkpointer</strong>）。</li><li><strong>一次往返</strong>：第一次 <code>invoke</code> 返回 <code>__interrupt__</code>，第二次用 <code>Command(resume=值)</code> + 同一 <code>thread_id</code> 恢复。</li><li><strong>核心事实</strong>：恢复 = <strong>整个节点从头重跑</strong>（实测副作用日志出现两次）。</li><li><strong>四条铁律</strong>：不包 <code>try/except</code>、不重排 <code>interrupt()</code>、不传复杂值、之前的副作用必须幂等。</li><li><strong>正确姿势</strong>：把真副作用（扣款）拆成独立节点，放在 <code>interrupt()</code> 之后。</li><li><strong>静态中断</strong>（<code>interrupt_before</code> / <code>interrupt_after</code>，JS 是 <code>interruptBefore</code> / <code>interruptAfter</code>）只用于调试，不推荐做审批流。</li><li><strong><code>stream_mode</code> 七档</strong>（Python）：<code>values</code> / <code>updates</code> / <code>messages</code> / <code>custom</code> / <code>checkpoints</code> / <code>tasks</code> / <code>debug</code>，可组合成列表；JS 类型定义里多一个 <code>"tools"</code>（源码核对）。</li><li><strong>子图坑</strong>：agent 当节点后内部消息默认不透传，必须显式 <code>subgraphs=True</code>（Python 可直接 <code>add_node</code>，JS 要取 <code>.graph</code>）。<strong>JS 特有</strong>：返回 <code>Command</code> 的节点必须声明 <code>ends</code>，否则编译期报 <code>UnreachableNodeError</code>。</li><li><strong>七档全跑</strong>：<code>values</code> / <code>updates</code> / <code>messages</code> / <code>custom</code> / <code>checkpoints</code> / <code>tasks</code> / <code>debug</code>；<code>messages</code> 要模型节点、<code>checkpoints</code> 要 checkpointer、<code>tasks</code> 不要。</li><li><strong>list-mode 形状</strong>：Python <code>(mode, payload)</code>、JS <code>[mode, payload]</code>；加 <code>subgraphs=True</code> 后是 <code>(ns, mode, payload)</code> / <code>[ns, mode, payload]</code> <strong>三元组</strong>，不是嵌套二元组。</li><li><strong><code>astream_events</code></strong>：Python agent 级能看到 <code>on_chat_model_stream</code>；JS agent 级只给 start/end，逐 token 用 <code>stream({streamMode:"messages"})</code>，模型级 <code>streamEvents</code> 才有 stream 事件。</li></ul>
@@ -5788,7 +5788,7 @@ in any file, memory, or system prompt.</code></pre></div>
 <ol><li>技能：放一个 <code>SKILL.md</code>（<code>name</code> + <code>description</code> + 正文），挂 <code>SkillsMiddleware</code>；会话开始模型只看到目录。</li><li>需要时模型用 <code>read_file</code> 读 <code>SKILL.md</code> 正文（提示里写死 <code>limit=1000</code>）。</li><li>记忆：把事实写进 <code>AGENTS.md</code>，挂 <code>MemoryMiddleware</code>；每次会话全量加载。</li></ol>
 <figure id="fig36"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 420" width="680" height="420" role="img">
 <title>技能渐进式披露与记忆的时间尺度</title>
-<desc>技能只在需要时读正文，记忆每次会话都全量加载；两者时间尺度与写入方都不同。</desc>
+<desc>技能只在需要时读正文，记忆配好持久化后端后每次会话全量加载；两者时间尺度与写入方都不同。默认 StateBackend 下记忆只活一个线程。</desc>
 <defs>
 <marker id="f36_ar24" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
 <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
@@ -5829,11 +5829,11 @@ in any file, memory, or system prompt.</code></pre></div>
 
 <!-- Memory -->
 <rect x="34" y="248" width="612" height="122" rx="9" fill="#142b28" stroke="#3fd0b0" stroke-width="1.3"/>
-<text x="50" y="270" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#7fe3cd">Memory　每次会话全量加载</text>
+<text x="50" y="270" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#7fe3cd">Memory　每次会话全量加载（默认仅当前线程）</text>
 
 <rect x="50" y="284" width="150" height="46" rx="7" fill="#1b2532" stroke="#3a4a5e" stroke-width="1"/>
 <text x="125" y="303" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" font-weight="700" fill="#dfe6ee">AGENTS.md</text>
-<text x="125" y="320" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" fill="#93a1b1">跨会话持久</text>
+<text x="125" y="320" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" fill="#93a1b1">跨会话需 StoreBackend</text>
 
 <path d="M204 307L246 307" fill="none" stroke="#6b7a8d" stroke-width="1.5" marker-end="url(#f36_ar24)"/>
 

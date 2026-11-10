@@ -34,7 +34,7 @@ M×N 塌缩成 **M + N**。一次实现，两头复用。
 | 概念 | 内容 | 本教程的实现 |
 |------|------|-------------|
 | **角色** | Client = Agent 侧；Server = 工具提供者 | `agent/mcp/client.py` / `mcp_servers/time_server.py` |
-| **传输** | stdio（本地子进程）或 HTTP（远程） | 手写 **stdio** 版；HTTP 留作练习 |
+| **传输** | stdio（本地子进程）或 Streamable HTTP（远程） | 手写 **stdio** 版；HTTP 留作练习 |
 | **消息格式** | **JSON-RPC 2.0**：`{jsonrpc, id, method, params}` | 一行一条 JSON，无帧头、无魔法 |
 
 JSON-RPC 2.0 请求长这样：
@@ -58,7 +58,7 @@ JSON-RPC 2.0 的消息一共四种形态，MCP 全用得上：
 
 ### 2.2 三步协议
 
-MCP 服务器的全部协议义务只有三步（握手 → 发现 → 调用）：
+要让一个 MCP 服务器把工具交出去，最少要走三步（握手 → 发现 → 调用）。注意这是**最小集**，不是协议的全部义务：ping、取消、进度、分页、`list_changed` 通知都不在这三步里，本示例也都没实现。
 
 ![图 h10　MCP 三步协议（stdio 传输）时序](assets/h10_mcp_sequence.png)
 
@@ -70,7 +70,7 @@ MCP 服务器的全部协议义务只有三步（握手 → 发现 → 调用）
 
 注意 `inputSchema` 是**服务器给**的——客户端不需要知道工具的参数怎么定义，照单转述给模型即可。工具的「自我描述」集中在服务器一端，这正是标准化带来的分工。
 
-为什么三步就够、不能再省？握手解决「方言对不对」（版本协商），发现解决「有什么可调」（模型需要 schema 才能点菜，这是 S4 定下的契约），调用解决「怎么调」。三步各对应一个不可省略的问题——协议设计的下限不是「越少越好」，而是「每个字段都有存在的理由」。
+为什么这三步不能再省？握手解决「方言对不对」（版本协商），发现解决「有什么可调」（模型需要 schema 才能点菜，这是 S4 定下的契约），调用解决「怎么调」。三步各对应一个不可省略的问题——协议设计的下限不是「越少越好」，而是「每个字段都有存在的理由」。至于 ping、取消、进度这些**可选工具**，省掉不影响一次正常调用，只影响长连接与长任务的健壮性。
 
 ### 2.3 手写服务器走读
 
@@ -307,7 +307,7 @@ MCP 与 Skill 最容易被混为一谈，实际定位互补（参考《Agents底
 官方 Python SDK 基于 asyncio + `ClientSession`，在 Jupyter 或纯同步代码里直接 await 会遇到「事件循环已在运行」或「无法嵌套」。课件的做法是起一个**独立线程跑事件循环**再桥接。本教程的同步手写实现天然规避了这个问题——教学场景下这是手写版的真实优势，不只是「为了教学而教学」。代价是 2.4 节说的：没有超时、没有并发读。
 
 **坑 4：HTTP 传输未实现，但协议是同一套。**
-`client.py` 遇到非 stdio 类型会显式报错（「手写客户端只实现了 stdio 传输」），留作练习。动手前先明确：**传输换 HTTP 时三步协议的消息一个字节都不用变**——变的只是「一行 JSON」变成「一个 HTTP 请求体」。协议与传输解耦，是 MCP 设计里最值得体会的一笔。
+`client.py` 遇到非 stdio 类型会显式报错（「手写客户端只实现了 stdio 传输」），留作练习。动手前先明确一件事，否则会低估工作量：**换 HTTP 时，能原样复用的是 JSON-RPC 消息体（`jsonrpc` / `id` / `method` / `params`）与「握手 → 发现 → 调用」的语义，传输层则要重写**。按本示例锁定的 2024-11-05，HTTP 传输是 **HTTP+SSE**：服务器要提供 SSE 与 POST 两个端点，客户端先收到 `endpoint` 事件，之后请求走 POST、响应走 SSE 的 `message` 事件——请求与响应并不在同一个 HTTP 请求体里。换到 2025-03-26 之后的 Streamable HTTP，还要处理 `Accept`、`MCP-Session-Id`、`MCP-Protocol-Version` 等头部。**「协议与传输解耦」指的是消息语义不变，不是传输代码不用改**；本教程的 HTTP 传输未实测，别把这段当实现指南。
 
 **边界：每次调用重连子进程。**
 `MCPClient` 的 `list_tools` / `call_tool` 都是「连接 → 三步 → 关闭」，不复用连接。对教学演示无所谓，高频调用下进程启动开销会主导延迟。框架线第 7 章把 MCP 工具接进 agent 走的是 `MCPAdapter`（`langchain[mcp]`，beta）——**注意口径**：该章自注「未连真实服务器实测」，所以「连接生命周期 / 复用 / 重连」属于官方文档层面的描述，不是框架线实测过的能力。本手写版的「每次重连」是刻意简化，两者对比的是**设计取舍**，别读成「框架侧已验证更优」。
@@ -325,8 +325,8 @@ MCP 与 Skill 最容易被混为一谈，实际定位互补（参考《Agents底
 
 - 问题：M 个应用 × N 个工具的两两接入不可维护；MCP 把「Agent 与工具提供者」通信标准化，一次实现两头复用。
 - 内核：Client/Server 两角色、stdio/HTTP 两传输、JSON-RPC 2.0 消息（有 id 是请求，无 id 是通知）。
-- 三步协议：initialize 握手（交换 protocolVersion/capabilities/serverInfo）→ notifications/initialized → tools/list 发现 → tools/call 调用（实测 `add(123,456)` 稳定返回 579）。
+- 三步协议：initialize 握手（含 `notifications/initialized`）→ tools/list 发现 → tools/call 调用（实测 `add(123,456)` 稳定返回 579）。
 - 手写 server 主循环：stdin 逐行读 → handle 分发 → stdout 逐行写 + flush；**日志一律 stderr**；get_current_time 动态、add 确定性，一个验活一个复现。
 - Agent 接入：`MCPClient.register_tools` + `Tool.from_mcp`（`server__tool` 命名、直接转发 inputSchema）；实测注册表出现 `time__get_current_time`、`time__add`，对话循环与 S7 完全同构。
 - 四个坑：stdout 污染、Windows tzdata 缺失、官方 SDK 的 asyncio 与同步环境冲突、HTTP 传输留作练习（协议与传输解耦）。
-- 最佳实践：MCP 定义「谁来做」，Skill 定义「怎么做」——上一章 S9 会看到，多 Agent 协作不过是把这个循环再套一层。
+- 最佳实践：MCP 定义「谁来做」，Skill 定义「怎么做」——上一章 S9 已经看到，多 Agent 协作不过是把这个循环再套一层。
