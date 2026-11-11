@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 460" width="680" height="460" role="img">
+<title>MCP 客户端聚合多台 server 与 stdio 管道</title>
+<desc>两台 MCP server 各自暴露工具，客户端用 list_tools 发现并适配后并进 agent 的工具数组；本地 stdio 传输下一个 server 一个子进程，stdout 只走 JSON-RPC，日志走 stderr。</desc>
+<defs>
+<marker id="ar76" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+</defs>
+
+<rect x="0" y="0" width="680" height="460" fill="#111721"/>
+
+<text x="34" y="38" font-family="system-ui, sans-serif" font-size="17" font-weight="700" fill="#dfe6ee">MCP：多台 server 收进一个工具列表</text>
+<text x="34" y="62" font-family="system-ui, sans-serif" font-size="12" fill="#7d8b9c">上半是聚合，下半是本地 stdio 的管道分工</text>
+
+<rect x="34" y="100" width="156" height="96" rx="8" fill="#1b2532" stroke="#3a4a5e" stroke-width="1.2"/>
+<text x="48" y="124" font-family="system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#8ecbff">MCP server A</text>
+<text x="48" y="148" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">add</text>
+<text x="48" y="168" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">echo</text>
+
+<rect x="34" y="216" width="156" height="96" rx="8" fill="#1b2532" stroke="#3a4a5e" stroke-width="1.2"/>
+<text x="48" y="240" font-family="system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#8ecbff">MCP server B</text>
+<text x="48" y="264" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">search</text>
+
+<rect x="230" y="140" width="190" height="132" rx="8" fill="#241f38" stroke="#a78bfa" stroke-width="1.2"/>
+<text x="244" y="164" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#c9b8ff">MCP 客户端</text>
+<text x="244" y="186" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">MCPAdapter（Python）</text>
+<text x="244" y="204" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">MultiServerMCPClient（TS）</text>
+<text x="244" y="230" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">list_tools() 发现工具</text>
+<text x="244" y="250" font-family="system-ui, sans-serif" font-size="9" fill="#7d8b9c">一个适配器可装多台</text>
+
+<rect x="466" y="140" width="180" height="132" rx="8" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.2"/>
+<text x="480" y="164" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#8ecbff">agent.tools</text>
+<text x="480" y="188" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">[自己的工具,</text>
+<text x="480" y="206" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee"> *mcp_tools]</text>
+<text x="480" y="236" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">对模型没有区别</text>
+
+<path d="M190 148L226 148" fill="none" stroke="#6b7a8d" stroke-width="1.4" marker-end="url(#ar76)"/>
+<path d="M190 264L226 264" fill="none" stroke="#6b7a8d" stroke-width="1.4" marker-end="url(#ar76)"/>
+<path d="M420 206L462 206" fill="none" stroke="#6b7a8d" stroke-width="1.4" marker-end="url(#ar76)"/>
+
+<text x="203" y="142" font-family="system-ui, sans-serif" font-size="9" fill="#7d8b9c">①</text>
+<text x="203" y="258" font-family="system-ui, sans-serif" font-size="9" fill="#7d8b9c">②</text>
+<text x="436" y="200" font-family="system-ui, sans-serif" font-size="9" fill="#7d8b9c">③</text>
+
+<line x1="34" y1="336" x2="646" y2="336" stroke="#3a4a5e" stroke-width="1" stroke-dasharray="4 4"/>
+<text x="34" y="358" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#dfe6ee">stdio：客户端拉起一个子进程，两边靠管道说话</text>
+
+<rect x="34" y="372" width="196" height="52" rx="7" fill="#1b2532" stroke="#3a4a5e" stroke-width="1"/>
+<text x="48" y="392" font-family="system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#8ecbff">stdin</text>
+<text x="48" y="410" font-family="system-ui, sans-serif" font-size="9" fill="#93a1b1">客户端 → 子进程，发请求</text>
+
+<rect x="242" y="372" width="196" height="52" rx="7" fill="#2a1f24" stroke="#f0655f" stroke-width="1.2"/>
+<text x="256" y="392" font-family="system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#ff9c96">stdout</text>
+<text x="256" y="410" font-family="system-ui, sans-serif" font-size="9" fill="#93a1b1">只走 JSON-RPC，多一个 print 就断</text>
+
+<rect x="450" y="372" width="196" height="52" rx="7" fill="#1b2532" stroke="#3a4a5e" stroke-width="1"/>
+<text x="464" y="392" font-family="system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#93a1b1">stderr</text>
+<text x="464" y="410" font-family="system-ui, sans-serif" font-size="9" fill="#93a1b1">日志、启动 banner 都走这里</text>
+
+<text x="34" y="444" font-family="system-ui, sans-serif" font-size="9" fill="#7d8b9c">① ② 连上即发现；③ 适配成框架工具后混进 tools。工具名：Python 裸名，TS 带 server__tool 前缀。</text>
+</svg>

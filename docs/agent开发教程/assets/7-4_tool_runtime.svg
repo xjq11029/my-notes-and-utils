@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 444" width="680" height="444" role="img">
+<title>模型看到的三样与工具看到的六样</title>
+<desc>模型只收到工具的名称、描述与参数 schema；工具在执行那一刻可以通过 runtime 参数读到 state、context、store、stream_writer、execution_info、tool_call_id 六个成员，这部分对模型完全隐藏。</desc>
+
+<rect x="0" y="0" width="680" height="444" fill="#111721"/>
+
+<text x="34" y="38" font-family="system-ui, sans-serif" font-size="17" font-weight="700" fill="#dfe6ee">两边的视野：模型三样，工具六样</text>
+<text x="34" y="62" font-family="system-ui, sans-serif" font-size="12" fill="#7d8b9c">同一个工具，模型侧只拿到一张说明书；执行时那一侧才看得到环境</text>
+
+<rect x="34" y="86" width="176" height="250" rx="8" fill="#1b2532" stroke="#3a4a5e" stroke-width="1.2"/>
+<text x="48" y="112" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#93a1b1">模型看到</text>
+
+<text x="48" y="140" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">name</text>
+<text x="48" y="154" font-family="system-ui, sans-serif" font-size="9" fill="#7d8b9c">工具名</text>
+
+<text x="48" y="180" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">description</text>
+<text x="48" y="194" font-family="system-ui, sans-serif" font-size="9" fill="#7d8b9c">工具描述</text>
+
+<text x="48" y="220" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">参数 schema</text>
+<text x="48" y="234" font-family="system-ui, sans-serif" font-size="9" fill="#7d8b9c">参数名、类型、默认值</text>
+
+<text x="48" y="270" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">就这三样</text>
+<text x="48" y="292" font-family="system-ui, sans-serif" font-size="9" fill="#7d8b9c">函数体与代码</text>
+<text x="48" y="306" font-family="system-ui, sans-serif" font-size="9" fill="#7d8b9c">模型一样都看不到</text>
+
+<rect x="246" y="86" width="400" height="250" rx="8" fill="#241f38" stroke="#a78bfa" stroke-width="1.2"/>
+<text x="260" y="112" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#c9b8ff">工具看到（runtime 参数）</text>
+
+<text x="260" y="142" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">state</text>
+<text x="392" y="142" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">本次会话的图状态（消息、计数）</text>
+
+<text x="260" y="176" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">context</text>
+<text x="392" y="176" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">单次运行的配置，不进检查点</text>
+
+<text x="260" y="210" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">store</text>
+<text x="392" y="210" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">跨会话的长期记忆</text>
+
+<text x="260" y="244" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">stream_writer</text>
+<text x="392" y="244" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">往外部推实时事件（JS 为 writer）</text>
+
+<text x="260" y="278" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">execution_info</text>
+<text x="392" y="278" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">本次执行的元信息（JS 为 executionInfo）</text>
+
+<text x="260" y="312" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">tool_call_id</text>
+<text x="392" y="312" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">本次调用唯一标识（JS 为 toolCallId）</text>
+
+<text x="34" y="358" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">runtime 参数对模型完全隐藏：右边这六样，模型一样都读不到。</text>
+
+<rect x="34" y="376" width="612" height="44" rx="7" fill="#1b2532" stroke="#3a4a5e" stroke-width="1"/>
+<text x="48" y="394" font-family="system-ui, sans-serif" font-size="9" fill="#dfe6ee">JS 侧 executionInfo 实际字段：checkpointId / checkpointNs / taskId / nodeAttempt / nodeFirstAttemptTime</text>
+<text x="48" y="411" font-family="system-ui, sans-serif" font-size="9" fill="#7d8b9c">（本机未配 thread_id、无检查点）；字段名跨语言、跨版本都会变，别硬编码</text>
+</svg>

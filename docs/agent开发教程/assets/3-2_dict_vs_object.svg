@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 450" width="680" height="450" role="img">
+<title>JSON dict 与消息对象：两条写法，同一个终点</title>
+<desc>左边用 dict 写消息，校验发生在进模型或进模板时；右边直接构造消息对象，构造时立即校验。两条路最后都变成同一份消息对象列表进入模型，模型侧看不出区别。</desc>
+<defs>
+<marker id="ar32" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="#93a1b1" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+</defs>
+
+<rect x="0" y="0" width="680" height="450" fill="#111721"/>
+
+<text x="34" y="38" font-family="system-ui, sans-serif" font-size="17" font-weight="700" fill="#dfe6ee">dict 与消息对象：写法不同，终点相同</text>
+<text x="34" y="62" font-family="system-ui, sans-serif" font-size="12" fill="#7d8b9c">差别只在什么时候校验；进模型之前，dict 已经被转成消息对象</text>
+
+<!-- 左：dict -->
+<rect x="24" y="96" width="300" height="140" rx="9" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.3"/>
+<text x="40" y="120" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#8ecbff">JSON dict</text>
+<text x="40" y="142" font-family="ui-monospace, monospace" font-size="9.5" fill="#dfe6ee">{"role": "user", "content": "你好"}</text>
+<text x="40" y="166" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">数据来自数据库 / HTTP / 前端</text>
+<text x="40" y="196" font-family="system-ui, sans-serif" font-size="9.5" fill="#e8a34b">校验时机：进模型 / 进模板时</text>
+<text x="40" y="218" font-family="system-ui, sans-serif" font-size="9" fill="#7d8b9c">拼错了，要到很晚才知道</text>
+
+<!-- 右：消息对象 -->
+<rect x="356" y="96" width="300" height="140" rx="9" fill="#241f38" stroke="#a78bfa" stroke-width="1.3"/>
+<text x="372" y="120" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#c9b8ff">消息对象</text>
+<text x="372" y="142" font-family="ui-monospace, monospace" font-size="9.5" fill="#dfe6ee">HumanMessage("你好")</text>
+<text x="372" y="166" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">在代码里拼逻辑</text>
+<text x="372" y="196" font-family="system-ui, sans-serif" font-size="9.5" fill="#a78bfa">校验时机：构造时立即</text>
+<text x="372" y="218" font-family="system-ui, sans-serif" font-size="9" fill="#7d8b9c">写错当场报错，定位快</text>
+
+<!-- 中间虚线 -->
+<line x1="340" y1="100" x2="340" y2="232" stroke="#3a4a5e" stroke-width="1" stroke-dasharray="4 5"/>
+
+<!-- 两条汇合 -->
+<path d="M174 236L174 250L250 250L250 262" fill="none" stroke="#6b7a8d" stroke-width="1.5" marker-end="url(#ar32)"/>
+<path d="M506 236L506 250L430 250L430 262" fill="none" stroke="#6b7a8d" stroke-width="1.5" marker-end="url(#ar32)"/>
+
+<rect x="170" y="262" width="340" height="44" rx="7" fill="#1b2532" stroke="#3a4a5e" stroke-width="1.2"/>
+<text x="340" y="281" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#dfe6ee">同一份消息对象列表</text>
+<text x="340" y="297" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" fill="#93a1b1">框架在入口处统一转换，两条写法缺一不可地汇到这里</text>
+
+<path d="M340 306L340 326" fill="none" stroke="#6b7a8d" stroke-width="1.5" marker-end="url(#ar32)"/>
+<rect x="250" y="326" width="180" height="42" rx="7" fill="#111721" stroke="#3a4a5e" stroke-width="1.2"/>
+<text x="340" y="352" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">模型（只看到消息对象）</text>
+
+<!-- 结论 -->
+<rect x="24" y="382" width="632" height="48" rx="8" fill="#2a2320" stroke="#e8a34b" stroke-width="1.2"/>
+<text x="40" y="403" font-family="system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#f3c47a">结论：模型侧看不到区别，用哪种写法是你这一侧的偏好</text>
+<text x="40" y="421" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">要「早点发现拼错」就用消息对象；数据本来就是 dict，直接传也行</text>
+</svg>

@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 430" width="680" height="430" role="img">
+<title>ADP 与四类易混产品的分界</title>
+<desc>四宫格对比：普通 Chatbot、单一大模型接口、传统知识库、传统 RPA 各自解决什么、缺什么。底部给出合并判断：ADP 等于模型能力加企业知识加流程编排加治理体系。</desc>
+<rect x="0" y="0" width="680" height="430" fill="#111721"/>
+
+<text x="34" y="38" font-family="system-ui, sans-serif" font-size="17" font-weight="700" fill="#dfe6ee">和谁最容易搞混：四类产品的分界</text>
+<text x="34" y="62" font-family="system-ui, sans-serif" font-size="12" fill="#7d8b9c">每一格都只解决了 ADP 的一小块——把一块当成全部，就是最常见的那类误判</text>
+
+<rect x="24" y="92" width="300" height="118" rx="7" fill="#1b2532" stroke="#3a4a5e" stroke-width="1.2"/>
+<text x="40" y="116" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#dfe6ee">普通 Chatbot</text>
+<text x="40" y="140" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">干的活：开一个对话框，回答问题</text>
+<text x="40" y="162" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">靠什么：提示词 + 模型</text>
+<text x="40" y="186" font-family="system-ui, sans-serif" font-size="10" fill="#f0655f">缺什么：没有知识、不能办事、管不住</text>
+
+<rect x="356" y="92" width="300" height="118" rx="7" fill="#1b2532" stroke="#3a4a5e" stroke-width="1.2"/>
+<text x="372" y="116" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#dfe6ee">单一大模型接口</text>
+<text x="372" y="140" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">干的活：提供理解、生成、推理</text>
+<text x="372" y="162" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">靠什么：一次 API 调用</text>
+<text x="372" y="186" font-family="system-ui, sans-serif" font-size="10" fill="#f0655f">缺什么：看不懂自家文档、调不动业务系统</text>
+
+<rect x="24" y="230" width="300" height="118" rx="7" fill="#1b2532" stroke="#3a4a5e" stroke-width="1.2"/>
+<text x="40" y="254" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#dfe6ee">传统知识库</text>
+<text x="40" y="278" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">干的活：管文档、FAQ、制度、内容资产</text>
+<text x="40" y="300" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">靠什么：检索 + 关键词 / 向量</text>
+<text x="40" y="324" font-family="system-ui, sans-serif" font-size="10" fill="#f0655f">缺什么：只会"找得到"，不会推理、不会办事</text>
+
+<rect x="356" y="230" width="300" height="118" rx="7" fill="#1b2532" stroke="#3a4a5e" stroke-width="1.2"/>
+<text x="372" y="254" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#dfe6ee">传统 RPA</text>
+<text x="372" y="278" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">干的活：按固定规则点界面、跑流程</text>
+<text x="372" y="300" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">靠什么：录屏式脚本 + 坐标</text>
+<text x="372" y="324" font-family="system-ui, sans-serif" font-size="10" fill="#f0655f">缺什么：页面一改就断，遇到没见过的就停</text>
+
+<rect x="24" y="368" width="632" height="44" rx="7" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.3"/>
+<text x="340" y="396" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#8ecbff">ADP ＝ 模型能力 ＋ 企业知识 ＋ 流程编排 ＋ 治理体系</text>
+</svg>

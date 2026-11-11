@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 520" width="680" height="520" role="img">
+<title>method 参数的去向：先看模型类，再看 method</title>
+<desc>决策树：第一问是你用的是哪个模型类。纯 BaseChatModel（含假模型）上，Python 基类把 method 取出来丢掉、永远走 bind_tools；JS 基类只认 functionCalling，传 jsonMode 直接抛错。provider 子类上，四种 method 分别发出不同请求体：缺省与 json_schema 发 response_format json_schema strict:true 且不带 tools；function_calling 发 tools 与 tool_choice；json_mode 只发 json_object。</desc>
+<defs>
+<marker id="ar43a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="#6b7a8d" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+</defs>
+
+<rect x="0" y="0" width="680" height="520" fill="#111721"/>
+
+<text x="34" y="38" font-family="system-ui, sans-serif" font-size="17" font-weight="700" fill="#dfe6ee">method 到底走没走通：先问模型类</text>
+<text x="34" y="62" font-family="system-ui, sans-serif" font-size="12" fill="#7d8b9c">同一个 method，在基类上是空转，在 provider 子类上才是真请求</text>
+
+<rect x="232" y="86" width="216" height="40" rx="8" fill="#1b2532" stroke="#3a4a5e" stroke-width="1.3"/>
+<text x="340" y="111" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#dfe6ee">你用的是哪个模型类？</text>
+
+<path d="M340 126L340 140" fill="none" stroke="#6b7a8d" stroke-width="1.4"/>
+<path d="M144 140L536 140" fill="none" stroke="#6b7a8d" stroke-width="1.4"/>
+<path d="M144 140L144 158" fill="none" stroke="#6b7a8d" stroke-width="1.5" marker-end="url(#ar43a)"/>
+<path d="M536 140L536 158" fill="none" stroke="#6b7a8d" stroke-width="1.5" marker-end="url(#ar43a)"/>
+
+<text x="144" y="176" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">纯 BaseChatModel（含假模型）</text>
+<text x="536" y="176" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">provider 子类（如 ChatOpenAI）</text>
+
+<rect x="24" y="186" width="240" height="292" rx="7" fill="#2a2320" stroke="#e8a34b" stroke-width="1.3"/>
+<text x="40" y="210" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#f3c47a">method 在这里不起作用</text>
+<text x="40" y="234" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">Python：基类把 method 取出来丢掉</text>
+<text x="40" y="252" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">永远走 bind_tools + tool_choice</text>
+<text x="40" y="276" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">JS：基类只认 functionCalling</text>
+<text x="40" y="294" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">传 jsonMode 直接抛 Error</text>
+<text x="40" y="318" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">jsonSchema / 不传 → 同样走工具调用</text>
+<text x="40" y="342" font-family="system-ui, sans-serif" font-size="9.5" fill="#7d8b9c">工具名默认 "extract"（JS 侧）</text>
+<text x="40" y="364" font-family="system-ui, sans-serif" font-size="9.5" fill="#7d8b9c">所以三档输出看起来一模一样</text>
+
+<line x1="40" y1="382" x2="248" y2="382" stroke="#5a4a3e" stroke-width="1" stroke-dasharray="3 4"/>
+<text x="40" y="404" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">实际发生的事：</text>
+<rect x="40" y="414" width="208" height="46" rx="6" fill="#1b2532" stroke="#3a4a5e" stroke-width="1"/>
+<text x="56" y="434" font-family="system-ui, sans-serif" font-size="9" fill="#dfe6ee">bind_tools(['Person'])</text>
+<text x="56" y="450" font-family="system-ui, sans-serif" font-size="9" fill="#93a1b1">→ 从 tool_calls[0].args 取数据</text>
+
+<rect x="288" y="186" width="368" height="292" rx="7" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.3"/>
+<text x="304" y="210" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#8ecbff">provider 子类：四种 method 各发什么</text>
+
+<text x="304" y="240" font-family="system-ui, sans-serif" font-size="10" font-weight="700" fill="#dfe6ee">不传（缺省）= json_schema</text>
+<text x="304" y="258" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">response_format: json_schema, strict:true</text>
+<text x="304" y="274" font-family="system-ui, sans-serif" font-size="9.5" fill="#7d8b9c">不带 tools —— 走原生 JSON schema</text>
+
+<line x1="304" y1="288" x2="640" y2="288" stroke="#3a4a5e" stroke-width="1" stroke-dasharray="3 4"/>
+
+<text x="304" y="310" font-family="system-ui, sans-serif" font-size="10" font-weight="700" fill="#dfe6ee">method="function_calling"</text>
+<text x="304" y="328" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">tools + tool_choice，不带 response_format</text>
+<text x="304" y="344" font-family="system-ui, sans-serif" font-size="9.5" fill="#7d8b9c">模型回 tool_call —— 走工具调用</text>
+
+<line x1="304" y1="358" x2="640" y2="358" stroke="#3a4a5e" stroke-width="1" stroke-dasharray="3 4"/>
+
+<text x="304" y="380" font-family="system-ui, sans-serif" font-size="10" font-weight="700" fill="#dfe6ee">method="json_schema"</text>
+<text x="304" y="398" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">与缺省完全相同，一个字都不差</text>
+
+<line x1="304" y1="412" x2="640" y2="412" stroke="#3a4a5e" stroke-width="1" stroke-dasharray="3 4"/>
+
+<text x="304" y="434" font-family="system-ui, sans-serif" font-size="10" font-weight="700" fill="#dfe6ee">method="json_mode"</text>
+<text x="304" y="452" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">response_format: json_object</text>
+<text x="304" y="468" font-family="system-ui, sans-serif" font-size="9.5" fill="#7d8b9c">只保证是 JSON，不保证符合 schema</text>
+
+<text x="34" y="504" font-family="system-ui, sans-serif" font-size="9.5" fill="#7d8b9c">判据只有一条：method 是否生效，取决于这个类有没有覆写 with_structured_output。</text>
+</svg>

@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 470" width="680" height="470" role="img">
+<title>Skill 与 MCP 的取舍</title>
+<desc>Skill 给的是流程与写法指引，清单常驻、正文按需加载，代价是多一次工具往返；MCP 给的是可调用的能力，连上就发现、schema 全量下发，代价是工具一多就吃满上下文。</desc>
+
+<rect x="0" y="0" width="680" height="470" fill="#111721"/>
+
+<text x="34" y="38" font-family="system-ui, sans-serif" font-size="17" font-weight="700" fill="#dfe6ee">Skill 与 MCP：一个给「怎么做」，一个给「能做」</text>
+<text x="34" y="62" font-family="system-ui, sans-serif" font-size="12" fill="#7d8b9c">四行对照：给什么、怎么给、代价、什么时候选</text>
+
+<rect x="34" y="86" width="290" height="44" rx="8" fill="#241f38" stroke="#a78bfa" stroke-width="1.2"/>
+<text x="179" y="113" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#c9b8ff">Skill（技能）</text>
+
+<rect x="356" y="86" width="290" height="44" rx="8" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.2"/>
+<text x="501" y="113" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#8ecbff">MCP（工具供给）</text>
+
+<rect x="34" y="138" width="290" height="56" rx="7" fill="#1b2532" stroke="#3a4a5e" stroke-width="1"/>
+<text x="48" y="158" font-family="system-ui, sans-serif" font-size="9" fill="#7d8b9c">给什么</text>
+<text x="48" y="178" font-family="system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">流程、规范、写法（都是字）</text>
+<rect x="356" y="138" width="290" height="56" rx="7" fill="#1b2532" stroke="#3a4a5e" stroke-width="1"/>
+<text x="370" y="158" font-family="system-ui, sans-serif" font-size="9" fill="#7d8b9c">给什么</text>
+<text x="370" y="178" font-family="system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">能被调用的能力（工具、资源）</text>
+
+<rect x="34" y="200" width="290" height="56" rx="7" fill="#1b2532" stroke="#3a4a5e" stroke-width="1"/>
+<text x="48" y="220" font-family="system-ui, sans-serif" font-size="9" fill="#7d8b9c">怎么给</text>
+<text x="48" y="240" font-family="system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">清单常驻，正文按需加载</text>
+<rect x="356" y="200" width="290" height="56" rx="7" fill="#1b2532" stroke="#3a4a5e" stroke-width="1"/>
+<text x="370" y="220" font-family="system-ui, sans-serif" font-size="9" fill="#7d8b9c">怎么给</text>
+<text x="370" y="240" font-family="system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">连上就发现，schema 全量下发</text>
+
+<rect x="34" y="262" width="290" height="56" rx="7" fill="#1b2532" stroke="#3a4a5e" stroke-width="1"/>
+<text x="48" y="282" font-family="system-ui, sans-serif" font-size="9" fill="#7d8b9c">代价</text>
+<text x="48" y="302" font-family="system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">多一次工具往返</text>
+<rect x="356" y="262" width="290" height="56" rx="7" fill="#1b2532" stroke="#3a4a5e" stroke-width="1"/>
+<text x="370" y="282" font-family="system-ui, sans-serif" font-size="9" fill="#7d8b9c">代价</text>
+<text x="370" y="302" font-family="system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">工具一多，上下文被吃满</text>
+
+<rect x="34" y="324" width="290" height="56" rx="7" fill="#1b2532" stroke="#3a4a5e" stroke-width="1"/>
+<text x="48" y="344" font-family="system-ui, sans-serif" font-size="9" fill="#7d8b9c">什么时候选</text>
+<text x="48" y="364" font-family="system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">模型缺的是「怎么做」</text>
+<rect x="356" y="324" width="290" height="56" rx="7" fill="#1b2532" stroke="#3a4a5e" stroke-width="1"/>
+<text x="370" y="344" font-family="system-ui, sans-serif" font-size="9" fill="#7d8b9c">什么时候选</text>
+<text x="370" y="364" font-family="system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">模型缺的是「有服务可调」</text>
+
+<rect x="34" y="396" width="612" height="56" rx="8" fill="#2a2320" stroke="#e8a34b" stroke-width="1.2"/>
+<text x="50" y="419" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#f3c47a">缺知识？选 Skill。缺手脚？选 MCP。</text>
+<text x="50" y="439" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">两者不冲突：Skill 的正文里，常常就是在教模型怎么用 MCP 工具。</text>
+</svg>

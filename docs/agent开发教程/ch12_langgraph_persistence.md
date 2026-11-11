@@ -2,23 +2,51 @@
 
 ## 一、这一章要解决的问题
 
-第 11 章讲的是**一次运行之内**状态怎么合并。但真实应用里，图跑完之后问题才开始：进程重启了，对话历史还在吗？agent 走到第 5 步崩了，是整条链路重来还是接着跑？模型在某一步记错了事实，能不能改回正确状态让它从那里继续？张三在 A 会话说过「我住杭州」，换个会话还记得吗？
+第 11 章讲的是**一次运行之内**状态怎么合并。
 
-这四件事对应两套**互不替代**的机制：**检查点（checkpoint）** 管「这一段对话」，**存储（store）** 管「这个人」。本章把两套都讲清，并给出本机实测的行为边界。
+这一章把镜头往后挪：图跑完之后，状态去哪？
+
+真实应用里，图一跑完，问题才开始：
+
+- 进程重启了，对话历史还在吗？
+- agent 走到第 5 步崩了，是整条链路重来，还是接着跑？
+- 模型某一步记错了事实，能不能改回正确状态，从那里继续？
+- 张三在 A 会话说过「我住杭州」，换个会话还记得吗？
+
+前三个问题归一套机制：**检查点**（checkpoint——给图状态逐超步存快照）。
+
+第四个问题归另一套：**存储**（store——跨线程存键值数据的地方）。
+
+两套机制**互不替代**。选错了，会出现两种怪现象：
+
+- 对话能续上，但记不住用户；
+- 记得住用户，但对话一断就丢。
+
+本章把两套都讲清，并给出本机实测的行为边界。
 
 **一句话主线：本章回答「图跑完之后，状态去哪」——检查点怎么逐超步存快照、怎么按三级配置定位与改写（时间旅行），store 怎么跨线程存键值，以及两套机制各自的行为边界。**
 
 > 版本锚点：本章结论在 `langgraph` **1.2.12**（Python）与 `@langchain/langgraph` **1.4.17**（JS）上实测；示例源码见 `code/python/12_persistence.py` 与 `code/typescript/12_persistence.ts`。
 
+> 小例子：客服 agent 上线一周，用户投诉「昨天的对话它不记得了」。
+> 先查 `compile()` 里有没有传 checkpointer。传了，再查后端是不是 `InMemorySaver`——进程一重启，快照全没。
+
 ## 二、机制与原理
 
 ### 2.1 两套持久化系统：checkpointer 与 store
 
-选持久化方案的第一步不是「怎么配」，而是「存哪一套」：checkpointer 与 store 名字里都带「存」，但作用范围、存的东西、取的方式完全不同，这一节先把两套的边界画清楚。
+先给结论：checkpointer 管「这一段对话」，store 管「这个人」。
 
-可以先建立一个直观印象（类比，只帮助记忆，准确边界以下表为准）：**checkpointer 像单局游戏的存档**，只服务「这一段对话」；**store 像玩家账号里的资料**，换一局、换台机器也认你。
+第一步不是问「怎么配」，而是问「存哪一套」。
 
-先看下面这张表——它回答的问题是「我该把东西存哪一套」。选错了会出现「对话能续上但记不住用户」或「记得住用户但对话一断就丢」这类奇怪现象。
+两个名字里都带「存」，但作用范围、存的东西、取的方式完全不同。先看边界：
+
+![图 12-1　checkpointer 与 store：一个按线程存图状态，一个跨线程存键值](assets/12-1_checkpointer_vs_store.png)
+*图 12-1　checkpointer 与 store：一个按线程存图状态，一个跨线程存键值*
+
+图的上半部分是检查点：每条 `thread_id` 各自一串快照。下半部分是 store：命名空间跨线程共享，换会话照样读得到。
+
+这张表回答的问题是「我该把东西存哪一套」：
 
 | 维度 | Checkpointer（检查点保存器） | Store（跨线程存储） |
 |---|---|---|
@@ -30,17 +58,34 @@
 
 判断口径只有一句：**需要「这次对话内记得」→ checkpointer；需要「换个人、换次会话还记得」→ store。**
 
-![图 25　checkpointer 与 store 两套持久化系统：一个按线程存图状态，一个跨线程存键值](assets/25_store_layers.png)
+> 打个比方：checkpointer 像单局游戏的存档，只服务这一段对话；store 像玩家账号里的资料，换一局、换台机器也认你。
 
-*图 25　checkpointer 与 store 两套持久化系统：一个按线程存图状态，一个跨线程存键值*
+> 小例子：你把「用户住杭州」写进了 checkpointer，测试时一切正常。
+> 换一个 `thread_id` 就丢了——它只活在那条线程里。这类数据从一开始就该进 store。
 
 ### 2.2 检查点、线程与命名空间
 
-选定了 checkpointer，接下来的问题是：快照按什么节奏存、怎么指定「读 / 写哪一份」？
+先给结论：图在**每一个超步边界**存一份检查点，快照存的是「到这一步为止的完整状态」。
 
-图在**每一个超步（superstep）边界**存一份检查点。超步就是「一轮可以并行执行的节点」。所以检查点不是「保存结果」，而是「保存到某一步为止的完整状态」。
+**超步**（superstep——一轮可以并行执行的节点）跑完，就落一份。
 
-运行配置里的 `configurable` 字典决定「读/写哪一份检查点」。它有三个层次，`config = {"configurable": {...}}`——三个键分别定位「哪条线程 → 哪张图 → 哪个快照」：
+所以检查点不是「保存结果」，而是「保存那个时刻的整张状态表」。
+
+写入链路是四段：
+
+1. `invoke` 带着 `thread_id` 进来；
+2. 一轮超步里的节点并行跑完；
+3. 边界处把 `values` / `next` / `config` 打包成快照；
+4. saver 按 `thread_id` 归桶存档。
+
+![图 12-2　一次 invoke 的检查点写入链路：超步边界写快照，按 thread_id 分桶](assets/12-2_checkpoint_write_path.png)
+*图 12-2　一次 invoke 的检查点写入链路：超步边界写快照，按 thread_id 分桶*
+
+注意图里写快照的位置：**在超步边界，不在节点内部**。所以任意一份快照都是「整齐的中间态」，不会停在某个节点改了一半的地方。
+
+下一次 `invoke` 进来，先按同样的 `thread_id` 读最新一份，从它的 `next` 接着跑。
+
+运行配置里的 `configurable` 字典，决定「读 / 写哪一份」。写法是 `config = {"configurable": {...}}`，三个键从粗到细：
 
 | 键 | 示例值 | 含义 |
 |---|---|---|
@@ -48,19 +93,32 @@
 | `checkpoint_ns` | `""` | 线程里的哪张图；顶层图为空串，子图有自己的命名空间 |
 | `checkpoint_id` | `"1ef4..."` | 哪一个快照；不传就取最新 |
 
-`thread_id` 是**对话的身份证**——同一个 `thread_id` 的多次 `invoke` 共享同一条状态历史，换一个就是一张白纸。`checkpoint_ns` 区分「同一个线程里这条状态属于哪张图」，把 agent 当子图挂进父图后，子图的状态就落在自己的命名空间里（第 13 章「子图消息不透传」用的是同一个底层概念）。`checkpoint_id` 指向具体快照；`update_state` 之所以能改写历史，就是因为它接收的是**某个历史快照自带的 config**。
+三个键的职责，一条一条说：
+
+- **`thread_id` 是对话的身份证。** 同一个 `thread_id` 的多次 `invoke` 共享一条状态历史。换一个，就是一张白纸。
+- **`checkpoint_ns` 区分「同一线程里这条状态属于哪张图」。** 把 agent 当子图挂进父图后，子图的状态就落在自己的命名空间里。第 13 章「子图消息不透传」用的是同一个底层概念。
+- **`checkpoint_id` 指向具体快照。** `update_state` 之所以能改写历史，就是因为它接收的是**某个历史快照自带的 config**。
+
+> 小例子：图省事，把 `thread_id` 直接写成用户 ID。
+> 结果同一个用户的两个会话（一个查订单、一个问售后）共用一条历史，agent 会把两件事串着答。`thread_id` 该是「一次会话」，不是「一个人」。
 
 ### 2.3 持久执行（durable execution）与内置实现
 
-上一节讲怎么定位检查点；这一节讲它白送的一个能力——**持久执行**。
+先给结论：检查点只有落在**进程之外**，才谈得上持久执行（durable execution——崩了从最近一步接着跑）。
 
-有了逐超步的检查点，「持久执行」就有基础了——但前提是**检查点本身是持久化的**：`SqliteSaver` / `PostgresSaver` 等落盘后端能让进程崩溃后从最近的检查点续跑，只丢最后一次超步；`InMemorySaver` 随进程消失，重启后同一 `thread_id` 也拿不回历史（见图 26 的对照）。
+有了逐超步的检查点，续跑就有基础了。但前提是检查点本身活得比进程长。
 
-![图 26　检查点把状态放到进程之外：内存版重启即失，持久化版从最近检查点续跑](assets/26_checkpoint_recovery.png)
+两种后端，两种命运：
 
-*图 26　检查点把状态放到进程之外：内存版重启即失，持久化版从最近检查点续跑*
+- `SqliteSaver` / `PostgresSaver` 等落盘后端：进程崩溃后从最近的检查点续跑，只丢最后一次超步。
+- `InMemorySaver` 随进程消失：重启后同一 `thread_id` 也拿不回历史。
 
-内置实现只有三种口径，别混用——下表给出各自的导入路径、落点与适用场景：
+![图 12-3　故障恢复与重放：内存版重启即失，落盘版从最近检查点续跑](assets/12-3_recovery_replay.png)
+*图 12-3　故障恢复与重放：内存版重启即失，落盘版从最近检查点续跑*
+
+图里第 4 步崩了，但前 3 步的快照已经在进程之外。重启后从 `cp3` 载入，只重跑没落盘的那一段。
+
+内置实现只有三种口径，别混用：
 
 | 实现 | 导入路径 | 落在哪 | 适用 |
 |---|---|---|---|
@@ -68,7 +126,16 @@
 | `SqliteSaver` | `langgraph.checkpoint.sqlite` | 单个 SQLite 文件 | 本地单机 |
 | `PostgresSaver` | `langgraph.checkpoint.postgres` | PostgreSQL | 生产 |
 
-**同一套检查点还有「何时落盘」的三档：`durability`。** 它回答的问题是：每一步都**同步**写、**异步**写、还是只在**结束时**写一次。三档都要求已经配了 checkpointer；不配时这个参数没有地方可写。
+**同一套检查点还有「何时落盘」的三档：`durability`。**
+
+它回答一个问题：每一步都**同步**写、**异步**写、还是只在**结束时**写一次。
+
+三档都要求已经配了 checkpointer。不配时，这个参数没有地方可写。
+
+![图 12-4　durability 三档：sync 每步同步写、async 异步补写、exit 只在结束写](assets/12-4_durability_tiers.png)
+*图 12-4　durability 三档：sync 每步同步写、async 异步补写、exit 只在结束写*
+
+三档的差别只有一处：**写入点落在时间轴的哪里**。快照数量跟着变。
 
 | 档位 | 落盘时机 | 本文 3.3 实测快照数（两节点图） | 适用 |
 |---|---|---|---|
@@ -86,11 +153,14 @@
 2. `cfg = {"configurable": {"thread_id": "demo"}}`
 3. `app.invoke({"n": 0}, cfg)` 后再 `app.invoke({}, cfg)`——第二次从最近检查点续跑。
 
+> 小例子：为了少写几次库，选了 `durability="exit"`。
+> 跑批跑到第 80 分钟机器重启，整段运行一次都没落盘，只能从头再来——省下的写入，全赔进重跑成本。
+
 ### 2.4 读与改：get_state / get_state_history / update_state
 
-快照存下来之后，怎么看见它、怎么改写它？三个方法各管一件事。
+先给结论：三个方法各管一件事——看当前、看历史、开新分支。
 
-这张表回答「我怎么看见和改动检查点」。
+快照存下来之后，怎么看见它、怎么改写它？这张表回答「我怎么看见和改动检查点」：
 
 | 方法 | Python | TypeScript | 给你什么 |
 |---|---|---|---|
@@ -98,19 +168,38 @@
 | 历史快照 | `graph.get_state_history(cfg)` | `await graph.getStateHistory(cfg)` | **Python 同步迭代器 / JS 异步迭代器**，从新到旧 |
 | 改写历史 | `graph.update_state(cfg, values)` | `await graph.updateState(cfg, values)` | 返回**新分支**的 config |
 
-两个字段要会读：`values` 是这一份快照的完整状态；`next` 是**待执行节点**——跑完的线程 `next` 为空，这是判断「图是否停在半路」最可靠的信号。**时间旅行（time travel）** 就是「拿一个历史快照的 config，改掉几个字段，再从那里重放」。它**新建分支**，原线程的历史一条都不动——语义上和 **git 的 branch 完全同构**：历史是只读的，你只是在某个旧 commit 上开了条新分支往前走。（类比展开：就像 `git checkout` 到旧 commit 后在新分支上继续提交，原分支的日志一个字节都不会变；LangGraph 里同样没有「修改历史」这个操作，能做的只有开新分支。）这使它成为调试 agent 最有力的一招：把 agent 走错的那一步改回正确状态，看它接下来会不会又走错。
+两个字段要会读：
 
-![图 27　时间旅行：选中历史检查点、改写状态、从改写点新建分支重放，原线程不受影响](assets/27_time_travel.png)
+- `values` 是这一份快照的完整状态。
+- `next` 是**待执行节点**。跑完的线程 `next` 为空，这是判断「图是否停在半路」最可靠的信号。
 
-*图 27　时间旅行：选中历史检查点、改写状态、从改写点新建分支重放，原线程不受影响*
+**时间旅行**（time travel）就是：拿一个历史快照的 config，改掉几个字段，再从那里重放。
+
+它**新建分支**，原线程的历史一条都不动。
+
+![图 12-5　时间旅行：选中历史快照、改写状态、从改写点开新分支](assets/12-5_time_travel.png)
+*图 12-5　时间旅行：选中历史快照、改写状态、从改写点开新分支*
+
+图里蓝线是原线程，紫线是 `update_state` 开出来的新分支。改写点之后只重放后面几步，前面的节点一个都不重跑。
+
+这套语义和 **git 的 branch 完全同构**：历史是只读的，你只是在某个旧 commit 上开了条新分支往前走。
+
+> 打个比方：`update_state` 就像 `git checkout` 到旧 commit，再 `git switch -c` 开新分支继续提交。原分支的日志一个字节都不会变——LangGraph 里同样没有「修改历史」这个操作。
+
+正因为改不坏原线程，它成了调试 agent 最有力的一招。把走错的那一步改回正确状态，看它接下来会不会又走错。
+
+> 小例子：你用 `update_state` 改了状态，接着用**原来的** `cfg` 重放，发现改写没生效。
+> `update_state` 返回的是**新分支的 config**，必须拿它去 `invoke`。用旧 `cfg`，你还在原线程上跑。
 
 ### 2.5 Store：跨线程的键值记忆
 
-checkpointer 管的是线程之内的图状态；还有一类数据要跨线程地活——用户偏好、长期事实、共享知识——那是 store 的地盘。这一节讲它的数据模型与五个方法。
+先给结论：store 的模型是「命名空间元组 + 键 + 一个 dict 值」，`search` 是前缀匹配。
 
-Store 的模型很简单：**命名空间是一个字符串元组，任意层数** + 一个键 + 一个 **dict 值**。`("alice", "memories")` 只是「用用户维度做命名空间」这一种用法，不是唯一用法。
+命名空间（namespace）是一个字符串元组，任意层数。
 
-五个方法在两种语言里的签名和语义，看下表——它回答「要存 / 取 / 找东西，该调哪个方法、传什么」：
+`("alice", "memories")` 只是「用用户维度做命名空间」这一种用法，不是唯一用法。
+
+五个方法在两种语言里的签名和语义：
 
 | 方法 | Python | TypeScript | 说明 |
 |---|---|---|---|
@@ -122,9 +211,16 @@ Store 的模型很简单：**命名空间是一个字符串元组，任意层数
 
 > 上表中位置参数形式（`put` / `get` / `search(prefix)` / `list_namespaces(prefix=...)`）是本机实测跑过的；`delete` 已在下面示例中调用过一次（删单个键）；`query` / `filter` / `limit` 等关键字选项来自官方 Stores 页（JS 侧类型定义 `@langchain/langgraph-checkpoint` 1.1.5），未逐项实跑。
 
-**`search` 是前缀匹配，这是最容易踩的一处**：数据写进 `("alice", "memories")` 和 `("alice", "notes")` 之后，`search(("alice",))` 会把两个命名空间下的条目**全都捞出来**（实测命中 3 条），而不是只返回 `("alice",)` 这一层。把命名空间写细只能**缩小**命中范围（`search(("alice", "memories"))` 仍会命中 `("alice", "memories", "food")` 这样的子命名空间），**不是精确匹配**。
+**`search` 是前缀匹配，这是最容易踩的一处。**
 
-**语义检索（semantic search）** 需要在构造 Store 时配 `index`——三个字段，两种语言的字段名还有一处不同：
+数据写进 `("alice", "memories")` 和 `("alice", "notes")` 之后，`search(("alice",))` 会把两个命名空间下的条目**全都捞出来**（实测命中 3 条），而不是只返回 `("alice",)` 这一层。
+
+把命名空间写细只能**缩小**命中范围：`search(("alice", "memories"))` 仍会命中 `("alice", "memories", "food")` 这样的子命名空间。**它不是精确匹配。**
+
+> 小例子：你以为 `search(("alice",))` 只查「alice 这一层」，结果 3 条全回来了。
+> 不是 bug，是前缀匹配的本意。命名空间写粗了就会误命中；数据一多，就把命名空间写细。
+
+**语义检索**（semantic search）需要在构造 Store 时配 `index`。三个字段，两种语言的字段名还有一处不同：
 
 | 字段 | Python | TypeScript | 含义 |
 |---|---|---|---|
@@ -136,39 +232,56 @@ Store 的模型很简单：**命名空间是一个字符串元组，任意层数
 
 > ⚠️ **需 API Key，未实测**：`index` 需要真实嵌入模型（OpenAI / Cohere 等）才能产生向量。本章示例用的是不带 `index` 的 `InMemoryStore`，纯键值语义——**语义检索只给写法、不给运行结果**。另注意 Python 用 `embed`、JS 用 `embeddings`，字段名不同。
 
-**节点里怎么拿到 store**：图挂上 store 之后，节点通过运行时对象访问——Python 是节点第二个参数 `runtime: Runtime`（来自 `langgraph.runtime`）上的 `runtime.store`；JS 节点的第二个参数就是运行时对象，`runtime.store` 直接用，也可以用 `getStore()` 从当前配置取。
+**节点里怎么拿到 store**：图挂上 store 之后，节点通过运行时对象访问。
+
+- Python：节点第二个参数 `runtime: Runtime`（来自 `langgraph.runtime`）上的 `runtime.store`。
+- JS：节点的第二个参数就是运行时对象，`runtime.store` 直接用；也可以用 `getStore()` 从当前配置取。
 
 > ⚠️ 口径订正：**本章示例从未把 store 挂到图上、也没有任何节点访问过 `runtime.store`**——`12_persistence.py` / `.ts` 的 ④ 节只是**直接调 store 的 API**（`put` / `get` / `search` / `list_namespaces` / `delete`），表格里的「节点里用 `runtime.store`」是被 print 出来的字符串。所以「节点里怎么拿 store」整段是**源码核对 / 官方文档**，不是实测。
 >
-> 工具侧的 `ToolRuntime.store` 也**不是「统一跑过」**：Python 侧实测成功（`07_tools.py` 回读到 `{'tenant': 't-7'}`），**JS 侧实测到的是失败**（`this.store.batch is not a function`，即差异清单 #16）。
+> 工具侧的 `ToolRuntime.store` 也**不是「统一跑过」**：Python 侧实测成功（`07_tools.py` 回读到 `{'tenant': 't-7'}`），**JS 侧实测到的是失败**（`this.store.batch is not a function`）。
 
 ### 2.6 子图持久化：`checkpoint_ns` 与两层历史
 
-2.2 提到 `checkpoint_ns` 区分「同一线程里的哪张图」；这一节把它落到子图上。它回答的问题是：**父图带检查点时，子图的状态存在哪、暂停时怎么下钻看、恢复时按哪一层继续**。
+先给结论：子图在父图里占一个命名空间。暂停时能下钻看两层，跑完之后只能按命名空间单独查。
+
+2.2 提到 `checkpoint_ns` 区分「同一线程里的哪张图」。这里把它落到子图上。
+
+三个问题一次答完：子图状态存在哪、暂停时怎么下钻看、恢复时按哪一层继续。
 
 - 子图**不单独传 checkpointer** 时，继承父图的 saver，检查点落在父图命名空间下的子命名空间（`checkpoint_ns = "child:<uuid>"`）。
-- 子图**自带 checkpointer** 时，也仍然是父图的一次 task；父图负责调度，子图有自己的历史层。两种写法在暂停态下都能用 `get_state(cfg, subgraphs=True)` 下钻。
-- `get_state(..., subgraphs=True)` 返回的 `StateSnapshot.tasks[]` 里，每个 task 的 `.state` 是**子图快照**：`.values` / `.next` / `.config.configurable.checkpoint_ns`。`get_state_history` **没有** `subgraphs` 参数——历史只能按当前图的命名空间翻。
+- 子图**自带 checkpointer** 时，也仍然是父图的一次 task。父图负责调度，子图有自己的历史层。两种写法在暂停态下都能用 `get_state(cfg, subgraphs=True)` 下钻。
+- `get_state(..., subgraphs=True)` 返回的 `StateSnapshot.tasks[]` 里，每个 task 的 `.state` 是**子图快照**：`.values` / `.next` / `.config.configurable.checkpoint_ns`。
+- `get_state_history` **没有** `subgraphs` 参数——历史只能按当前图的命名空间翻。
+
+![图 12-6　子图与父图的检查点命名空间：父图停在 child，下钻看子图快照](assets/12-6_subgraph_namespace.png)
+*图 12-6　子图与父图的检查点命名空间：父图停在 child，下钻看子图快照*
+
+图里一条线程存了两层状态。父图这一层看到的是「停在 `child` 节点」，`next = ('child',)`。下钻到 `tasks[0].state`，才看到子图内部停在 `child_pause`。
 
 最小例子（子图在 `interrupt` 处暂停，父图看到的是「停在 child 节点」）：
 
-```python
-snapshot = parent.get_state(sub_cfg, subgraphs=True)
-print(snapshot.values, snapshot.next)        # {'x': 0} ('child',)
-task = snapshot.tasks[0]
-print(task.state.values, task.state.next)    # {'x': 1} ('child_pause',)
-print(task.state.config["configurable"]["checkpoint_ns"])   # child:<uuid>
-```
+| 调用 | 输出 |
+|---|---|
+| `snap = parent.get_state(sub_cfg, subgraphs=True)` | `values = {'x': 0}`，`next = ('child',)`，`len(snap.tasks) == 1` |
+| `snap.tasks[0].state.values` | `{'x': 1}` |
+| `snap.tasks[0].state.next` | `('child_pause',)` |
+| `snap.tasks[0].state.config["configurable"]["checkpoint_ns"]` | `child:<uuid>` |
 
-![图 28　子图命名空间与 durability 时间线](assets/28_subgraph_durability.png)
-
-*图 28　子图命名空间与 durability 时间线*
+父图状态还停在 0，因为 `child` 这个 task 没跑完；子图里已经跑到 1。两层各记各的，互不覆盖。
 
 > 口径：父/子 saver 两种形态、`tasks[].state`、`checkpoint_ns` 的格式为**示例实测**；`get_state_history` 无 `subgraphs` 参数为**源码核对**（签名里只有 `filter` / `before` / `limit`）。
 
+> 小例子：图跑完之后再去 `get_state(cfg, subgraphs=True)` 看子图状态，`tasks` 是空的。
+> 这不是写法错。`tasks[]` 只在子图执行中或中断时才有；跑完想查子图历史，得拿子图自己的 `checkpoint_ns` 去查，或者让子图自带 saver。
+
 ### 2.7 记忆的类型学：短期、长期、语义与程序性
 
-2.1 的「checkpointer 管线程、store 管人」是二分法；工程里更常用的是四分法。这一节回答的问题是：**用户偏好、对话历史、领域知识、技能说明，各该落在哪一层**。
+先给结论：工程里常用四分法——短期对话、长期事实、语义记忆、程序性记忆。
+
+2.1 的「checkpointer 管线程、store 管人」是二分法。四分法多切了两刀。
+
+这一节回答：**用户偏好、对话历史、领域知识、技能说明，各该落在哪一层。**
 
 | 记忆类型 | 载体 | 作用域 / 检索方式 | 典型内容 |
 |---|---|---|---|
@@ -177,15 +290,27 @@ print(task.state.config["configurable"]["checkpoint_ns"])   # child:<uuid>
 | 语义记忆 | Store `index` | 跨线程，按 embedding 相似度 | 领域知识、历史工单、可召回片段 |
 | 程序性记忆 | Skills / `AGENTS.md` | 文件，按需加载进提示词 | 操作步骤、团队规范、技能说明 |
 
-选错层的典型症状：把用户偏好写进 checkpointer（换个 `thread_id` 就丢），或把整段对话塞进 Store（检索噪声大、成本高）。第 9 章讲上下文怎么裁，第 17 章讲 Skills / Memory 在 Deep Agents 里怎么落地；本节只给分层判断，不重复它们的实现。
+选错层的典型症状有两种：
+
+- 把用户偏好写进 checkpointer——换个 `thread_id` 就丢；
+- 把整段对话塞进 Store——检索噪声大、成本高。
+
+第 9 章讲上下文怎么裁，第 17 章讲 Skills / Memory 在 Deep Agents 里怎么落地。本节只给分层判断，不重复它们的实现。
 
 > 口径：四种记忆的**映射关系**是架构判断；`checkpointer` / `Store` 的读写行为见本章示例实测；`Store index` 的语义检索需嵌入模型，**未实测**（见 2.5）。
+
+> 小例子：为了「让 agent 记住一切」，你把 200 轮对话全文写进 Store。
+> 下次检索时捞回 10 段无关闲聊，提示词被撑爆，答案反而更差。对话归 checkpointer，只有稳定事实才提炼进 Store。
 
 ## 三、代码：Python 与 TypeScript
 
 ### 3.1 检查点续跑、历史快照与时间旅行
 
-这一节把 2.4 的三个方法落到一次完整演示里——Python 侧先跑四次 `invoke` 看 `n` 怎么变，再读快照与历史，最后挑一个中间快照改写后重放。
+先给结论：四次 `invoke` 的输出数字，就是检查点语义的完整证据。
+
+这一节把 2.4 的三个方法落到一次完整演示里。
+
+顺序是：先跑四次 `invoke` 看 `n` 怎么变，再读快照与历史，最后挑一个中间快照改写后重放。
 
 ```python
 from typing import TypedDict
@@ -239,7 +364,7 @@ forked2 = chain.update_state(mid.config, {"n": 10, "trail": ["人工改写：n=1
 chain.invoke(None, forked2)                           # 只重走 double、tag 两步
 ```
 
-TypeScript 侧一一对应，注意 `getStateHistory` 是**异步迭代器**，必须 `for await` 收下来再取下标。
+TypeScript 侧一一对应。注意 `getStateHistory` 是**异步迭代器**，必须 `for await` 收下来再取下标。
 
 ```typescript
 import { Annotation, END, MemorySaver, START, StateGraph } from "@langchain/langgraph";
@@ -272,9 +397,27 @@ const forked = await graph.updateState(history[history.length - 2].config, {
 console.log(await graph.invoke(null, forked));                  // 从改写点往后重放
 ```
 
-**四个数字要记住**：第 1 次 `n=1`；第 2 次传 `{}` → `n=2`（从检查点状态**重新执行**了那个节点）；第 3 次传 `None` / `null` → `n=2`（**空操作**，已跑完的线程没有待执行任务，图一步都没跑）；第 4 次传 `{n: 100}` → 默认 reducer 覆盖掉检查点里的 2，再 +1 得 `101`。`trail` 一直在变长，因为四次输入里从没给过 `trail`——它始终沿用检查点里的值。这就是第 11 章那条结论的另一面：**输入里出现的字段按各自的 reducer 合并，没出现的保留检查点值**。
+**四个数字要记住**：
 
-**「从最早往回数第 2 个」怎么换算**：`get_state_history` 返回顺序是**新 → 旧**，所以 `snapshots[-2]` 取的是**倒数第二个**。上面四次 `invoke` 一共落了 9 个快照（含 START 那个 `step=-1` 的空快照），实际选中的是 `step=0, n=0`——即第一次 `invoke` 写入输入、但 `step` 节点还没跑的那个快照。**为什么不直接取 `[-1]`**：`[-1]` 是最早的 START 快照（`n=None`），没有可改写的状态；选「输入已写入、节点未执行」的这一格，改写后再 `invoke(None)` 恰好重放一遍 `step` 节点。
+- 第 1 次 `n=1`；
+- 第 2 次传 `{}` → `n=2`：从检查点状态**重新执行**了那个节点；
+- 第 3 次传 `None` / `null` → `n=2`：**空操作**。已跑完的线程没有待执行任务，图一步都没跑；
+- 第 4 次传 `{n: 100}` → `n=101`：默认 reducer 覆盖掉检查点里的 2，再 +1。
+
+`trail` 一直在变长，因为四次输入里从没给过 `trail`——它始终沿用检查点里的值。
+
+这就是第 11 章那条结论的另一面：**输入里出现的字段按各自的 reducer 合并，没出现的保留检查点值**。
+
+**「从最早往回数第 2 个」怎么换算**：
+
+`get_state_history` 返回顺序是**新 → 旧**，所以 `snapshots[-2]` 取的是**倒数第二个**。
+
+上面四次 `invoke` 一共落了 9 个快照（含 START 那个 `step=-1` 的空快照），实际选中的是 `step=0, n=0`——即第一次 `invoke` 写入输入、但 `step` 节点还没跑的那个快照。
+
+**为什么不直接取 `[-1]`**：`[-1]` 是最早的 START 快照（`n=None`），没有可改写的状态。选「输入已写入、节点未执行」的这一格，改写后再 `invoke(None)` 恰好重放一遍 `step` 节点。
+
+> 小例子：照着代码抄，把下标写成 `[-1]`，改写后重放却发现 `n` 还是老值。
+> `[-1]` 是 START 的空快照，`n` 是 `None`。要选「输入已写入、节点没跑」的那一格，用 `[-2]`。
 
 三节点链的实测输出（两语言一致）把「时间旅行」真正演示出来了——**单节点图重放只有一步，看不出来「跳回中间」**：
 
@@ -285,11 +428,17 @@ console.log(await graph.invoke(null, forked));                  // 从改写点�
 → 只重走了 double→tag 两步，bump 没有重跑；原线程 chain-demo 的历史不受影响。
 ```
 
-读法：`mid` 选中了 `next=("double",)` 的快照——**`next` 字段就是「重放从哪继续」的落点**；`update_state` 改成 `n=10` 后重放，`bump` 一步都没有出现在新 `trail` 里，因为重放是从它**之后**开始的。
+读法：`mid` 选中了 `next=("double",)` 的快照。**`next` 字段就是「重放从哪继续」的落点。**
+
+`update_state` 改成 `n=10` 后重放，`bump` 一步都没有出现在新 `trail` 里，因为重放是从它**之后**开始的。
 
 ### 3.2 Store：跨线程记忆与前缀搜索
 
-这一段演示 2.5 节表格里五个方法的实际行为——Python 侧往两个命名空间写三条数据，然后用一次前缀搜索看命中几条。
+先给结论：五个方法里，只有 `search` 的前缀语义最容易误判。
+
+这一段演示 2.5 节表格里五个方法的实际行为。
+
+Python 侧往两个命名空间写三条数据，然后用一次前缀搜索看命中几条。
 
 ```python
 from langgraph.store.memory import InMemoryStore
@@ -331,11 +480,20 @@ console.log(await store.listNamespaces({ prefix: ["alice"] }));
 await store.delete(USER, "pref-city");
 ```
 
+三处行为值得记住：
+
+- `get` 返回的是一个 Item，数据在 `.value` 里。
+- `search(("alice",))` 命中 3 条，`search(USER)` 只剩 2 条——命名空间写细，范围就缩小。
+- `list_namespaces(prefix=("alice",))` 返回的是命名空间路径列表，不是条目。
+
 > 完整可跑版本（含打印格式与末尾的分工对照表）：`code/python/12_persistence.py`、`code/typescript/12_persistence.ts`。
 
 ### 3.3 子图持久化与 durability
 
-子图的重点是「暂停时能看到两层状态」；durability 的重点是「同一张图、同一输入，快照数量不同」。
+先给结论：子图的看点是「两层」，durability 的看点是「几份」。
+
+- 子图：暂停时能看到**两层**状态。
+- durability：同一张图、同一输入，**快照数量不同**。
 
 ```python
 class ChildState(TypedDict):
@@ -392,28 +550,64 @@ for (const mode of ["sync", "async", "exit"] as const) {
 }
 ```
 
+两段代码的最后一个数都是 `4 / 4 / 1`。
+
+`sync` 与 `async` 都是 4 份，区别在**什么时候写**，不在**写几份**。`exit` 只写 1 份，崩了就整段重跑。
+
 ## 四、常见坑与边界条件
 
-这一节的坑覆盖五类：`invoke` 输入语义（`{}` 与 `None` 的区别）、部署选型（内存版与 sqlite 后端）、搜索口径（前缀匹配）、**子图/落盘档位**与双语言差异（store 的挂载入口、迭代器形态）。
+这一节的坑覆盖五类：`invoke` 输入语义、部署选型、搜索口径、子图 / 落盘档位、双语言差异。
 
-1. **`invoke({})` 与 `invoke(None)` 不是「相反」，而是「注入空输入」与「不注入输入」的区别**。空字典把「空输入」按各字段的 reducer 合并进检查点状态并重跑节点——想「续跑」用它；`None` 不注入任何输入，线程已跑完时就是空操作（图一步不跑），但若 config 指向一个还有待执行任务的状态（例如 `update_state` 刚改写出的分叉点），图会从那里继续往下执行——想「从历史快照重放」，用 `update_state` 返回的新分支 config 配 `invoke(None, cfg)`（3.1 节实测：从改写点重放到 `n=101`）。
-2. **生产环境别用 `InMemorySaver` / `MemorySaver` / `InMemoryStore`**。进程一退出全没，表现为「用户的会话随机丢失」。
-3. **`SqliteSaver` 要另装包**（`pip install langgraph-checkpoint-sqlite`），否则 import 就失败（**本机核对**：venv 里确实只有 `langgraph-checkpoint` 4.3.0、没有 sqlite 后端包；但示例从未真的去 import 它并捕获报错）。**中途换后端，历史搬不过去**——持久化方案要在项目早期定。
-4. **`search` 是前缀匹配**。命名空间写粗了会误命中；数据一多就把命名空间写细。
-5. **时间旅行不是改历史**。`update_state` 返回的是新分支的 config，原线程不受影响；要接着新分支跑，必须用返回的那个 config。
-6. **两边都可以在 `compile` 传 store**。Python 是 `compile(checkpointer=..., store=...)`；JS 的 `StateGraph.compile` 也支持 `store`（类型定义里有），也可以在 `invoke` 的运行配置里传——不是「两边位置不同」，只是 JS 多一个运行期入口。**另外 `get_state_history` 在 JS 侧是异步迭代器**，直接 `console.log` 只会得到迭代器对象，必须先 `for await` 收进数组。
-7. **`durability="exit"` 不是「更省的持久执行」**：它只在图结束时写一次，中途崩溃会丢掉整段运行（3.3 实测快照数 1 vs 4）。要「崩了从最近一步续跑」，至少用 `async`，关键流程用 `sync`。
-8. **子图状态只在暂停态下钻得到**：`get_state(cfg, subgraphs=True)` 在子图执行中/中断时返回 `tasks[]`；图跑完后 `tasks` 为空，想在事后看子图历史，要拿子图自己的 `checkpoint_ns` 去查（或让子图自带 saver）。这是本机实测行为，不是「写法不对」。
-9. **`get_state_history` 没有 `subgraphs` 参数**：它只翻当前图命名空间的历史；子图历史要按 2.6 的 `checkpoint_ns` 单独取（**源码核对**签名）。
-10. **别把长期记忆塞进 checkpointer**：用户偏好、租户配置换一个 `thread_id` 就丢；反过来把整段对话塞进 Store，检索噪声和成本都会上去。按 2.7 的四分法分层。
+**1. `invoke({})` 与 `invoke(None)` 不是「相反」，而是「注入空输入」与「不注入输入」的区别。**
+
+- 空字典把「空输入」按各字段的 reducer 合并进检查点状态，并重跑节点。想「续跑」用它。
+- `None` 不注入任何输入。线程已跑完时就是空操作，图一步不跑。
+- 但若 config 指向一个还有待执行任务的状态（例如 `update_state` 刚改写出的分叉点），图会从那里继续往下执行。想「从历史快照重放」，用 `update_state` 返回的新分支 config 配 `invoke(None, cfg)`（3.1 节实测：从改写点重放到 `n=101`）。
+
+**2. 生产环境别用 `InMemorySaver` / `MemorySaver` / `InMemoryStore`。** 进程一退出全没，表现为「用户的会话随机丢失」。
+
+**3. `SqliteSaver` 要另装包**（`pip install langgraph-checkpoint-sqlite`），否则 import 就失败（**本机核对**：venv 里确实只有 `langgraph-checkpoint` 4.3.0、没有 sqlite 后端包；但示例从未真的去 import 它并捕获报错）。
+
+**中途换后端，历史搬不过去**——持久化方案要在项目早期定。
+
+> 小例子：项目做到一半，想把 `InMemorySaver` 换成 `SqliteSaver` 上线。
+> 装包、改一行 `compile()` 就以为完事——老线程的历史一条都搬不过去，用户看到的是「又要重新自我介绍」。
+
+**4. `search` 是前缀匹配。** 命名空间写粗了会误命中；数据一多就把命名空间写细。
+
+**5. 时间旅行不是改历史。** `update_state` 返回的是新分支的 config，原线程不受影响。要接着新分支跑，必须用返回的那个 config。
+
+**6. 两边都可以在 `compile` 传 store。** Python 是 `compile(checkpointer=..., store=...)`；JS 的 `StateGraph.compile` 也支持 `store`（类型定义里有），也可以在 `invoke` 的运行配置里传。
+
+这不叫「两边位置不同」，只是 JS 多一个运行期入口。
+
+**另外 `get_state_history` 在 JS 侧是异步迭代器**。直接 `console.log` 只会得到迭代器对象，必须先 `for await` 收进数组。
+
+**7. `durability="exit"` 不是「更省的持久执行」。** 它只在图结束时写一次，中途崩溃会丢掉整段运行（3.3 实测快照数 1 vs 4）。
+
+要「崩了从最近一步续跑」，至少用 `async`；关键流程用 `sync`。
+
+**8. 子图状态只在暂停态下钻得到。** `get_state(cfg, subgraphs=True)` 在子图执行中 / 中断时返回 `tasks[]`；图跑完后 `tasks` 为空。
+
+想在事后看子图历史，要拿子图自己的 `checkpoint_ns` 去查（或让子图自带 saver）。这是本机实测行为，不是「写法不对」。
+
+**9. `get_state_history` 没有 `subgraphs` 参数。** 它只翻当前图命名空间的历史；子图历史要按 2.6 的 `checkpoint_ns` 单独取（**源码核对**签名）。
+
+**10. 别把长期记忆塞进 checkpointer。** 用户偏好、租户配置换一个 `thread_id` 就丢。
+
+反过来，把整段对话塞进 Store，检索噪声和成本都会上去。按 2.7 的四分法分层。
 
 ## 五、关键结论
 
-1. **checkpointer 管线程，store 管人**。前者按 `thread_id` 存图状态快照，后者按命名空间存跨线程键值数据，两者不可互替；按 2.7 可再分成短期 / 长期 / 语义 / 程序性四层。
-2. **检查点逐超步存，`durability` 决定何时落盘**：本机默认 `async`；`sync` 最稳、`exit` 只在结束时写一次（同一张两节点图实测快照数 4 / 4 / 1），故障恢复别用 `exit`。
-3. **`thread_id` / `checkpoint_ns` / `checkpoint_id` 三级定位**：哪条线程 → 线程里的哪张图 → 哪一个快照。子图有自己的 `checkpoint_ns`；暂停态用 `get_state(cfg, subgraphs=True)` 下钻，`get_state_history` 没有 `subgraphs` 参数。
-4. **时间旅行新建分支**，原线程历史不动——调试 agent 最有力的一招。
-5. **语义检索要额外配 `index`（`embed`/`embeddings` + `dims` + `fields`）**，且需要真实嵌入模型；本章只给写法，未实测。
+1. **checkpointer 管线程，store 管人。** 前者按 `thread_id` 存图状态快照，后者按命名空间存跨线程键值数据。两者不可互替。按 2.7 可再分成短期 / 长期 / 语义 / 程序性四层。
+
+2. **检查点逐超步存，`durability` 决定何时落盘。** 本机默认 `async`；`sync` 最稳、`exit` 只在结束时写一次（同一张两节点图实测快照数 4 / 4 / 1）。故障恢复别用 `exit`。
+
+3. **`thread_id` / `checkpoint_ns` / `checkpoint_id` 三级定位。** 顺序是「哪条线程 → 线程里的哪张图 → 哪一个快照」。子图有自己的 `checkpoint_ns`；暂停态用 `get_state(cfg, subgraphs=True)` 下钻，`get_state_history` 没有 `subgraphs` 参数。
+
+4. **时间旅行新建分支，原线程历史不动。** 调试 agent 时，这是最有力的一招：把走错的那步改对，看它会不会又走错。
+
+5. **语义检索要额外配 `index`（`embed`/`embeddings` + `dims` + `fields`），且需要真实嵌入模型。** 本章只给写法，未实测。
 
 > 口径：checkpointer 续跑、历史快照、`update_state` 分支、Store 前缀搜索、`durability` 三档快照数、子图 `checkpoint_ns` 下钻为示例实测（`12_persistence.*`）；`durability` 默认 `async` 与 `get_state_history` 无 `subgraphs` 为源码核对；语义检索与部分 Store 关键字选项未实测；换后端搬不了历史是架构约束。
 
@@ -421,14 +615,15 @@ for (const mode of ["sync", "async", "exit"] as const) {
 
 读完自检，下面是可勾选的清单：
 
-- **两套持久化**：checkpointer（按线程、存图状态、传 `thread_id` 取）vs store（跨线程、存键值、用 `runtime.store` 取）。
-- **配置三级定位**：`thread_id`（哪条线程）→ `checkpoint_ns`（哪张图）→ `checkpoint_id`（哪个快照）。
+- **两套持久化**：checkpointer（按线程、存图状态、传 `thread_id` 取）vs store（跨线程、存键值、用 `runtime.store` 取），边界见**图 12-1**。
+- **配置三级定位**：`thread_id`（哪条线程）→ `checkpoint_ns`（哪张图）→ `checkpoint_id`（哪个快照）；写入链路见**图 12-2**。
 - **内置 checkpointer**：`InMemorySaver` / `MemorySaver`（开发）、`SqliteSaver`（本地，**需另装 `langgraph-checkpoint-sqlite`**）、`PostgresSaver`（生产）。
 - **实测四连**：`{n:0}` → 1；`{}` → 2（续跑）；`None` → 2（空操作）；`{n:100}` → 101（覆盖后 +1）。
 - **`get_state` 看当前，`get_state_history` 看历史**（JS 是异步迭代器），`next` 为空表示已跑完。
-- **`update_state` 新建分支**，原线程不受影响——时间旅行的实现方式。
+- **`update_state` 新建分支**，原线程不受影响——时间旅行的实现方式，见**图 12-5**。
 - **Store API**：`put` / `get` / `search` / `delete` / `list_namespaces`；`search` 是**前缀**匹配，实测 `search(('alice',))` 命中 3 条。
 - **语义检索**：构造时配 `index = {embed/embeddings, dims, fields}`，`search(..., query=...)` 按相似度返回 `score`——需嵌入模型，**未实测**；**换后端搬不了历史**，持久化方案要在项目早期定下来。
-- **`durability` 三档**：`sync` / `async`（本机默认）/ `exit`；同一张两节点图实测快照数 **4 / 4 / 1**，`exit` 中途崩溃会丢整段。
-- **子图持久化**：子图在父图里有自己的 `checkpoint_ns`；**暂停态**用 `get_state(cfg, subgraphs=True)` 读 `tasks[].state`，跑完后 `tasks` 为空；`get_state_history` 没有 `subgraphs` 参数。
+- **`durability` 三档**：`sync` / `async`（本机默认）/ `exit`；同一张两节点图实测快照数 **4 / 4 / 1**，`exit` 中途崩溃会丢整段，三档差异见**图 12-4**。
+- **子图持久化**：子图在父图里有自己的 `checkpoint_ns`，两层结构见**图 12-6**；**暂停态**用 `get_state(cfg, subgraphs=True)` 读 `tasks[].state`，跑完后 `tasks` 为空；`get_state_history` 没有 `subgraphs` 参数。
 - **记忆四分法**：短期对话 → checkpointer；长期事实 → Store；语义记忆 → Store `index`；程序性记忆 → Skills / `AGENTS.md`。选错层比选错后端更常见。
+- **故障恢复**：落盘后端从最近检查点续跑，只丢一次超步；内存版重启即一张白纸，见**图 12-3**。

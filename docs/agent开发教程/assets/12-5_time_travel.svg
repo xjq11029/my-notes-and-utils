@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 400" width="680" height="400" role="img">
+<title>时间旅行：从历史快照开新分支</title>
+<desc>原线程跑到 tag 结束。选中 bump 刚跑完、double 还没跑的那份快照，用 update_state 把 n 改成 10，从该点开新分支，只重放 double 与 tag 两步。原线程的历史一条都没动。</desc>
+<defs>
+<marker id="m125" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+</defs>
+
+<rect x="0" y="0" width="680" height="400" fill="#111721"/>
+
+<text x="34" y="38" font-family="system-ui, sans-serif" font-size="17" font-weight="700" fill="#dfe6ee">时间旅行：改写一个快照，从那里开新分支</text>
+<text x="34" y="62" font-family="system-ui, sans-serif" font-size="12" fill="#7d8b9c">原线程一条都不动；新分支只重放改写点之后的节点</text>
+
+<!-- 新分支标签 -->
+<text x="180" y="106" font-family="system-ui, sans-serif" font-size="10" font-weight="700" fill="#c9b8ff">新分支（update_state 返回的 config）</text>
+
+<!-- 新分支节点 -->
+<rect x="180" y="120" width="120" height="40" rx="7" fill="#241f38" stroke="#a78bfa" stroke-width="1.3"/>
+<text x="240" y="145" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#c9b8ff">改写 n = 10</text>
+
+<rect x="326" y="120" width="104" height="40" rx="7" fill="#241f38" stroke="#a78bfa" stroke-width="1.3"/>
+<text x="378" y="145" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#c9b8ff">double→20</text>
+
+<rect x="456" y="120" width="104" height="40" rx="7" fill="#241f38" stroke="#a78bfa" stroke-width="1.3"/>
+<text x="508" y="145" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#c9b8ff">tag ✓</text>
+
+<path d="M300 140L324 140" fill="none" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#m125)"/>
+<path d="M430 140L454 140" fill="none" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#m125)"/>
+
+<text x="330" y="178" font-family="system-ui, sans-serif" font-size="9.5" fill="#7d8b9c">只走这两步，bump 不重跑</text>
+
+<!-- 分叉箭头 -->
+<path d="M194 260L194 162" fill="none" stroke="#a78bfa" stroke-width="1.6" marker-end="url(#m125)"/>
+<text x="202" y="212" font-family="system-ui, sans-serif" font-size="9.5" fill="#c9b8ff">update_state</text>
+
+<!-- 原线程标签 -->
+<text x="34" y="252" font-family="system-ui, sans-serif" font-size="10" font-weight="700" fill="#8ecbff">原线程（只读的历史）</text>
+
+<!-- 原线程节点 -->
+<rect x="50" y="262" width="84" height="42" rx="7" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.2"/>
+<text x="92" y="279" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#8ecbff">输入 n=1</text>
+<text x="92" y="295" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" fill="#7d8b9c">cp₁</text>
+
+<rect x="152" y="262" width="84" height="42" rx="7" fill="#2a2320" stroke="#e8a34b" stroke-width="1.4"/>
+<text x="194" y="279" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#f3c47a">bump ✓</text>
+<text x="194" y="295" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" fill="#f3c47a">选中的 cp₂</text>
+
+<rect x="258" y="262" width="84" height="42" rx="7" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.2"/>
+<text x="300" y="279" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#8ecbff">double ✓</text>
+<text x="300" y="295" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" fill="#7d8b9c">cp₃</text>
+
+<rect x="364" y="262" width="84" height="42" rx="7" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.2"/>
+<text x="406" y="279" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#8ecbff">tag ✓</text>
+<text x="406" y="295" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" fill="#7d8b9c">cp₄</text>
+
+<path d="M136 283L150 283" fill="none" stroke="#6b7a8d" stroke-width="1.5" marker-end="url(#m125)"/>
+<path d="M238 283L256 283" fill="none" stroke="#6b7a8d" stroke-width="1.5" marker-end="url(#m125)"/>
+<path d="M344 283L362 283" fill="none" stroke="#6b7a8d" stroke-width="1.5" marker-end="url(#m125)"/>
+
+<text x="466" y="280" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">history 一条没变</text>
+<text x="466" y="296" font-family="system-ui, sans-serif" font-size="9.5" fill="#7d8b9c">拿旧 cfg 还能读回原样</text>
+
+<!-- 底部说明 -->
+<line x1="34" y1="330" x2="646" y2="330" stroke="#3a4a5e" stroke-width="1" stroke-dasharray="4 4"/>
+
+<text x="34" y="352" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">三步操作：拿旧快照的 config → 改 values → 用返回的新 config 配 invoke(None) 重放。</text>
+<text x="34" y="374" font-family="system-ui, sans-serif" font-size="9.5" fill="#7d8b9c">语义和 git branch 同构：历史只读，没有「修改历史」这个操作，只有开新分支。</text>
+</svg>

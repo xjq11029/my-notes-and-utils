@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 460" width="680" height="460" role="img">
+<title>AIMessage 的七个字段分两层</title>
+<desc>AIMessage 上层是「模型说了什么」：content、tool_calls、invalid_tool_calls，由模型填。下层是「这次调用花了什么」：response_metadata、usage_metadata、additional_kwargs 由 provider 驱动填，id 由框架填。假模型下 response_metadata 为空、usage_metadata 为 None（JS 为 undefined）。</desc>
+<rect x="0" y="0" width="680" height="460" fill="#111721"/>
+
+<text x="34" y="38" font-family="system-ui, sans-serif" font-size="17" font-weight="700" fill="#dfe6ee">AIMessage 的七个字段分两层</text>
+<text x="34" y="62" font-family="system-ui, sans-serif" font-size="12" fill="#7d8b9c">上半层读「说了什么」，下半层读「花了什么」；两层填的人不一样</text>
+
+<text x="34" y="112" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#8ecbff">① 模型说了什么</text>
+<text x="646" y="112" text-anchor="end" font-family="system-ui, sans-serif" font-size="9.5" fill="#7d8b9c">这一层是真的模型产出</text>
+
+<rect x="24" y="124" width="200" height="82" rx="7" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.2"/>
+<text x="40" y="150" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#8ecbff">content</text>
+<text x="40" y="172" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">最终文本</text>
+<text x="40" y="194" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">模型填</text>
+
+<rect x="240" y="124" width="200" height="82" rx="7" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.2"/>
+<text x="256" y="150" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#8ecbff">tool_calls</text>
+<text x="256" y="172" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">请求调用的工具列表</text>
+<text x="256" y="194" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">name / args / id</text>
+
+<rect x="456" y="124" width="200" height="82" rx="7" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.2"/>
+<text x="472" y="150" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#8ecbff">invalid_tool_calls</text>
+<text x="472" y="172" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">格式错误、解析失败的调用</text>
+<text x="472" y="194" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">模型填（异常情况）</text>
+
+<line x1="24" y1="222" x2="656" y2="222" stroke="#3a4a5e" stroke-width="1" stroke-dasharray="5 4"/>
+
+<text x="34" y="248" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#f3c47a">② 这次调用花了什么</text>
+<text x="646" y="248" text-anchor="end" font-family="system-ui, sans-serif" font-size="9.5" fill="#7d8b9c">这一层不是模型填的</text>
+
+<rect x="24" y="260" width="146" height="104" rx="7" fill="#2a2320" stroke="#e8a34b" stroke-width="1.2"/>
+<text x="38" y="286" font-family="system-ui, sans-serif" font-size="10" font-weight="700" fill="#f3c47a">response_metadata</text>
+<text x="38" y="306" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">provider 驱动</text>
+<text x="38" y="328" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">模型版本、结束原因</text>
+<text x="38" y="346" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">如 finish_reason</text>
+
+<rect x="186" y="260" width="146" height="104" rx="7" fill="#2a2320" stroke="#e8a34b" stroke-width="1.2"/>
+<text x="200" y="286" font-family="system-ui, sans-serif" font-size="10" font-weight="700" fill="#f3c47a">usage_metadata</text>
+<text x="200" y="306" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">provider 驱动</text>
+<text x="200" y="328" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">input / output /</text>
+<text x="200" y="346" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">total_tokens</text>
+
+<rect x="348" y="260" width="146" height="104" rx="7" fill="#2a2320" stroke="#e8a34b" stroke-width="1.2"/>
+<text x="362" y="286" font-family="system-ui, sans-serif" font-size="10" font-weight="700" fill="#f3c47a">additional_kwargs</text>
+<text x="362" y="306" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">provider 驱动</text>
+<text x="362" y="328" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">厂商特有字段</text>
+<text x="362" y="346" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">如 reasoning_content</text>
+
+<rect x="510" y="260" width="146" height="104" rx="7" fill="#2a2320" stroke="#e8a34b" stroke-width="1.2"/>
+<text x="524" y="286" font-family="system-ui, sans-serif" font-size="10" font-weight="700" fill="#f3c47a">id</text>
+<text x="524" y="306" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">框架填</text>
+<text x="524" y="328" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">lc_run--…</text>
+<text x="524" y="346" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">JS 假模型不填</text>
+
+<rect x="24" y="380" width="632" height="56" rx="8" fill="#2a1f24" stroke="#f0655f" stroke-width="1.2"/>
+<text x="40" y="402" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">假模型下：response_metadata = {}、usage_metadata = None（JS 为 undefined）。</text>
+<text x="40" y="422" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">不是框架漏填——这两个字段由 provider 驱动，换成真实模型就都有了。</text>
+</svg>

@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 400" width="680" height="400" role="img">
+<title>同一线程再次 invoke：None 是空操作，{} 是续跑</title>
+<desc>invoke(None) 不注入输入，线程已跑完时直接返回当前状态；invoke({}) 注入空字典，从检查点恢复并执行节点。输入里出现的字段按自己的 reducer 合并，没出现的沿用检查点。</desc>
+<defs>
+<marker id="ar114" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M2 1L8 5L2 9" fill="none" stroke="#6b7a8d" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+</defs>
+
+<rect x="0" y="0" width="680" height="400" fill="#111721"/>
+
+<text x="34" y="38" font-family="system-ui, sans-serif" font-size="17" font-weight="700" fill="#dfe6ee">同一线程再次 invoke：None 是空操作，{} 才是续跑</text>
+<text x="34" y="62" font-family="system-ui, sans-serif" font-size="12" fill="#7d8b9c">两次调用读的是同一份检查点，差别只在「注不注入输入」</text>
+
+<!-- 行 A：invoke(None) -->
+<rect x="34" y="90" width="140" height="64" rx="8" fill="#1b2532" stroke="#3a4a5e" stroke-width="1"/>
+<text x="104" y="117" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#dfe6ee">检查点</text>
+<text x="104" y="135" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" fill="#93a1b1">n=1  trail=[…]</text>
+
+<rect x="190" y="90" width="140" height="64" rx="8" fill="#2a1f24" stroke="#f0655f" stroke-width="1.2"/>
+<text x="260" y="117" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#ff9d99">invoke(None)</text>
+<text x="260" y="135" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" fill="#93a1b1">不注入任何输入</text>
+
+<rect x="346" y="90" width="140" height="64" rx="8" fill="#1b2532" stroke="#3a4a5e" stroke-width="1"/>
+<text x="416" y="117" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#dfe6ee">没有待执行任务</text>
+<text x="416" y="135" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" fill="#93a1b1">线程已经跑完</text>
+
+<rect x="502" y="90" width="140" height="64" rx="8" fill="#2a1f24" stroke="#f0655f" stroke-width="1.2"/>
+<text x="572" y="117" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#ff9d99">原样返回 n=1</text>
+<text x="572" y="135" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" fill="#93a1b1">节点一次都没跑</text>
+
+<path d="M176 122L186 122" fill="none" stroke="#6b7a8d" stroke-width="1.4" marker-end="url(#ar114)"/>
+<path d="M332 122L342 122" fill="none" stroke="#6b7a8d" stroke-width="1.4" marker-end="url(#ar114)"/>
+<path d="M488 122L498 122" fill="none" stroke="#6b7a8d" stroke-width="1.4" marker-end="url(#ar114)"/>
+
+<!-- 行 B：invoke({}) -->
+<rect x="34" y="170" width="140" height="64" rx="8" fill="#1b2532" stroke="#3a4a5e" stroke-width="1"/>
+<text x="104" y="197" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#dfe6ee">检查点</text>
+<text x="104" y="215" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" fill="#93a1b1">n=1  trail=[…]</text>
+
+<rect x="190" y="170" width="140" height="64" rx="8" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.2"/>
+<text x="260" y="197" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#8ecbff">invoke({})</text>
+<text x="260" y="215" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" fill="#93a1b1">注入一个空字典</text>
+
+<rect x="346" y="170" width="140" height="64" rx="8" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.2"/>
+<text x="416" y="197" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#8ecbff">从检查点恢复</text>
+<text x="416" y="215" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" fill="#93a1b1">bump 跑一次，n+1</text>
+
+<rect x="502" y="170" width="140" height="64" rx="8" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.2"/>
+<text x="572" y="197" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#8ecbff">n=2</text>
+<text x="572" y="215" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" fill="#93a1b1">trail 追加 "→2"</text>
+
+<path d="M176 202L186 202" fill="none" stroke="#6b7a8d" stroke-width="1.4" marker-end="url(#ar114)"/>
+<path d="M332 202L342 202" fill="none" stroke="#6b7a8d" stroke-width="1.4" marker-end="url(#ar114)"/>
+<path d="M488 202L498 202" fill="none" stroke="#6b7a8d" stroke-width="1.4" marker-end="url(#ar114)"/>
+
+<!-- 字段规则 -->
+<text x="34" y="262" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#dfe6ee">输入里的字段怎么进状态（实测）</text>
+
+<rect x="34" y="274" width="300" height="66" rx="8" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.2"/>
+<text x="48" y="296" font-family="system-ui, sans-serif" font-size="10" font-weight="700" fill="#8ecbff">出现了 → 按该字段自己的 reducer 合并</text>
+<text x="48" y="318" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">{"n": 100} → 覆盖检查点的 2 → 101</text>
+
+<rect x="346" y="274" width="300" height="66" rx="8" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.2"/>
+<text x="360" y="296" font-family="system-ui, sans-serif" font-size="10" font-weight="700" fill="#8ecbff">没出现 → 保留检查点里的值</text>
+<text x="360" y="318" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">{"trail": ["插一条"]} → n 沿用 101 → 102</text>
+
+<text x="34" y="360" font-family="system-ui, sans-serif" font-size="9.5" fill="#7d8b9c">trail 绑了 operator.add，输入那条是追加；n 没有 reducer，直接被输入冲掉</text>
+<text x="34" y="378" font-family="system-ui, sans-serif" font-size="9.5" fill="#7d8b9c">五次连续调用下来：n 走 1 → 1 → 2 → 101 → 102（完整表格见正文）</text>
+</svg>

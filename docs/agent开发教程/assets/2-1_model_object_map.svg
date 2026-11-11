@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 420" width="680" height="420" role="img">
+<title>模型对象的两端：创建两站、调用四站</title>
+<desc>本章地图。中间是模型对象；左边创建两站（2.1 三个初始化角度、2.2 参数分流），右边调用四站（2.3 三种入参、2.4 AIMessage、2.5 四种调用形态、2.6 profile 与 config）。左边决定造出来的是谁，右边决定用起来会看到什么。</desc>
+<defs>
+<marker id="ar21" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="#6b7a8d" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+</defs>
+
+<rect x="0" y="0" width="680" height="420" fill="#111721"/>
+
+<text x="34" y="38" font-family="system-ui, sans-serif" font-size="17" font-weight="700" fill="#dfe6ee">模型对象的两端：创建两站、调用四站</text>
+<text x="34" y="62" font-family="system-ui, sans-serif" font-size="12" fill="#7d8b9c">本章只围着中间这一格转；左右两边分别是它的出厂设置与用法</text>
+
+<!-- 左侧：创建两站 -->
+<rect x="24" y="104" width="212" height="260" rx="10" fill="#161d29" stroke="#3a4a5e" stroke-width="1" stroke-dasharray="5 4"/>
+<text x="40" y="126" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#93a1b1">创建两站</text>
+
+<rect x="40" y="140" width="180" height="100" rx="7" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.2"/>
+<text x="54" y="164" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#8ecbff">2.1　三个初始化角度</text>
+<text x="54" y="186" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">提供商库：自己挑类</text>
+<text x="54" y="206" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">init_chat_model：按前缀查表</text>
+<text x="54" y="226" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">Ollama：模型在本机</text>
+
+<rect x="40" y="252" width="180" height="100" rx="7" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.2"/>
+<text x="54" y="276" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#8ecbff">2.2　参数分流</text>
+<text x="54" y="298" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">自己的四个：自己管</text>
+<text x="54" y="318" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">**kwargs：原样转发</text>
+<text x="54" y="338" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">写错名字 → 静默失效</text>
+
+<!-- 中间：模型对象 -->
+<rect x="270" y="196" width="140" height="76" rx="9" fill="#241f38" stroke="#a78bfa" stroke-width="1.5"/>
+<text x="340" y="228" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12.5" font-weight="700" fill="#c9b8ff">模型对象</text>
+<text x="340" y="248" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">本章唯一主角</text>
+
+<path d="M238 234L264 234" fill="none" stroke="#6b7a8d" stroke-width="1.5" marker-end="url(#ar21)"/>
+<path d="M412 234L438 234" fill="none" stroke="#6b7a8d" stroke-width="1.5" marker-end="url(#ar21)"/>
+
+<!-- 右侧：调用四站 -->
+<rect x="444" y="104" width="212" height="260" rx="10" fill="#161d29" stroke="#3a4a5e" stroke-width="1" stroke-dasharray="5 4"/>
+<text x="460" y="126" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#93a1b1">调用四站</text>
+
+<rect x="460" y="140" width="180" height="48" rx="7" fill="#2a2320" stroke="#e8a34b" stroke-width="1.2"/>
+<text x="474" y="160" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#f3c47a">2.3　invoke 三种入参</text>
+<text x="474" y="177" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">str / dict 列表 / 消息列表</text>
+
+<rect x="460" y="196" width="180" height="48" rx="7" fill="#2a2320" stroke="#e8a34b" stroke-width="1.2"/>
+<text x="474" y="216" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#f3c47a">2.4　AIMessage 结构</text>
+<text x="474" y="233" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">说了什么 + 花了什么</text>
+
+<rect x="460" y="252" width="180" height="48" rx="7" fill="#2a2320" stroke="#e8a34b" stroke-width="1.2"/>
+<text x="474" y="272" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#f3c47a">2.5　四种调用形态</text>
+<text x="474" y="289" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">同步 / 异步 / 流式 / 批量</text>
+
+<rect x="460" y="308" width="180" height="48" rx="7" fill="#2a2320" stroke="#e8a34b" stroke-width="1.2"/>
+<text x="474" y="328" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#f3c47a">2.6　profile 与 config</text>
+<text x="474" y="345" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">能力画像 / 单次配置单</text>
+
+<text x="340" y="390" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#7d8b9c">左边决定「造出来的是谁」，右边决定「用起来会看到什么」</text>
+</svg>

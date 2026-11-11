@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 380" width="680" height="380" role="img">
+<title>tool_choice 四个取值与 agent 路径上的覆盖链</title>
+<desc>none、auto、required 与指定工具名各自把调不调的决定权放在调用方或模型手里；在 agent 路径上，预绑定会被 create_agent 用 None 重绑覆盖，只能用 wrap_model_call 中间件改回来。</desc>
+<defs>
+<marker id="ar73" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+</defs>
+
+<rect x="0" y="0" width="680" height="380" fill="#111721"/>
+
+<text x="34" y="38" font-family="system-ui, sans-serif" font-size="17" font-weight="700" fill="#dfe6ee">tool_choice：决定权放在谁手里</text>
+<text x="34" y="62" font-family="system-ui, sans-serif" font-size="12" fill="#7d8b9c">上半是四个取值，下半是 agent 路径上的覆盖链</text>
+
+<rect x="34" y="88" width="145" height="76" rx="8" fill="#1b2532" stroke="#3a4a5e" stroke-width="1.2"/>
+<text x="48" y="112" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#dfe6ee">"none"</text>
+<text x="48" y="132" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">一个都不许调</text>
+<text x="48" y="152" font-family="system-ui, sans-serif" font-size="9" fill="#7d8b9c">决定权：调用方</text>
+
+<rect x="190" y="88" width="145" height="76" rx="8" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.2"/>
+<text x="204" y="112" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#8ecbff">"auto"</text>
+<text x="204" y="132" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">模型自主决定</text>
+<text x="204" y="152" font-family="system-ui, sans-serif" font-size="9" fill="#7d8b9c">决定权：模型</text>
+
+<rect x="346" y="88" width="145" height="76" rx="8" fill="#2a2320" stroke="#e8a34b" stroke-width="1.2"/>
+<text x="360" y="112" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#f3c47a">"required"</text>
+<text x="360" y="132" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">必须调，数量不限</text>
+<text x="360" y="152" font-family="system-ui, sans-serif" font-size="9" fill="#7d8b9c">决定权：调用方</text>
+
+<rect x="502" y="88" width="145" height="76" rx="8" fill="#241f38" stroke="#a78bfa" stroke-width="1.2"/>
+<text x="516" y="112" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#c9b8ff">"&lt;工具名&gt;"</text>
+<text x="516" y="132" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">只许调这一个</text>
+<text x="516" y="152" font-family="system-ui, sans-serif" font-size="9" fill="#7d8b9c">决定权：调用方</text>
+
+<line x1="34" y1="186" x2="646" y2="186" stroke="#3a4a5e" stroke-width="1" stroke-dasharray="4 4"/>
+<text x="34" y="210" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#dfe6ee">在 agent 路径上，预绑定会被覆盖，只能用中间件改</text>
+
+<rect x="34" y="222" width="182" height="84" rx="8" fill="#1b2532" stroke="#3a4a5e" stroke-width="1"/>
+<text x="48" y="244" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#dfe6ee">① 你预绑定</text>
+<text x="48" y="264" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">model.bind_tools(</text>
+<text x="48" y="282" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">　tool_choice="required")</text>
+
+<path d="M216 264L246 264" fill="none" stroke="#6b7a8d" stroke-width="1.4" marker-end="url(#ar73)"/>
+
+<rect x="250" y="222" width="182" height="84" rx="8" fill="#2a1f24" stroke="#f0655f" stroke-width="1.2"/>
+<text x="264" y="244" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#ff9c96">② agent 重绑</text>
+<text x="264" y="264" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">每次调模型前用 None 重绑</text>
+<text x="264" y="282" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">→ 你设的值没了</text>
+
+<path d="M432 264L462 264" fill="none" stroke="#6b7a8d" stroke-width="1.4" marker-end="url(#ar73)"/>
+
+<rect x="466" y="222" width="180" height="84" rx="8" fill="#2a2320" stroke="#e8a34b" stroke-width="1.2"/>
+<text x="480" y="244" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#f3c47a">③ 中间件改回来</text>
+<text x="480" y="264" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">wrap_model_call 里</text>
+<text x="480" y="282" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">request.override(...)</text>
+
+<text x="34" y="334" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">create_agent 的签名里没有 tool_choice 参数（实测签名，共 15 个参数）。</text>
+</svg>

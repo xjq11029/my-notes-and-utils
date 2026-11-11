@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 420" width="680" height="420" role="img">
+<title>三个案例的组合落点</title>
+<desc>客服问答缺知识，组合为标准模式加 RAG 加 LLM；报销审批缺流程控制，组合为单工作流加 Workflow 加 Plug-in；尽调分析缺分工与上下文隔离，组合为 Multi-Agent 加 RAG 加 Workflow。缺口决定组合，不是反过来。</desc>
+<rect x="0" y="0" width="680" height="420" fill="#111721"/>
+
+<text x="34" y="38" font-family="system-ui, sans-serif" font-size="17" font-weight="700" fill="#dfe6ee">三个案例：缺口决定组合，不是组合决定缺口</text>
+<text x="34" y="62" font-family="system-ui, sans-serif" font-size="12" fill="#7d8b9c">先问"最缺哪一块"，再挑对应的组件——顺序反了就会堆一堆用不上的能力</text>
+
+<text x="24" y="94" font-family="system-ui, sans-serif" font-size="10" fill="#7d8b9c">案例</text>
+<text x="196" y="94" font-family="system-ui, sans-serif" font-size="10" fill="#7d8b9c">最缺的那一块</text>
+<text x="356" y="94" font-family="system-ui, sans-serif" font-size="10" fill="#7d8b9c">落到组合</text>
+<text x="560" y="94" font-family="system-ui, sans-serif" font-size="10" fill="#7d8b9c">产出</text>
+
+<rect x="24" y="104" width="632" height="80" rx="7" fill="#1b2532" stroke="#2c3a4b" stroke-width="1"/>
+<text x="40" y="134" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#8ecbff">A 客服问答</text>
+<text x="40" y="156" font-family="system-ui, sans-serif" font-size="9.5" fill="#7d8b9c">「退货几天到账」</text>
+<text x="196" y="140" font-family="system-ui, sans-serif" font-size="10.5" fill="#f0655f">缺知识</text>
+<text x="196" y="160" font-family="system-ui, sans-serif" font-size="9.5" fill="#7d8b9c">答案散在 12 份文档里</text>
+<text x="356" y="140" font-family="system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">标准模式 ＋ RAG ＋ LLM</text>
+<text x="356" y="160" font-family="system-ui, sans-serif" font-size="9.5" fill="#7d8b9c">不需要写工单，所以不上 Plug-in</text>
+<text x="560" y="148" font-family="system-ui, sans-serif" font-size="10.5" fill="#93a1b1">知识问答助手</text>
+
+<rect x="24" y="192" width="632" height="80" rx="7" fill="#1b2532" stroke="#2c3a4b" stroke-width="1"/>
+<text x="40" y="222" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#f3c47a">B 报销审批</text>
+<text x="40" y="244" font-family="system-ui, sans-serif" font-size="9.5" fill="#7d8b9c">五步，每步有条件</text>
+<text x="196" y="228" font-family="system-ui, sans-serif" font-size="10.5" fill="#f0655f">缺流程控制</text>
+<text x="196" y="248" font-family="system-ui, sans-serif" font-size="9.5" fill="#7d8b9c">财务要能回溯到某一步</text>
+<text x="356" y="228" font-family="system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">单工作流 ＋ Workflow ＋ Plug-in</text>
+<text x="356" y="248" font-family="system-ui, sans-serif" font-size="9.5" fill="#7d8b9c">查额度是接口调用，所以要 Plug-in</text>
+<text x="560" y="236" font-family="system-ui, sans-serif" font-size="10.5" fill="#93a1b1">流程办理助手</text>
+
+<rect x="24" y="280" width="632" height="80" rx="7" fill="#1b2532" stroke="#2c3a4b" stroke-width="1"/>
+<text x="40" y="310" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#c9b8ff">C 尽调分析</text>
+<text x="40" y="332" font-family="system-ui, sans-serif" font-size="9.5" fill="#7d8b9c">工商＋财报＋诉讼＋舆情</text>
+<text x="196" y="316" font-family="system-ui, sans-serif" font-size="10.5" fill="#f0655f">缺分工与隔离</text>
+<text x="196" y="336" font-family="system-ui, sans-serif" font-size="9.5" fill="#7d8b9c">一个 Agent 装不下四类资料</text>
+<text x="356" y="316" font-family="system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">Multi-Agent ＋ RAG ＋ Workflow</text>
+<text x="356" y="336" font-family="system-ui, sans-serif" font-size="9.5" fill="#7d8b9c">查内部制度用 RAG，核查步骤用 Workflow</text>
+<text x="560" y="324" font-family="system-ui, sans-serif" font-size="10.5" fill="#93a1b1">分析与复核助手</text>
+
+<text x="34" y="392" font-family="system-ui, sans-serif" font-size="10" fill="#6f7f91">反例：如果业务只是"每天总结三篇论文"，五道缺口只命中零到一条——那就用一段提示词加脚本，别上平台</text>
+</svg>

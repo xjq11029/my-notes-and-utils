@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 430" width="680" height="430" role="img">
+<title>该不该上平台：五问筛子</title>
+<desc>把五道缺口变成五个问题，逐条打勾。命中 0 到 1 条说明用提示词加脚本就够；命中 2 到 3 条可从标准模式起步；命中 4 到 5 条才需要完整的平台能力。</desc>
+<rect x="0" y="0" width="680" height="430" fill="#111721"/>
+
+<text x="34" y="38" font-family="system-ui, sans-serif" font-size="17" font-weight="700" fill="#dfe6ee">该不该上平台：五问筛子</text>
+<text x="34" y="62" font-family="system-ui, sans-serif" font-size="12" fill="#7d8b9c">把五道缺口反过来问一遍——命中越多，越值得上平台</text>
+
+<rect x="24" y="92" width="632" height="46" rx="6" fill="#1b2532" stroke="#2c3a4b" stroke-width="1"/>
+<circle cx="46" cy="115" r="11" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.2"/>
+<text x="46" y="119" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" font-weight="700" fill="#8ecbff">1</text>
+<text x="70" y="120" font-family="system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">有大量重复问答、文档处理、资料归纳吗？</text>
+<text x="628" y="120" text-anchor="end" font-family="system-ui, sans-serif" font-size="9.5" fill="#c9b8ff">→ 知识缺口</text>
+
+<rect x="24" y="146" width="632" height="46" rx="6" fill="#1b2532" stroke="#2c3a4b" stroke-width="1"/>
+<circle cx="46" cy="169" r="11" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.2"/>
+<text x="46" y="173" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" font-weight="700" fill="#8ecbff">2</text>
+<text x="70" y="174" font-family="system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">要跨系统查数据、建工单、发通知吗？</text>
+<text x="628" y="174" text-anchor="end" font-family="system-ui, sans-serif" font-size="9.5" fill="#c9b8ff">→ 动作缺口</text>
+
+<rect x="24" y="200" width="632" height="46" rx="6" fill="#1b2532" stroke="#2c3a4b" stroke-width="1"/>
+<circle cx="46" cy="223" r="11" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.2"/>
+<text x="46" y="227" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" font-weight="700" fill="#8ecbff">3</text>
+<text x="70" y="228" font-family="system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">有必须按顺序执行、要留痕的流程吗？</text>
+<text x="628" y="228" text-anchor="end" font-family="system-ui, sans-serif" font-size="9.5" fill="#c9b8ff">→ 流程缺口</text>
+
+<rect x="24" y="254" width="632" height="46" rx="6" fill="#1b2532" stroke="#2c3a4b" stroke-width="1"/>
+<circle cx="46" cy="277" r="11" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.2"/>
+<text x="46" y="281" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" font-weight="700" fill="#8ecbff">4</text>
+<text x="70" y="282" font-family="system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">要按人、按部门控制能看什么、能做什么吗？</text>
+<text x="628" y="282" text-anchor="end" font-family="system-ui, sans-serif" font-size="9.5" fill="#c9b8ff">→ 边界缺口</text>
+
+<rect x="24" y="308" width="632" height="46" rx="6" fill="#1b2532" stroke="#2c3a4b" stroke-width="1"/>
+<circle cx="46" cy="331" r="11" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.2"/>
+<text x="46" y="335" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" font-weight="700" fill="#8ecbff">5</text>
+<text x="70" y="336" font-family="system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">上线后要持续看效果、改提示词、比版本吗？</text>
+<text x="628" y="336" text-anchor="end" font-family="system-ui, sans-serif" font-size="9.5" fill="#c9b8ff">→ 度量缺口</text>
+
+<rect x="24" y="368" width="632" height="44" rx="7" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.3"/>
+<text x="340" y="388" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10.5" fill="#8ecbff">命中 0–1 条：别上平台，提示词 + 脚本就够　｜　命中 2–3 条：从标准模式起步</text>
+<text x="340" y="404" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10.5" fill="#8ecbff">命中 4–5 条：需要完整的平台能力（权限、评测、运营一个都不能少）</text>
+</svg>

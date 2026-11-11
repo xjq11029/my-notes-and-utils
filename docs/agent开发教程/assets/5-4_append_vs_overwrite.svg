@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 400" width="680" height="400" role="img">
+<title>messages 只追加，自定义字段默认覆盖</title>
+<desc>左侧 messages 字段绑定了 add_messages reducer，第二轮把新消息追加在尾部，历史从 2 条变 4 条。右侧自定义字段没有 reducer，第二轮直接覆盖上一轮的值。两条规则不一样，混用会引出最怪的一类 bug。</desc>
+<rect x="0" y="0" width="680" height="400" fill="#111721"/>
+
+<text x="34" y="38" font-family="system-ui, sans-serif" font-size="17" font-weight="700" fill="#dfe6ee">两条状态规则：messages 追加，自定义字段覆盖</text>
+<text x="34" y="62" font-family="system-ui, sans-serif" font-size="12" fill="#7d8b9c">「只追加」不是状态的默认语义，只是 messages 这个字段的专属待遇</text>
+
+<text x="40" y="96" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#8ecbff">messages　（绑了 add_messages）</text>
+<text x="364" y="96" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#ff9e97">自定义字段　（没绑 reducer）</text>
+
+<rect x="40" y="110" width="276" height="52" rx="6" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.1"/>
+<text x="54" y="132" font-family="system-ui, sans-serif" font-size="9.5" fill="#7d8b9c">第 1 轮之后</text>
+<text x="54" y="152" font-family="system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">Human「我叫小明」　AI「你好」　→ 2 条</text>
+
+<path d="M178 162L178 178" fill="none" stroke="#4dabf7" stroke-width="1.4"/>
+
+<rect x="40" y="180" width="276" height="72" rx="6" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.1"/>
+<text x="54" y="202" font-family="system-ui, sans-serif" font-size="9.5" fill="#7d8b9c">第 2 轮之后（追加）</text>
+<text x="54" y="222" font-family="system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">Human「我叫什么」　AI「你叫小明」</text>
+<text x="54" y="242" font-family="system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#8ecbff">→ 4 条，不是 2 条</text>
+
+<rect x="364" y="110" width="276" height="52" rx="6" fill="#2a1f24" stroke="#f0655f" stroke-width="1.1"/>
+<text x="378" y="132" font-family="system-ui, sans-serif" font-size="9.5" fill="#7d8b9c">第 1 轮之后</text>
+<text x="378" y="152" font-family="system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">state = { name: "小明" }</text>
+
+<path d="M502 162L502 178" fill="none" stroke="#f0655f" stroke-width="1.4"/>
+
+<rect x="364" y="180" width="276" height="72" rx="6" fill="#2a1f24" stroke="#f0655f" stroke-width="1.1"/>
+<text x="378" y="202" font-family="system-ui, sans-serif" font-size="9.5" fill="#7d8b9c">第 2 轮之后（覆盖）</text>
+<text x="378" y="222" font-family="system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">state = { name: "小红" }</text>
+<text x="378" y="242" font-family="system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#ff9e97">→ 上一轮的值没了</text>
+
+<text x="40" y="286" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">为什么能追加：字段声明时绑定了 reducer</text>
+<text x="40" y="306" font-family="system-ui, sans-serif" font-size="10" fill="#6f7f91">add_messages 的语义＝「把新的拼到旧的后面」</text>
+<text x="364" y="286" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">为什么被覆盖：没声明 reducer</text>
+<text x="364" y="306" font-family="system-ui, sans-serif" font-size="10" fill="#6f7f91">默认语义＝「用新的换掉旧的」</text>
+
+<rect x="24" y="330" width="632" height="46" rx="7" fill="#1b2532" stroke="#3a4a5e" stroke-width="1.1"/>
+<text x="340" y="350" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10.5" fill="#9fb0c0">后果：messages 越滚越长（第 9 章要治），自定义字段被悄悄清空（最难查的那类 bug）</text>
+<text x="340" y="368" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#7d8b9c">要保存自定义字段，就用 state_schema 扩展并想清楚 reducer</text>
+</svg>

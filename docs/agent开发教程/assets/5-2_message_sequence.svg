@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 440" width="680" height="440" role="img">
+<title>一次工具往返的四条消息：谁写了哪一条</title>
+<desc>用户提问产生 HumanMessage；模型只输出 AIMessage 里的 tool_calls 意图；ToolMessage 由框架的 tools 节点写入，不是模型写的；模型看到 ToolMessage 后再输出最终 AIMessage。第三条由框架写入，是理解 Agent Loop 的分界线。</desc>
+<defs>
+<marker id="ar52a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+</defs>
+
+<rect x="0" y="0" width="680" height="440" fill="#111721"/>
+
+<text x="34" y="38" font-family="system-ui, sans-serif" font-size="17" font-weight="700" fill="#dfe6ee">一次工具往返：四条消息，谁写了哪一条</text>
+<text x="34" y="62" font-family="system-ui, sans-serif" font-size="12" fill="#7d8b9c">第 3 条不是模型写的——这条分界决定了你排查问题时该看哪儿</text>
+
+<text x="26" y="94" font-family="system-ui, sans-serif" font-size="10" fill="#7d8b9c">序号</text>
+<text x="70" y="94" font-family="system-ui, sans-serif" font-size="10" fill="#7d8b9c">消息</text>
+<text x="440" y="94" font-family="system-ui, sans-serif" font-size="10" fill="#7d8b9c">谁写的</text>
+
+<rect x="24" y="104" width="632" height="58" rx="7" fill="#1b2532" stroke="#2c3a4b" stroke-width="1"/>
+<text x="40" y="139" font-family="system-ui, sans-serif" font-size="13" font-weight="700" fill="#5c6b7d">1</text>
+<text x="70" y="130" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#8ecbff">HumanMessage</text>
+<text x="70" y="150" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">「上海天气怎么样？」</text>
+<text x="440" y="139" font-family="system-ui, sans-serif" font-size="10.5" fill="#93a1b1">用户</text>
+
+<rect x="24" y="172" width="632" height="58" rx="7" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.2"/>
+<text x="40" y="207" font-family="system-ui, sans-serif" font-size="13" font-weight="700" fill="#5c6b7d">2</text>
+<text x="70" y="198" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#8ecbff">AIMessage（带 tool_calls）</text>
+<text x="70" y="218" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">tool_calls=[get_weather(city="上海")]　content 可能是空串</text>
+<text x="440" y="207" font-family="system-ui, sans-serif" font-size="10.5" fill="#8ecbff">模型（只出主意）</text>
+
+<rect x="24" y="240" width="632" height="58" rx="7" fill="#2a1f24" stroke="#f0655f" stroke-width="1.6"/>
+<text x="40" y="275" font-family="system-ui, sans-serif" font-size="13" font-weight="700" fill="#ff9e97">3</text>
+<text x="70" y="266" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#ff9e97">ToolMessage</text>
+<text x="70" y="286" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">「上海: 22°C，晴」——函数真的被执行了，结果被包成消息</text>
+<text x="440" y="275" font-family="system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#ff9e97">框架 tools 节点</text>
+
+<rect x="24" y="308" width="632" height="58" rx="7" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.2"/>
+<text x="40" y="343" font-family="system-ui, sans-serif" font-size="13" font-weight="700" fill="#5c6b7d">4</text>
+<text x="70" y="334" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#8ecbff">AIMessage（最终回答）</text>
+<text x="70" y="354" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">「上海 22°C，晴。」——此时 tool_calls 为空，循环结束</text>
+<text x="440" y="343" font-family="system-ui, sans-serif" font-size="10.5" fill="#8ecbff">模型</text>
+
+<path d="M28 162L28 172" fill="none" stroke="#3a4a5e" stroke-width="1.4" marker-end="url(#ar52a)"/>
+<path d="M28 230L28 240" fill="none" stroke="#3a4a5e" stroke-width="1.4" marker-end="url(#ar52a)"/>
+<path d="M28 298L28 308" fill="none" stroke="#3a4a5e" stroke-width="1.4" marker-end="url(#ar52a)"/>
+
+<rect x="24" y="384" width="632" height="42" rx="7" fill="#1b2532" stroke="#3a4a5e" stroke-width="1.1"/>
+<text x="340" y="410" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10.5" fill="#9fb0c0">排查口诀：先问「这条消息是谁写的」——第 3 条出问题，去查工具；第 2、4 条出问题，才去查提示词和模型</text>
+</svg>

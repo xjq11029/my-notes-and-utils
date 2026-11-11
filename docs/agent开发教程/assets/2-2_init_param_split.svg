@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 480" width="680" height="480" role="img">
+<title>init_chat_model 的参数分流：四个自己的，其余原样转发</title>
+<desc>入口 init_chat_model 只认 model、model_provider、configurable_fields、config_prefix 四个参数；其余 temperature、api_key、base_url、max_tokens 全落进 **kwargs，原样转发给底层 ChatXxx 构造函数。名字写错时构造成功、只留一条 UserWarning、值静默进 model_kwargs。</desc>
+<defs>
+<marker id="ar22" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="#6b7a8d" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+<marker id="ar22r" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="#f0655f" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+</defs>
+
+<rect x="0" y="0" width="680" height="480" fill="#111721"/>
+
+<text x="34" y="38" font-family="system-ui, sans-serif" font-size="17" font-weight="700" fill="#dfe6ee">init_chat_model 的参数分流</text>
+<text x="34" y="62" font-family="system-ui, sans-serif" font-size="12" fill="#7d8b9c">四个名字它自己认，剩下的整包交给分机——那一层不校验参数名</text>
+
+<!-- 入口 -->
+<rect x="48" y="92" width="392" height="44" rx="8" fill="#241f38" stroke="#a78bfa" stroke-width="1.4"/>
+<text x="244" y="120" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#c9b8ff">init_chat_model(model, **kwargs)</text>
+
+<path d="M244 136L244 148" fill="none" stroke="#6b7a8d" stroke-width="1.5" marker-end="url(#ar22)"/>
+
+<!-- 第一层：自己的四个 -->
+<rect x="48" y="152" width="392" height="132" rx="9" fill="#161d29" stroke="#3a4a5e" stroke-width="1"/>
+<text x="64" y="174" font-family="system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#8ecbff">① 它自己管的四个参数</text>
+
+<rect x="64" y="184" width="176" height="42" rx="6" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.1"/>
+<text x="76" y="201" font-family="system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#8ecbff">model</text>
+<text x="76" y="217" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">模型名，或 provider:model</text>
+
+<rect x="248" y="184" width="176" height="42" rx="6" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.1"/>
+<text x="260" y="201" font-family="system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#8ecbff">model_provider</text>
+<text x="260" y="217" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">提供商名，等价于前缀</text>
+
+<rect x="64" y="232" width="176" height="42" rx="6" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.1"/>
+<text x="76" y="249" font-family="system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#8ecbff">configurable_fields</text>
+<text x="76" y="265" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">运行时覆盖的白名单</text>
+
+<rect x="248" y="232" width="176" height="42" rx="6" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.1"/>
+<text x="260" y="249" font-family="system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#8ecbff">config_prefix</text>
+<text x="260" y="265" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">覆盖时的键名前缀</text>
+
+<path d="M244 284L244 296" fill="none" stroke="#6b7a8d" stroke-width="1.5" marker-end="url(#ar22)"/>
+
+<!-- 第二层：**kwargs -->
+<rect x="48" y="300" width="392" height="92" rx="9" fill="#2a2320" stroke="#e8a34b" stroke-width="1.2"/>
+<text x="64" y="322" font-family="system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#f3c47a">② 其余全落进 **kwargs，原样转发</text>
+
+<rect x="64" y="332" width="86" height="26" rx="5" fill="#1b2532" stroke="#3a4a5e" stroke-width="1"/>
+<text x="107" y="349" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">temperature</text>
+
+<rect x="156" y="332" width="86" height="26" rx="5" fill="#1b2532" stroke="#3a4a5e" stroke-width="1"/>
+<text x="199" y="349" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">api_key</text>
+
+<rect x="248" y="332" width="86" height="26" rx="5" fill="#1b2532" stroke="#3a4a5e" stroke-width="1"/>
+<text x="291" y="349" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">base_url</text>
+
+<rect x="340" y="332" width="86" height="26" rx="5" fill="#1b2532" stroke="#3a4a5e" stroke-width="1"/>
+<text x="383" y="349" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">max_tokens</text>
+
+<text x="64" y="378" font-family="system-ui, sans-serif" font-size="9" fill="#7d8b9c">参数名由每个集成自己的字段定义决定，这一层不校验</text>
+
+<path d="M244 392L244 404" fill="none" stroke="#6b7a8d" stroke-width="1.5" marker-end="url(#ar22)"/>
+
+<rect x="48" y="408" width="392" height="44" rx="8" fill="#1b2532" stroke="#3a4a5e" stroke-width="1.2"/>
+<text x="244" y="436" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#dfe6ee">底层 ChatXxx 的构造函数</text>
+
+<!-- 右侧红框：后果 -->
+<rect x="472" y="152" width="184" height="226" rx="9" fill="#2a1f24" stroke="#f0655f" stroke-width="1.3"/>
+<text x="486" y="178" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#f0655f">名字写错的后果</text>
+<text x="486" y="206" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">构造照样成功</text>
+<text x="486" y="230" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">只留一条 UserWarning</text>
+<text x="486" y="254" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">值静默进 model_kwargs</text>
+<text x="486" y="278" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">请求仍打到默认地址</text>
+<line x1="486" y1="294" x2="642" y2="294" stroke="#f0655f" stroke-width="1" stroke-dasharray="3 3" opacity="0.6"/>
+<text x="486" y="316" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">这一层只转发，不校验</text>
+<text x="486" y="336" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">参数名由集成定义</text>
+<text x="486" y="356" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">所以只能靠 print 验</text>
+
+<path d="M472 346L448 346" fill="none" stroke="#f0655f" stroke-width="1.3" stroke-dasharray="4 3" marker-end="url(#ar22r)"/>
+
+<text x="340" y="470" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#7d8b9c">入口只认四个名字，其余照抄给分机；照抄这一段是「设了却不生效」的总根源</text>
+</svg>

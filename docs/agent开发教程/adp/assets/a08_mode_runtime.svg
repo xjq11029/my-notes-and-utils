@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 400" width="680" height="400" role="img">
+<title>标准模式与单工作流模式的运行差异</title>
+<desc>左侧标准模式是一个由模型驱动的循环：提问、检索、组织答案、返回，步数不固定。右侧单工作流是一条固定流水线：提交、查额度、主管审批、财务复核、打款，步数固定且每步可重试。两者最本质的差别是谁决定走几步。</desc>
+<defs>
+<marker id="ar8a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+</defs>
+
+<rect x="0" y="0" width="680" height="400" fill="#111721"/>
+
+<text x="34" y="38" font-family="system-ui, sans-serif" font-size="17" font-weight="700" fill="#dfe6ee">标准模式 vs 单工作流：谁决定走几步</text>
+<text x="34" y="62" font-family="system-ui, sans-serif" font-size="12" fill="#7d8b9c">同样是"办成一件事"，一个由模型带路，一个由流程带路</text>
+
+<text x="40" y="94" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#8ecbff">标准模式：一个循环</text>
+<text x="364" y="94" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#f3c47a">单工作流：一条流水线</text>
+
+<rect x="40" y="110" width="276" height="38" rx="6" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.2"/>
+<text x="178" y="134" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">用户提问</text>
+<path d="M178 148L178 158" fill="none" stroke="#6b7a8d" stroke-width="1.4" marker-end="url(#ar8a)"/>
+
+<rect x="40" y="160" width="276" height="38" rx="6" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.2"/>
+<text x="178" y="184" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">检索知识库（可能不止一轮）</text>
+<path d="M178 198L178 208" fill="none" stroke="#6b7a8d" stroke-width="1.4" marker-end="url(#ar8a)"/>
+
+<rect x="40" y="210" width="276" height="38" rx="6" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.2"/>
+<text x="178" y="234" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">模型组织答案</text>
+<path d="M178 248L178 258" fill="none" stroke="#6b7a8d" stroke-width="1.4" marker-end="url(#ar8a)"/>
+
+<rect x="40" y="260" width="276" height="38" rx="6" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.2"/>
+<text x="178" y="284" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">带引用返回</text>
+
+<path d="M40 279L26 279L26 129L40 129" fill="none" stroke="#4dabf7" stroke-width="1.2" stroke-dasharray="5 4" marker-end="url(#ar8a)"/>
+<text x="40" y="322" font-family="system-ui, sans-serif" font-size="9.5" fill="#7d8b9c">走几步由模型决定，每次可能不同</text>
+
+<line x1="340" y1="86" x2="340" y2="330" stroke="#2c3a4b" stroke-width="1" stroke-dasharray="4 5"/>
+
+<rect x="364" y="110" width="276" height="30" rx="6" fill="#2a2320" stroke="#e8a34b" stroke-width="1.2"/>
+<text x="502" y="130" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">① 提交报销单</text>
+<path d="M502 140L502 148" fill="none" stroke="#6b7a8d" stroke-width="1.4" marker-end="url(#ar8a)"/>
+
+<rect x="364" y="150" width="276" height="30" rx="6" fill="#2a2320" stroke="#e8a34b" stroke-width="1.2"/>
+<text x="502" y="170" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">② 查预算额度（调接口）</text>
+<path d="M502 180L502 188" fill="none" stroke="#6b7a8d" stroke-width="1.4" marker-end="url(#ar8a)"/>
+
+<rect x="364" y="190" width="276" height="30" rx="6" fill="#2a2320" stroke="#e8a34b" stroke-width="1.2"/>
+<text x="502" y="210" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">③ 主管审批</text>
+<path d="M502 220L502 228" fill="none" stroke="#6b7a8d" stroke-width="1.4" marker-end="url(#ar8a)"/>
+
+<rect x="364" y="230" width="276" height="30" rx="6" fill="#2a2320" stroke="#e8a34b" stroke-width="1.2"/>
+<text x="502" y="250" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">④ 财务复核</text>
+<path d="M502 260L502 268" fill="none" stroke="#6b7a8d" stroke-width="1.4" marker-end="url(#ar8a)"/>
+
+<rect x="364" y="270" width="276" height="30" rx="6" fill="#2a2320" stroke="#e8a34b" stroke-width="1.2"/>
+<text x="502" y="290" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">⑤ 打款</text>
+
+<text x="364" y="322" font-family="system-ui, sans-serif" font-size="9.5" fill="#7d8b9c">步数固定，每步可单独重试、单独留痕</text>
+
+<rect x="24" y="344" width="632" height="40" rx="7" fill="#1b2532" stroke="#3a4a5e" stroke-width="1.2"/>
+<text x="340" y="369" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10.5" fill="#9fb0c0">左：模型决定走几步　｜　右：流程决定走几步　——　这就是两者最本质的差别</text>
+</svg>

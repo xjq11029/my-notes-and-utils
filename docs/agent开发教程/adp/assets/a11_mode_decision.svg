@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 460" width="680" height="460" role="img">
+<title>构建模式选择决策树</title>
+<desc>由「三步看图法」推导出的模式选择顺序：先问流程是否固定（单工作流），再问任务是否开放（Claw），再问是否需要多角色分工（Multi-Agent），都不满足则从标准模式起步。此图为本文补充推导，非课程原文。</desc>
+<defs>
+<marker id="ar11a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+</defs>
+
+<rect x="0" y="0" width="680" height="460" fill="#111721"/>
+
+<text x="34" y="38" font-family="system-ui, sans-serif" font-size="17" font-weight="700" fill="#dfe6ee">构建模式选择：四个问题定一种模式</text>
+<text x="34" y="62" font-family="system-ui, sans-serif" font-size="12" fill="#7d8b9c">按箭头顺序提问，第一个「是」即出口；本文由三步看图法推导，非课程原文</text>
+
+<rect x="40" y="100" width="360" height="52" rx="7" fill="#1b2532" stroke="#3a4a5e" stroke-width="1.2"/>
+<text x="56" y="122" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#9fb0c0">Q1</text>
+<text x="86" y="122" font-family="system-ui, sans-serif" font-size="11" fill="#dfe6ee">流程固定、步骤能事先枚举吗？</text>
+<text x="86" y="141" font-family="system-ui, sans-serif" font-size="9.5" fill="#7d8b9c">审批、开票、工单流转、报表生成</text>
+
+<path d="M400 126L426 126" fill="none" stroke="#e8a34b" stroke-width="1.5" marker-end="url(#ar11a)"/>
+<text x="404" y="118" font-family="system-ui, sans-serif" font-size="9.5" fill="#e8a34b">是</text>
+
+<rect x="434" y="100" width="222" height="52" rx="7" fill="#2a2320" stroke="#e8a34b" stroke-width="1.3"/>
+<text x="448" y="122" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#f3c47a">单工作流模式 + Workflow</text>
+<text x="448" y="141" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">结果可验收，流程可回溯</text>
+
+<path d="M220 152L220 184" fill="none" stroke="#6b7a8d" stroke-width="1.4" marker-end="url(#ar11a)"/>
+<text x="228" y="172" font-family="system-ui, sans-serif" font-size="9.5" fill="#7d8b9c">否</text>
+
+<rect x="40" y="184" width="360" height="52" rx="7" fill="#1b2532" stroke="#3a4a5e" stroke-width="1.2"/>
+<text x="56" y="206" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#9fb0c0">Q2</text>
+<text x="86" y="206" font-family="system-ui, sans-serif" font-size="11" fill="#dfe6ee">任务开放、步骤无法预知吗？</text>
+<text x="86" y="225" font-family="system-ui, sans-serif" font-size="9.5" fill="#7d8b9c">长耗时、涉及文件读写与代码执行</text>
+
+<path d="M400 210L426 210" fill="none" stroke="#f0655f" stroke-width="1.5" marker-end="url(#ar11a)"/>
+<text x="404" y="202" font-family="system-ui, sans-serif" font-size="9.5" fill="#f0655f">是</text>
+
+<rect x="434" y="184" width="222" height="52" rx="7" fill="#2a1f24" stroke="#f0655f" stroke-width="1.3"/>
+<text x="448" y="206" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#ff9e97">Claw 模式</text>
+<text x="448" y="225" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">独立工作空间，自主规划与执行</text>
+
+<path d="M220 236L220 268" fill="none" stroke="#6b7a8d" stroke-width="1.4" marker-end="url(#ar11a)"/>
+<text x="228" y="256" font-family="system-ui, sans-serif" font-size="9.5" fill="#7d8b9c">否</text>
+
+<rect x="40" y="268" width="360" height="52" rx="7" fill="#1b2532" stroke="#3a4a5e" stroke-width="1.2"/>
+<text x="56" y="290" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#9fb0c0">Q3</text>
+<text x="86" y="290" font-family="system-ui, sans-serif" font-size="11" fill="#dfe6ee">需要多角色分工并互相校验吗？</text>
+<text x="86" y="309" font-family="system-ui, sans-serif" font-size="9.5" fill="#7d8b9c">分析、查资料、算结果、风控复核</text>
+
+<path d="M400 294L426 294" fill="none" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#ar11a)"/>
+<text x="404" y="286" font-family="system-ui, sans-serif" font-size="9.5" fill="#a78bfa">是</text>
+
+<rect x="434" y="268" width="222" height="52" rx="7" fill="#241f38" stroke="#a78bfa" stroke-width="1.3"/>
+<text x="448" y="290" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#c9b8ff">Multi-Agent 模式</text>
+<text x="448" y="309" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">多智能体分工 + 工具调用</text>
+
+<path d="M220 320L220 352" fill="none" stroke="#6b7a8d" stroke-width="1.4" marker-end="url(#ar11a)"/>
+<text x="228" y="340" font-family="system-ui, sans-serif" font-size="9.5" fill="#7d8b9c">否</text>
+
+<rect x="40" y="352" width="360" height="52" rx="7" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.3"/>
+<text x="56" y="374" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#8ecbff">标准模式 + RAG</text>
+<text x="56" y="393" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">问答型任务，最快起步；后续按需换模式</text>
+
+<text x="340" y="436" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#7d8b9c">顺序不能换：先判「是否可枚举」，再判「是否开放」，最后才判「是否需要分工」</text>
+</svg>

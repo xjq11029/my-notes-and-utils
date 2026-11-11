@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 400" width="680" height="400" role="img">
+<title>人工二维坐标系里的「距离 = 相关性」</title>
+<desc>横轴是动物性、纵轴是机械性，三个句子被放到平面上：猫在晒太阳 (0.90, 0.10)、狗在打盹 (0.85, 0.15)、汽车在高速公路上飞驰 (0.05, 0.95)。查询「小狗在睡觉」落在 (0.80, 0.20)，与狗距离 0.07、与猫 0.14、与汽车 1.06，按距离排序就是检索排序。</desc>
+<rect x="0" y="0" width="680" height="400" fill="#111721"/>
+
+<text x="34" y="36" font-family="system-ui, sans-serif" font-size="17" font-weight="700" fill="#dfe6ee">二维玩具：距离就是相关性</text>
+<text x="34" y="60" font-family="system-ui, sans-serif" font-size="12" fill="#7d8b9c">两维含义由人指定；真实嵌入只是把这个坐标系换成学出来的高维</text>
+
+<!-- 网格 -->
+<line x1="177.5" y1="120" x2="177.5" y2="330" stroke="#3a4a5e" stroke-width="1" opacity="0.35"/>
+<line x1="265" y1="120" x2="265" y2="330" stroke="#3a4a5e" stroke-width="1" opacity="0.35"/>
+<line x1="352.5" y1="120" x2="352.5" y2="330" stroke="#3a4a5e" stroke-width="1" opacity="0.35"/>
+<line x1="90" y1="277.5" x2="440" y2="277.5" stroke="#3a4a5e" stroke-width="1" opacity="0.35"/>
+<line x1="90" y1="225" x2="440" y2="225" stroke="#3a4a5e" stroke-width="1" opacity="0.35"/>
+<line x1="90" y1="172.5" x2="440" y2="172.5" stroke="#3a4a5e" stroke-width="1" opacity="0.35"/>
+
+<!-- 坐标轴 -->
+<path d="M90 330L440 330" fill="none" stroke="#3a4a5e" stroke-width="1.4"/>
+<path d="M90 330L90 120" fill="none" stroke="#3a4a5e" stroke-width="1.4"/>
+<text x="84" y="334" text-anchor="end" font-family="system-ui, sans-serif" font-size="9" fill="#7d8b9c">0</text>
+<text x="84" y="124" text-anchor="end" font-family="system-ui, sans-serif" font-size="9" fill="#7d8b9c">1</text>
+<text x="440" y="350" text-anchor="end" font-family="system-ui, sans-serif" font-size="9.5" fill="#7d8b9c">动物性 →</text>
+<text x="58" y="225" transform="rotate(-90 58 225)" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#7d8b9c">机械性 →</text>
+
+<!-- 查询点 -->
+<circle cx="370" cy="288" r="8" fill="none" stroke="#e8a34b" stroke-width="1.4"/>
+<circle cx="370" cy="288" r="4" fill="#e8a34b"/>
+<text x="354" y="284" text-anchor="end" font-family="system-ui, sans-serif" font-size="9.5" fill="#f3c47a">查询：小狗在睡觉</text>
+
+<!-- 三个句子 -->
+<circle cx="387.5" cy="298.5" r="4.5" fill="#4dabf7"/>
+<text x="400" y="294" font-family="system-ui, sans-serif" font-size="9.5" fill="#8ecbff">狗在打盹</text>
+
+<circle cx="405" cy="309" r="4.5" fill="#a78bfa"/>
+<text x="417" y="318" font-family="system-ui, sans-serif" font-size="9.5" fill="#c9b8ff">猫在晒太阳</text>
+
+<circle cx="107.5" cy="130.5" r="4.5" fill="#93a1b1"/>
+<text x="119" y="127" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">汽车在高速公路上飞驰</text>
+
+<!-- 排序面板 -->
+<rect x="478" y="96" width="168" height="224" rx="8" fill="#1b2532" stroke="#3a4a5e" stroke-width="1.1"/>
+<text x="494" y="120" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#dfe6ee">按距离排序</text>
+<text x="494" y="138" font-family="system-ui, sans-serif" font-size="9" fill="#7d8b9c">查询：小狗在睡觉</text>
+
+<circle cx="498" cy="160" r="3.5" fill="#4dabf7"/>
+<text x="510" y="164" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">狗在打盹</text>
+<text x="632" y="164" text-anchor="end" font-family="system-ui, sans-serif" font-size="10" font-weight="700" fill="#8ecbff">0.07</text>
+
+<circle cx="498" cy="192" r="3.5" fill="#a78bfa"/>
+<text x="510" y="196" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">猫在晒太阳</text>
+<text x="632" y="196" text-anchor="end" font-family="system-ui, sans-serif" font-size="10" fill="#c9b8ff">0.14</text>
+
+<circle cx="498" cy="224" r="3.5" fill="#93a1b1"/>
+<text x="510" y="228" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">汽车</text>
+<text x="632" y="228" text-anchor="end" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">1.06</text>
+
+<line x1="494" y1="246" x2="632" y2="246" stroke="#3a4a5e" stroke-width="1"/>
+<text x="494" y="268" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">取最近的 k 条，就是检索</text>
+<text x="494" y="288" font-family="system-ui, sans-serif" font-size="9.5" fill="#7d8b9c">排序不算语义，只算距离</text>
+
+<text x="340" y="382" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#7d8b9c">真实模型把这两维换成 1536 维甚至更高——每一维的含义没人规定，是语料学出来的</text>
+</svg>

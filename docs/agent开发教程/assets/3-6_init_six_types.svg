@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 420" width="680" height="420" role="img">
+<title>六种初始化元素按提示词来源分三组</title>
+<desc>手写组是 str、tuple、dict，已有对象组是 BaseMessage，可复用组是 BaseMessagePromptTemplate 与 BaseChatPromptTemplate。每组渲染出的消息序列不同。str 的默认角色是 human，可调用对象放进列表直接报错。</desc>
+<defs>
+<marker id="ar36" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="#93a1b1" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+</defs>
+
+<rect x="0" y="0" width="680" height="420" fill="#111721"/>
+
+<text x="34" y="38" font-family="system-ui, sans-serif" font-size="17" font-weight="700" fill="#dfe6ee">六种元素，按「提示词从哪来」分三组</text>
+<text x="34" y="62" font-family="system-ui, sans-serif" font-size="12" fill="#7d8b9c">不是语法分类，是来源分类——每组最后都渲染成消息，但默认角色不同</text>
+
+<!-- ① 手写 -->
+<rect x="24" y="96" width="200" height="224" rx="9" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.3"/>
+<text x="38" y="120" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#8ecbff">① 手写</text>
+<text x="38" y="138" font-family="system-ui, sans-serif" font-size="9" fill="#93a1b1">直接在代码里写</text>
+
+<rect x="38" y="150" width="172" height="24" rx="5" fill="#111721" stroke="#3a4a5e" stroke-width="0.9"/>
+<text x="48" y="166" font-family="ui-monospace, monospace" font-size="9.5" fill="#dfe6ee">str</text>
+<rect x="38" y="180" width="172" height="24" rx="5" fill="#111721" stroke="#3a4a5e" stroke-width="0.9"/>
+<text x="48" y="196" font-family="ui-monospace, monospace" font-size="9.5" fill="#dfe6ee">tuple</text>
+<rect x="38" y="210" width="172" height="24" rx="5" fill="#111721" stroke="#3a4a5e" stroke-width="0.9"/>
+<text x="48" y="226" font-family="ui-monospace, monospace" font-size="9.5" fill="#dfe6ee">dict</text>
+
+<line x1="38" y1="246" x2="210" y2="246" stroke="#3a4a5e" stroke-width="1"/>
+<text x="38" y="264" font-family="system-ui, sans-serif" font-size="9" fill="#7d8b9c">渲染出</text>
+<text x="38" y="283" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">str → HumanMessage</text>
+<text x="38" y="301" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">tuple / dict → System + Human</text>
+
+<!-- ② 已有对象 -->
+<rect x="236" y="96" width="200" height="224" rx="9" fill="#241f38" stroke="#a78bfa" stroke-width="1.3"/>
+<text x="250" y="120" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#c9b8ff">② 已有对象</text>
+<text x="250" y="138" font-family="system-ui, sans-serif" font-size="9" fill="#93a1b1">手上就是消息实例</text>
+
+<rect x="250" y="150" width="172" height="24" rx="5" fill="#111721" stroke="#3a4a5e" stroke-width="0.9"/>
+<text x="260" y="166" font-family="ui-monospace, monospace" font-size="9.5" fill="#dfe6ee">BaseMessage</text>
+<text x="250" y="196" font-family="system-ui, sans-serif" font-size="9" fill="#93a1b1">花括号原样保留，不参与渲染</text>
+
+<line x1="250" y1="246" x2="422" y2="246" stroke="#3a4a5e" stroke-width="1"/>
+<text x="250" y="264" font-family="system-ui, sans-serif" font-size="9" fill="#7d8b9c">渲染出</text>
+<text x="250" y="283" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">按实例自身的类型</text>
+<text x="250" y="301" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">此处 → System + Human</text>
+
+<!-- ③ 可复用 -->
+<rect x="448" y="96" width="208" height="224" rx="9" fill="#1b2532" stroke="#6b7a8d" stroke-width="1.3"/>
+<text x="462" y="120" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#c3cfdd">③ 可复用</text>
+<text x="462" y="138" font-family="system-ui, sans-serif" font-size="9" fill="#93a1b1">先声明角色，再挂模板</text>
+
+<rect x="462" y="150" width="180" height="24" rx="5" fill="#111721" stroke="#3a4a5e" stroke-width="0.9"/>
+<text x="472" y="166" font-family="ui-monospace, monospace" font-size="8.5" fill="#dfe6ee">BaseMessagePromptTemplate</text>
+<rect x="462" y="180" width="180" height="24" rx="5" fill="#111721" stroke="#3a4a5e" stroke-width="0.9"/>
+<text x="472" y="196" font-family="ui-monospace, monospace" font-size="8.5" fill="#dfe6ee">BaseChatPromptTemplate</text>
+<text x="462" y="226" font-family="system-ui, sans-serif" font-size="9" fill="#93a1b1">模板里还能再嵌模板</text>
+
+<line x1="462" y1="246" x2="642" y2="246" stroke="#3a4a5e" stroke-width="1"/>
+<text x="462" y="264" font-family="system-ui, sans-serif" font-size="9" fill="#7d8b9c">渲染出</text>
+<text x="462" y="283" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">System + HumanMessage</text>
+<text x="462" y="301" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">可跨文件 / 分段维护</text>
+
+<!-- 两个红标 -->
+<rect x="24" y="336" width="306" height="62" rx="7" fill="#2a1f24" stroke="#f0655f" stroke-width="1.2"/>
+<text x="40" y="358" font-family="system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#ff9d99">× str 的默认角色是 human</text>
+<text x="40" y="376" font-family="system-ui, sans-serif" font-size="9" fill="#93a1b1">字符串是 ('human', template) 的简写</text>
+<text x="40" y="391" font-family="system-ui, sans-serif" font-size="9" fill="#93a1b1">写不出 system，定角色得用 tuple</text>
+
+<rect x="350" y="336" width="306" height="62" rx="7" fill="#2a1f24" stroke="#f0655f" stroke-width="1.2"/>
+<text x="366" y="358" font-family="system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#ff9d99">× 可调用对象（函数）直接报错</text>
+<text x="366" y="376" font-family="system-ui, sans-serif" font-size="9" fill="#93a1b1">NotImplementedError: Unsupported</text>
+<text x="366" y="391" font-family="system-ui, sans-serif" font-size="9" fill="#93a1b1">message type: &lt;class 'function'&gt;</text>
+</svg>

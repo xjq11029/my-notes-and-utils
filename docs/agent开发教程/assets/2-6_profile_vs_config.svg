@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 460" width="680" height="460" role="img">
+<title>profile 与 config：一个造出来就定，一个每次调用传</title>
+<desc>左栏 profile 是模型对象自带的能力画像（上下文窗口、工具调用、结构化输出），只有 LangChain 声明过才有，否则是 None；它只适合做运行时判断。右栏 config 是单次调用的配置单：run_name、tags、metadata、callbacks 只记账，max_concurrency、recursion_limit、configurable 真影响执行。with_config() 返回 RunnableBinding，类型判断会失败。</desc>
+<rect x="0" y="0" width="680" height="460" fill="#111721"/>
+
+<text x="34" y="38" font-family="system-ui, sans-serif" font-size="17" font-weight="700" fill="#dfe6ee">profile 与 config</text>
+<text x="34" y="62" font-family="system-ui, sans-serif" font-size="12" fill="#7d8b9c">一个是对象的属性，一个是调用的参数；「什么时候定」是它们的分界线</text>
+
+<!-- 左：profile -->
+<rect x="24" y="92" width="308" height="302" rx="9" fill="#161d29" stroke="#4dabf7" stroke-width="1.3"/>
+<text x="40" y="120" font-family="system-ui, sans-serif" font-size="13" font-weight="700" fill="#8ecbff">profile</text>
+<text x="40" y="138" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">造出来就定，之后改不了</text>
+<line x1="40" y1="152" x2="316" y2="152" stroke="#3a4a5e" stroke-width="1"/>
+
+<text x="40" y="174" font-family="system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#dfe6ee">能力画像</text>
+<text x="40" y="196" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">· 上下文窗口多大</text>
+<text x="40" y="216" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">· 支不支持工具调用</text>
+<text x="40" y="236" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">· 支不支持结构化输出</text>
+
+<line x1="40" y1="254" x2="316" y2="254" stroke="#3a4a5e" stroke-width="1"/>
+<text x="40" y="276" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">只适合做运行时判断，别当契约</text>
+<text x="40" y="296" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">未声明过就是 None</text>
+<text x="40" y="316" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">假模型：Python None / JS {}</text>
+<text x="40" y="344" font-family="system-ui, sans-serif" font-size="9" fill="#7d8b9c">它描述这个对象，不是服务端真的这么干</text>
+
+<!-- 右：config -->
+<rect x="348" y="92" width="308" height="302" rx="9" fill="#161d29" stroke="#e8a34b" stroke-width="1.3"/>
+<text x="364" y="120" font-family="system-ui, sans-serif" font-size="13" font-weight="700" fill="#f3c47a">config</text>
+<text x="364" y="138" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">每次调用临时传</text>
+<line x1="364" y1="152" x2="640" y2="152" stroke="#3a4a5e" stroke-width="1"/>
+
+<text x="364" y="172" font-family="system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#dfe6ee">上段｜只记账</text>
+
+<rect x="364" y="182" width="133" height="26" rx="5" fill="#1b2532" stroke="#3a4a5e" stroke-width="1"/>
+<text x="430" y="199" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">run_name</text>
+<rect x="505" y="182" width="133" height="26" rx="5" fill="#1b2532" stroke="#3a4a5e" stroke-width="1"/>
+<text x="571" y="199" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">tags</text>
+
+<rect x="364" y="214" width="133" height="26" rx="5" fill="#1b2532" stroke="#3a4a5e" stroke-width="1"/>
+<text x="430" y="231" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">metadata</text>
+<rect x="505" y="214" width="133" height="26" rx="5" fill="#1b2532" stroke="#3a4a5e" stroke-width="1"/>
+<text x="571" y="231" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">callbacks</text>
+
+<text x="364" y="258" font-family="system-ui, sans-serif" font-size="9" fill="#7d8b9c">只在回调与追踪里可见，不进消息、不影响输出</text>
+
+<line x1="364" y1="268" x2="640" y2="268" stroke="#3a4a5e" stroke-width="1"/>
+<text x="364" y="288" font-family="system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#f0655f">下段｜真影响执行</text>
+
+<rect x="364" y="296" width="274" height="26" rx="5" fill="#2a1f24" stroke="#f0655f" stroke-width="1"/>
+<text x="376" y="313" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">max_concurrency</text>
+<text x="628" y="313" text-anchor="end" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">batch 并发数</text>
+
+<rect x="364" y="326" width="274" height="26" rx="5" fill="#2a1f24" stroke="#f0655f" stroke-width="1"/>
+<text x="376" y="343" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">recursion_limit</text>
+<text x="628" y="343" text-anchor="end" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">递归深度上限</text>
+
+<rect x="364" y="356" width="274" height="26" rx="5" fill="#2a1f24" stroke="#f0655f" stroke-width="1"/>
+<text x="376" y="373" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">configurable</text>
+<text x="628" y="373" text-anchor="end" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">按白名单覆盖模型参数</text>
+
+<!-- 底部注 -->
+<rect x="24" y="408" width="632" height="36" rx="7" fill="#1b2532" stroke="#f0655f" stroke-width="1.2"/>
+<text x="40" y="431" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">with_config() 返回 RunnableBinding：isinstance / instanceof 都会 False，取回原对象用 .bound</text>
+</svg>

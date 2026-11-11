@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 400" width="680" height="400" role="img">
+<title>checkpointer 与 store 两套持久化系统</title>
+<desc>上半部分：checkpointer 按 thread_id 把图状态快照分线程存档，线程之间互不可见。下半部分：store 按命名空间存键值，跨线程共享，换会话仍能读到。</desc>
+<defs>
+<marker id="m121" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+</defs>
+
+<rect x="0" y="0" width="680" height="400" fill="#111721"/>
+
+<text x="34" y="38" font-family="system-ui, sans-serif" font-size="17" font-weight="700" fill="#dfe6ee">checkpointer 与 store：存的东西不一样</text>
+<text x="34" y="62" font-family="system-ui, sans-serif" font-size="12" fill="#7d8b9c">checkpointer 管这一段对话，store 管这个人；两者不可互替</text>
+
+<!-- 上：checkpointer -->
+<rect x="34" y="84" width="612" height="146" rx="10" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.2"/>
+<text x="50" y="108" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#8ecbff">checkpointer：按 thread_id 存档，线程之间互不可见</text>
+
+<rect x="50" y="120" width="180" height="90" rx="8" fill="#1b2532" stroke="#4dabf7" stroke-width="1"/>
+<text x="64" y="140" font-family="system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#dfe6ee">thread: order-2026</text>
+<text x="64" y="160" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">invoke ① → cp₁</text>
+<text x="64" y="178" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">invoke ② → cp₂ cp₃</text>
+<text x="64" y="196" font-family="system-ui, sans-serif" font-size="9.5" fill="#7d8b9c">重放时读最新一份</text>
+
+<rect x="250" y="120" width="180" height="90" rx="8" fill="#1b2532" stroke="#4dabf7" stroke-width="1"/>
+<text x="264" y="140" font-family="system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#dfe6ee">thread: chat-7</text>
+<text x="264" y="160" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">invoke ① → cp₁</text>
+<text x="264" y="178" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">invoke ② → cp₂</text>
+<text x="264" y="196" font-family="system-ui, sans-serif" font-size="9.5" fill="#7d8b9c">两条线程互不可见</text>
+
+<rect x="450" y="120" width="180" height="90" rx="8" fill="#2a2320" stroke="#e8a34b" stroke-width="1.1"/>
+<text x="464" y="140" font-family="system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#f3c47a">换一个 thread_id</text>
+<text x="464" y="160" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">= 一张白纸</text>
+<text x="464" y="178" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">旧快照还在，但取不到</text>
+<text x="464" y="196" font-family="system-ui, sans-serif" font-size="9.5" fill="#7d8b9c">它是对话的身份证</text>
+
+<!-- 转换说明 -->
+<text x="340" y="244" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#7d8b9c">节点里把长期事实写进 store ↓</text>
+
+<!-- 下：store -->
+<rect x="34" y="254" width="612" height="122" rx="10" fill="#241f38" stroke="#a78bfa" stroke-width="1.2"/>
+<text x="50" y="278" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#c9b8ff">store：按 namespace 存键值，跨线程共享</text>
+
+<rect x="50" y="290" width="240" height="52" rx="7" fill="#1b2532" stroke="#a78bfa" stroke-width="1"/>
+<text x="62" y="309" font-family="system-ui, sans-serif" font-size="9.5" fill="#c9b8ff">("alice", "memories")</text>
+<text x="62" y="328" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">pref-food　pref-city</text>
+
+<rect x="306" y="290" width="160" height="52" rx="7" fill="#1b2532" stroke="#a78bfa" stroke-width="1"/>
+<text x="318" y="309" font-family="system-ui, sans-serif" font-size="9.5" fill="#c9b8ff">("alice", "notes")</text>
+<text x="318" y="328" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">note-1</text>
+
+<text x="484" y="310" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">换会话仍读得到</text>
+<text x="484" y="328" font-family="system-ui, sans-serif" font-size="9.5" fill="#7d8b9c">命名空间自己隔离</text>
+
+<text x="50" y="364" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">判断口径：这次对话内记得 → checkpointer；换人、换会话还记得 → store</text>
+</svg>

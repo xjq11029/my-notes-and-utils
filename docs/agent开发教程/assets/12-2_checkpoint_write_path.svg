@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 420" width="680" height="420" role="img">
+<title>一次 invoke 的检查点写入链路</title>
+<desc>invoke 带 thread_id 进入，一轮超步里的节点执行完毕，在超步边界把 values、next、config 打包成快照，由 saver 按 thread_id 归桶存档；下一次 invoke 读最新一份继续。右侧是 thread_id、checkpoint_ns、checkpoint_id 三级定位。</desc>
+<defs>
+<marker id="m122" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+</defs>
+
+<rect x="0" y="0" width="680" height="420" fill="#111721"/>
+
+<text x="34" y="38" font-family="system-ui, sans-serif" font-size="17" font-weight="700" fill="#dfe6ee">一次 invoke 的检查点写入链路</text>
+<text x="34" y="62" font-family="system-ui, sans-serif" font-size="12" fill="#7d8b9c">超步边界写快照，快照按 thread_id 入桶，下一次 invoke 读最新一份</text>
+
+<!-- 四段流程 -->
+<rect x="34" y="92" width="138" height="62" rx="8" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.2"/>
+<text x="103" y="115" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#8ecbff">invoke(input)</text>
+<text x="103" y="135" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">config 带 thread_id</text>
+
+<rect x="192" y="92" width="138" height="62" rx="8" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.2"/>
+<text x="261" y="115" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#8ecbff">超步执行</text>
+<text x="261" y="135" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">一轮可并行的节点</text>
+
+<rect x="350" y="92" width="138" height="62" rx="8" fill="#241f38" stroke="#a78bfa" stroke-width="1.2"/>
+<text x="419" y="115" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#c9b8ff">超步边界</text>
+<text x="419" y="135" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">打包成一份快照</text>
+
+<rect x="508" y="92" width="138" height="62" rx="8" fill="#2a2320" stroke="#e8a34b" stroke-width="1.2"/>
+<text x="577" y="115" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#f3c47a">saver 存档</text>
+<text x="577" y="135" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">按 thread_id 归桶</text>
+
+<path d="M174 123L190 123" fill="none" stroke="#6b7a8d" stroke-width="1.5" marker-end="url(#m122)"/>
+<path d="M332 123L348 123" fill="none" stroke="#6b7a8d" stroke-width="1.5" marker-end="url(#m122)"/>
+<path d="M490 123L506 123" fill="none" stroke="#6b7a8d" stroke-width="1.5" marker-end="url(#m122)"/>
+
+<!-- 回环 -->
+<path d="M577 154L577 178L103 178L103 156" fill="none" stroke="#4dabf7" stroke-width="1.5" marker-end="url(#m122)"/>
+<text x="340" y="196" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#8ecbff">下一次 invoke 读最新一份，从 next 接着跑</text>
+
+<!-- 左：一份快照里有什么 -->
+<text x="34" y="228" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#dfe6ee">一份检查点里是什么</text>
+
+<rect x="34" y="238" width="372" height="38" rx="7" fill="#1b2532" stroke="#3a4a5e" stroke-width="1"/>
+<text x="48" y="262" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">values —— 到这一步为止的完整状态</text>
+
+<rect x="34" y="284" width="372" height="38" rx="7" fill="#1b2532" stroke="#3a4a5e" stroke-width="1"/>
+<text x="48" y="308" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">next —— 待执行节点；为空表示已跑完</text>
+
+<rect x="34" y="330" width="372" height="38" rx="7" fill="#1b2532" stroke="#3a4a5e" stroke-width="1"/>
+<text x="48" y="354" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">config —— 定位三元组，下次照它取</text>
+
+<!-- 右：三级定位 -->
+<rect x="430" y="228" width="216" height="140" rx="9" fill="#2a2320" stroke="#e8a34b" stroke-width="1.2"/>
+<text x="444" y="250" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#f3c47a">三级定位</text>
+<text x="444" y="272" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">① thread_id</text>
+<text x="458" y="287" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">哪条线程（必填）</text>
+<text x="444" y="308" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">② checkpoint_ns</text>
+<text x="458" y="323" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">线程里的哪张图</text>
+<text x="444" y="344" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">③ checkpoint_id</text>
+<text x="458" y="359" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">哪个快照（不传取最新）</text>
+
+<text x="34" y="396" font-family="system-ui, sans-serif" font-size="9.5" fill="#7d8b9c">写快照发生在超步边界，不在节点内部——所以任意一份快照都是整齐的中间态</text>
+</svg>

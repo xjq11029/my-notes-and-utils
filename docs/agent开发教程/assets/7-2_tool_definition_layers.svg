@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 400" width="680" height="400" role="img">
+<title>三种工具定义方式能改哪一层</title>
+<desc>裸函数、@tool 装饰器、StructuredTool 三种写法，名称、描述、参数 schema 三个层级的来源与可覆盖程度不同。差别不在能不能用，在能改哪一层。</desc>
+
+<rect x="0" y="0" width="680" height="400" fill="#111721"/>
+
+<text x="34" y="38" font-family="system-ui, sans-serif" font-size="17" font-weight="700" fill="#dfe6ee">三种定义方式：同一份 schema，三个可改的层</text>
+<text x="34" y="62" font-family="system-ui, sans-serif" font-size="12" fill="#7d8b9c">纵轴是三个层级，横轴是三种写法；格子里的字就是你实际交出去的东西</text>
+
+<rect x="196" y="92" width="140" height="38" rx="7" fill="#1b2532" stroke="#3a4a5e" stroke-width="1.2"/>
+<text x="266" y="116" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#93a1b1">裸函数</text>
+
+<rect x="348" y="92" width="140" height="38" rx="7" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.2"/>
+<text x="418" y="116" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#8ecbff">@tool 装饰器</text>
+
+<rect x="500" y="92" width="140" height="38" rx="7" fill="#241f38" stroke="#a78bfa" stroke-width="1.2"/>
+<text x="570" y="116" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#c9b8ff">StructuredTool</text>
+
+<text x="46" y="163" font-family="system-ui, sans-serif" font-size="10.5" fill="#93a1b1">名称</text>
+<text x="46" y="211" font-family="system-ui, sans-serif" font-size="10.5" fill="#93a1b1">描述</text>
+<text x="46" y="259" font-family="system-ui, sans-serif" font-size="10.5" fill="#93a1b1">参数 schema</text>
+
+<rect x="196" y="138" width="140" height="40" rx="6" fill="#1b2532" stroke="#3a4a5e" stroke-width="1"/>
+<rect x="348" y="138" width="140" height="40" rx="6" fill="#1b2532" stroke="#3a4a5e" stroke-width="1"/>
+<rect x="500" y="138" width="140" height="40" rx="6" fill="#1b2532" stroke="#3a4a5e" stroke-width="1"/>
+<text x="266" y="163" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">函数名</text>
+<text x="418" y="163" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">函数名，可覆盖</text>
+<text x="570" y="163" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">必须显式传</text>
+
+<rect x="196" y="186" width="140" height="40" rx="6" fill="#1b2532" stroke="#3a4a5e" stroke-width="1"/>
+<rect x="348" y="186" width="140" height="40" rx="6" fill="#1b2532" stroke="#3a4a5e" stroke-width="1"/>
+<rect x="500" y="186" width="140" height="40" rx="6" fill="#1b2532" stroke="#3a4a5e" stroke-width="1"/>
+<text x="266" y="211" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">docstring</text>
+<text x="418" y="211" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">docstring，可覆盖</text>
+<text x="570" y="211" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">必须显式传</text>
+
+<rect x="196" y="234" width="140" height="40" rx="6" fill="#1b2532" stroke="#3a4a5e" stroke-width="1"/>
+<rect x="348" y="234" width="140" height="40" rx="6" fill="#1b2532" stroke="#3a4a5e" stroke-width="1"/>
+<rect x="500" y="234" width="140" height="40" rx="6" fill="#1b2532" stroke="#3a4a5e" stroke-width="1"/>
+<text x="266" y="259" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">类型注解</text>
+<text x="418" y="259" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">注解，或 args_schema</text>
+<text x="570" y="259" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">必须显式传</text>
+
+<rect x="34" y="288" width="612" height="64" rx="8" fill="#2a2320" stroke="#e8a34b" stroke-width="1.2"/>
+<text x="50" y="311" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#f3c47a">差别不在「能不能用」，在「能改哪一层」</text>
+<text x="50" y="332" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">裸函数零个口，@tool 三个口，StructuredTool 全显式——同一份 schema，层次不同</text>
+</svg>

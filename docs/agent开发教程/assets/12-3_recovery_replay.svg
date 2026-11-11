@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 410" width="680" height="410" role="img">
+<title>故障恢复与重放</title>
+<desc>进程跑到第 4 步崩溃，前三步的快照已经落在进程之外；重启后从最近检查点 cp3 载入，只重跑没落盘的第 4、5 步。内存版重启即白纸，落盘版能续跑。</desc>
+<defs>
+<marker id="m123" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+</defs>
+
+<rect x="0" y="0" width="680" height="410" fill="#111721"/>
+
+<text x="34" y="38" font-family="system-ui, sans-serif" font-size="17" font-weight="700" fill="#dfe6ee">故障恢复：从最近一份快照接着跑</text>
+<text x="34" y="62" font-family="system-ui, sans-serif" font-size="12" fill="#7d8b9c">进程会死，快照在进程之外；重跑的是「没落盘的那一段」</text>
+
+<text x="34" y="94" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">进程运行中</text>
+
+<rect x="34" y="104" width="112" height="56" rx="8" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.1"/>
+<text x="90" y="128" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#8ecbff">第 1 步</text>
+<text x="90" y="146" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">跑完</text>
+
+<rect x="166" y="104" width="112" height="56" rx="8" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.1"/>
+<text x="222" y="128" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#8ecbff">第 2 步</text>
+<text x="222" y="146" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">跑完</text>
+
+<rect x="298" y="104" width="112" height="56" rx="8" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.1"/>
+<text x="354" y="128" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#8ecbff">第 3 步</text>
+<text x="354" y="146" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">跑完</text>
+
+<rect x="430" y="104" width="112" height="56" rx="8" fill="#2a1f24" stroke="#f0655f" stroke-width="1.3"/>
+<text x="486" y="128" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#ff9d99">第 4 步</text>
+<text x="486" y="146" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#f0655f">崩溃</text>
+
+<path d="M146 132L164 132" fill="none" stroke="#6b7a8d" stroke-width="1.5" marker-end="url(#m123)"/>
+<path d="M278 132L296 132" fill="none" stroke="#6b7a8d" stroke-width="1.5" marker-end="url(#m123)"/>
+<path d="M410 132L428 132" fill="none" stroke="#6b7a8d" stroke-width="1.5" marker-end="url(#m123)"/>
+
+<text x="560" y="126" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">这一步还没落盘</text>
+<text x="560" y="144" font-family="system-ui, sans-serif" font-size="9.5" fill="#7d8b9c">sync 档也只丢这一步</text>
+
+<!-- 快照行 -->
+<path d="M90 160L90 182" fill="none" stroke="#4dabf7" stroke-width="1.2" marker-end="url(#m123)"/>
+<path d="M222 160L222 182" fill="none" stroke="#4dabf7" stroke-width="1.2" marker-end="url(#m123)"/>
+<path d="M354 160L354 182" fill="none" stroke="#4dabf7" stroke-width="1.2" marker-end="url(#m123)"/>
+<path d="M486 160L486 182" fill="none" stroke="#f0655f" stroke-width="1.2" stroke-dasharray="3 3"/>
+
+<rect x="52" y="184" width="76" height="30" rx="6" fill="#1b2532" stroke="#4dabf7" stroke-width="1"/>
+<text x="90" y="203" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#8ecbff">cp₁</text>
+<rect x="184" y="184" width="76" height="30" rx="6" fill="#1b2532" stroke="#4dabf7" stroke-width="1"/>
+<text x="222" y="203" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#8ecbff">cp₂</text>
+<rect x="316" y="184" width="76" height="30" rx="6" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.3"/>
+<text x="354" y="203" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#8ecbff">cp₃ ← 最近</text>
+<text x="448" y="203" font-family="system-ui, sans-serif" font-size="9.5" fill="#f0655f">✕ 无快照</text>
+
+<!-- 重启 -->
+<rect x="34" y="238" width="612" height="94" rx="9" fill="#1b2532" stroke="#4dabf7" stroke-width="1.2"/>
+<text x="50" y="262" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#8ecbff">重启后：从 cp₃ 载入，只重跑后面两步</text>
+
+<rect x="50" y="276" width="160" height="34" rx="6" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1"/>
+<text x="130" y="298" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">载入 cp₃ 的 values / next</text>
+
+<rect x="240" y="276" width="130" height="34" rx="6" fill="#2a2320" stroke="#e8a34b" stroke-width="1"/>
+<text x="305" y="298" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#f3c47a">重跑第 4 步</text>
+
+<rect x="400" y="276" width="130" height="34" rx="6" fill="#2a2320" stroke="#e8a34b" stroke-width="1"/>
+<text x="465" y="298" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#f3c47a">第 5 步</text>
+
+<path d="M212 293L238 293" fill="none" stroke="#6b7a8d" stroke-width="1.4" marker-end="url(#m123)"/>
+<path d="M372 293L398 293" fill="none" stroke="#6b7a8d" stroke-width="1.4" marker-end="url(#m123)"/>
+
+<text x="548" y="298" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">总计重跑 2 步</text>
+
+<!-- 对照 -->
+<rect x="34" y="348" width="290" height="38" rx="7" fill="#2a1f24" stroke="#f0655f" stroke-width="1"/>
+<text x="48" y="372" font-family="system-ui, sans-serif" font-size="9.5" fill="#ff9d99">InMemorySaver：重启即白纸</text>
+
+<rect x="340" y="348" width="306" height="38" rx="7" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1"/>
+<text x="354" y="372" font-family="system-ui, sans-serif" font-size="9.5" fill="#8ecbff">SqliteSaver / PostgresSaver：历史还在，能续跑</text>
+</svg>

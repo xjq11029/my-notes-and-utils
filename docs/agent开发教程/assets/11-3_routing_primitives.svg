@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 500" width="680" height="500" role="img">
+<title>三种决定下一步去哪的原语</title>
+<desc>条件边由路由函数返回一个节点名，只走一条；Send 返回一组并行任务，跑在同一超步；Command 在节点内同时更新状态并指定下一跳。</desc>
+<defs>
+<marker id="ar113" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M2 1L8 5L2 9" fill="none" stroke="#6b7a8d" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+<marker id="ar113a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M2 1L8 5L2 9" fill="none" stroke="#e8a34b" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+<marker id="ar113p" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M2 1L8 5L2 9" fill="none" stroke="#a78bfa" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+</defs>
+
+<rect x="0" y="0" width="680" height="500" fill="#111721"/>
+
+<text x="34" y="38" font-family="system-ui, sans-serif" font-size="17" font-weight="700" fill="#dfe6ee">三种「下一步去哪」：选一条、全跑、自己跳</text>
+<text x="34" y="62" font-family="system-ui, sans-serif" font-size="12" fill="#7d8b9c">分支的宽窄，决定你该用哪个原语</text>
+
+<!-- 条件边 -->
+<rect x="34" y="80" width="612" height="128" rx="9" fill="#1b2532" stroke="#3a4a5e" stroke-width="1"/>
+<text x="50" y="102" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#8ecbff">条件边：路由函数返回节点名，一次只走一条</text>
+
+<rect x="50" y="118" width="96" height="34" rx="7" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.1"/>
+<text x="98" y="140" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#8ecbff">classify</text>
+
+<path d="M146 130L230 122" fill="none" stroke="#6b7a8d" stroke-width="1.4" marker-end="url(#ar113)"/>
+<path d="M146 140L230 152" fill="none" stroke="#6b7a8d" stroke-width="1.4" marker-end="url(#ar113)"/>
+
+<rect x="234" y="110" width="126" height="24" rx="5" fill="#2a2320" stroke="#e8a34b" stroke-width="0.9"/>
+<text x="297" y="126" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#f3c47a">返回 "weather"</text>
+<rect x="234" y="140" width="126" height="24" rx="5" fill="#2a2320" stroke="#e8a34b" stroke-width="0.9"/>
+<text x="297" y="156" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#f3c47a">返回 "math"</text>
+
+<path d="M360 122L376 122" fill="none" stroke="#6b7a8d" stroke-width="1.4" marker-end="url(#ar113)"/>
+<path d="M360 152L376 152" fill="none" stroke="#6b7a8d" stroke-width="1.4" marker-end="url(#ar113)"/>
+
+<rect x="378" y="109" width="100" height="26" rx="5" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1"/>
+<text x="428" y="126" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">weather 节点</text>
+<rect x="378" y="139" width="100" height="26" rx="5" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1"/>
+<text x="428" y="156" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">math 节点</text>
+
+<text x="494" y="126" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">另一支不执行</text>
+<text x="494" y="144" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">映射表写死可选值</text>
+
+<text x="50" y="190" font-family="system-ui, sans-serif" font-size="9.5" fill="#7d8b9c">分类、分流、按条件重试都用它：返回的是节点名，不是 True / False</text>
+
+<!-- Send -->
+<rect x="34" y="222" width="612" height="128" rx="9" fill="#1b2532" stroke="#3a4a5e" stroke-width="1"/>
+<text x="50" y="244" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#f3c47a">Send：返回一组 Send，N 条路同时走</text>
+
+<rect x="50" y="258" width="96" height="34" rx="7" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.1"/>
+<text x="98" y="280" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#8ecbff">split</text>
+
+<path d="M146 272L230 257" fill="none" stroke="#e8a34b" stroke-width="1.4" marker-end="url(#ar113a)"/>
+<path d="M146 275L230 282" fill="none" stroke="#e8a34b" stroke-width="1.4" marker-end="url(#ar113a)"/>
+<path d="M146 280L230 307" fill="none" stroke="#e8a34b" stroke-width="1.4" marker-end="url(#ar113a)"/>
+
+<rect x="234" y="246" width="140" height="22" rx="5" fill="#2a2320" stroke="#e8a34b" stroke-width="0.9"/>
+<text x="297" y="261" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#f3c47a">Send("worker", {item:"a"})</text>
+<rect x="234" y="271" width="140" height="22" rx="5" fill="#2a2320" stroke="#e8a34b" stroke-width="0.9"/>
+<text x="297" y="286" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#f3c47a">Send("worker", {item:"b"})</text>
+<rect x="234" y="296" width="140" height="22" rx="5" fill="#2a2320" stroke="#e8a34b" stroke-width="0.9"/>
+<text x="297" y="311" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#f3c47a">Send("worker", {item:"c"})</text>
+
+<path d="M362 257L388 257" fill="none" stroke="#6b7a8d" stroke-width="1.4" marker-end="url(#ar113)"/>
+<path d="M362 282L388 282" fill="none" stroke="#6b7a8d" stroke-width="1.4" marker-end="url(#ar113)"/>
+<path d="M362 307L388 307" fill="none" stroke="#6b7a8d" stroke-width="1.4" marker-end="url(#ar113)"/>
+
+<rect x="390" y="246" width="80" height="22" rx="5" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1"/>
+<text x="430" y="261" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">worker</text>
+<rect x="390" y="271" width="80" height="22" rx="5" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1"/>
+<text x="430" y="286" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">worker</text>
+<rect x="390" y="296" width="80" height="22" rx="5" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1"/>
+<text x="430" y="311" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">worker</text>
+
+<text x="484" y="262" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">同一超步并发</text>
+<text x="484" y="280" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">结果靠 reducer 汇总</text>
+<text x="484" y="298" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">payload 是 worker 输入</text>
+
+<text x="50" y="336" font-family="system-ui, sans-serif" font-size="9.5" fill="#7d8b9c">worker 读 state["item"]（当次那一项），不是 state["items"]（整张表）</text>
+
+<!-- Command -->
+<rect x="34" y="364" width="612" height="128" rx="9" fill="#1b2532" stroke="#3a4a5e" stroke-width="1"/>
+<text x="50" y="386" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#c9b8ff">Command：节点自己说「改什么」和「去哪」</text>
+
+<rect x="50" y="400" width="96" height="34" rx="7" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.1"/>
+<text x="98" y="422" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#8ecbff">node</text>
+
+<path d="M146 417L180 417" fill="none" stroke="#a78bfa" stroke-width="1.4" marker-end="url(#ar113p)"/>
+
+<rect x="184" y="392" width="248" height="50" rx="7" fill="#241f38" stroke="#a78bfa" stroke-width="1.2"/>
+<text x="196" y="412" font-family="system-ui, sans-serif" font-size="10" fill="#dfe6ee">Command(update={n: 1}, goto="next")</text>
+<text x="196" y="430" font-family="system-ui, sans-serif" font-size="9" fill="#93a1b1">update 进状态，goto 跳节点</text>
+
+<path d="M432 417L448 417" fill="none" stroke="#a78bfa" stroke-width="1.4" marker-end="url(#ar113p)"/>
+
+<rect x="450" y="400" width="80" height="34" rx="7" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.1"/>
+<text x="490" y="422" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#8ecbff">next</text>
+
+<text x="50" y="470" font-family="system-ui, sans-serif" font-size="9.5" fill="#7d8b9c">JS 侧节点要显式声明 ends，否则类型层报错（源码核对）</text>
+</svg>

@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 450" width="680" height="450" role="img">
+<title>create_agent 的参数按用途分五组</title>
+<desc>十五个参数分成五组：模型与提示、工具与中间件、状态与记忆、输出与标识、仅 Python 的运维参数。分组记比逐条背可靠；最后一行是 JS 侧的三个命名差异。</desc>
+<rect x="0" y="0" width="680" height="450" fill="#111721"/>
+
+<text x="34" y="38" font-family="system-ui, sans-serif" font-size="17" font-weight="700" fill="#dfe6ee">create_agent 的参数：十五个，分五组</text>
+<text x="34" y="62" font-family="system-ui, sans-serif" font-size="12" fill="#7d8b9c">逐条背不住，按「它管哪件事」分组就记住了；本表不列默认值（默认值随版本变）</text>
+
+<rect x="24" y="92" width="632" height="52" rx="7" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.2"/>
+<text x="40" y="123" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#8ecbff">模型与提示</text>
+<text x="176" y="123" font-family="system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">model　·　system_prompt / systemPrompt</text>
+
+<rect x="24" y="152" width="632" height="52" rx="7" fill="#241f38" stroke="#a78bfa" stroke-width="1.2"/>
+<text x="40" y="183" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#c9b8ff">工具与中间件</text>
+<text x="176" y="183" font-family="system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">tools　·　middleware</text>
+
+<rect x="24" y="212" width="632" height="52" rx="7" fill="#2a2320" stroke="#e8a34b" stroke-width="1.2"/>
+<text x="40" y="243" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#f3c47a">状态与记忆</text>
+<text x="176" y="243" font-family="system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">state_schema　·　context_schema　·　checkpointer　·　store</text>
+
+<rect x="24" y="272" width="632" height="52" rx="7" fill="#1b2532" stroke="#3a4a5e" stroke-width="1.2"/>
+<text x="40" y="303" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#9fb0c0">输出与标识</text>
+<text x="176" y="303" font-family="system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">response_format / responseFormat　·　name</text>
+
+<rect x="24" y="332" width="632" height="52" rx="7" fill="#2a1f24" stroke="#f0655f" stroke-width="1.2"/>
+<text x="40" y="363" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#ff9e97">仅 Python</text>
+<text x="176" y="355" font-family="system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">interrupt_before　·　interrupt_after　·　debug　·　cache　·　transformers</text>
+<text x="176" y="373" font-family="system-ui, sans-serif" font-size="9" fill="#7d8b9c">文档正文没列，只有签名里有；行为一个都没跑过</text>
+
+<text x="34" y="412" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">JS 侧三个命名差异：createAgent / responseFormat / contextSchema；工具的 schema 字段必填</text>
+<text x="34" y="434" font-family="system-ui, sans-serif" font-size="10" fill="#6f7f91">「签名里有」只说明它存在，不说明它怎么工作——用之前先 inspect 自己版本的签名</text>
+</svg>

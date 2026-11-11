@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 486" width="680" height="486" role="img">
+<title>include_raw=True 的两种返回形态与它的硬边界</title>
+<desc>左栏成功态：parsed 有值、parsing_error 为 None、raw 是原始 AIMessage。右栏失败态：parsed 变成 None，错误放进 parsing_error。下方对比两语言的键：Python 是 raw / parsed / parsing_error 三个键，JS 只有 raw / parsed，错误被吞掉。红框标出硬边界：走 response_format 原生路径时，JSON 解析发生在 SDK 里，include_raw 兜不住，照样抛 ValidationError。</desc>
+<defs>
+<marker id="ar45a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="#6b7a8d" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+</defs>
+
+<rect x="0" y="0" width="680" height="486" fill="#111721"/>
+
+<text x="34" y="38" font-family="system-ui, sans-serif" font-size="17" font-weight="700" fill="#dfe6ee">include_raw：把异常降级成返回值</text>
+<text x="34" y="62" font-family="system-ui, sans-serif" font-size="12" fill="#7d8b9c">同一个参数，成功与失败拿到的是两种形状；语言不同，键还少一个</text>
+
+<rect x="24" y="88" width="300" height="152" rx="7" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.3"/>
+<text x="40" y="112" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#8ecbff">成功态</text>
+<text x="40" y="140" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">parsed</text>
+<text x="132" y="140" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">Person(name='张三', age=30, ...)</text>
+<text x="40" y="168" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">parsing_error</text>
+<text x="132" y="168" font-family="system-ui, sans-serif" font-size="9.5" fill="#7fe3cd">None</text>
+<text x="40" y="196" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">raw</text>
+<text x="132" y="196" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">AIMessage（可读 token 用量）</text>
+<text x="40" y="222" font-family="system-ui, sans-serif" font-size="9" fill="#7d8b9c">这条能直接进下游</text>
+
+<rect x="356" y="88" width="300" height="152" rx="7" fill="#2a1f24" stroke="#f0655f" stroke-width="1.3"/>
+<text x="372" y="112" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#f0908b">失败态</text>
+<text x="372" y="140" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">parsed</text>
+<text x="464" y="140" font-family="system-ui, sans-serif" font-size="9.5" fill="#f0908b">None</text>
+<text x="372" y="168" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">parsing_error</text>
+<text x="464" y="168" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">ValidationError</text>
+<text x="372" y="196" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">raw</text>
+<text x="464" y="196" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">AIMessage</text>
+<text x="372" y="222" font-family="system-ui, sans-serif" font-size="9" fill="#7d8b9c">这条不进下游，但整批不中断</text>
+
+<line x1="24" y1="256" x2="656" y2="256" stroke="#3a4a5e" stroke-width="1" stroke-dasharray="4 4"/>
+
+<text x="24" y="278" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#dfe6ee">同一份返回值，两语言的键不一样</text>
+
+<rect x="24" y="290" width="300" height="56" rx="7" fill="#1b2532" stroke="#3a4a5e" stroke-width="1.1"/>
+<text x="40" y="310" font-family="system-ui, sans-serif" font-size="10" font-weight="700" fill="#dfe6ee">Python</text>
+<text x="40" y="330" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">['parsed', 'parsing_error', 'raw']</text>
+
+<rect x="356" y="290" width="300" height="56" rx="7" fill="#1b2532" stroke="#e8a34b" stroke-width="1.1"/>
+<text x="372" y="310" font-family="system-ui, sans-serif" font-size="10" font-weight="700" fill="#f3c47a">TypeScript</text>
+<text x="372" y="330" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">['raw', 'parsed'] —— 错误被吞，只留一个 null</text>
+
+<rect x="24" y="362" width="632" height="108" rx="7" fill="#2a1f24" stroke="#f0655f" stroke-width="1.3"/>
+<text x="40" y="384" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#f0908b">硬边界：这个筐只接得住 LangChain 解析步骤的失败</text>
+<text x="40" y="405" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">走 response_format 原生路径时，JSON 解析发生在 OpenAI SDK 的 raw_response.parse() 里。</text>
+<text x="40" y="423" font-family="system-ui, sans-serif" font-size="9.5" fill="#dfe6ee">它早于 LangChain 的解析步骤——include_raw=True 照样抛 ValidationError。</text>
+<text x="40" y="441" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">能被它兜住的只有 function_calling 路径。</text>
+<text x="40" y="459" font-family="system-ui, sans-serif" font-size="9" fill="#7d8b9c">2026-10-16 真实模型实测：兜住时返回 {parsed: None, parsing_error: None, raw}，连错误字段都是 None。</text>
+</svg>

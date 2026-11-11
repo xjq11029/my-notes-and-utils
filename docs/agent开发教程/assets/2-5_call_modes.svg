@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 430" width="680" height="430" role="img">
+<title>四种调用形态是两个维度的组合</title>
+<desc>横轴是「怎么收」：整条、流式、一批；纵轴是「要不要等」：同步、异步。Python 两个维度都做成了方法，共六个（invoke/stream/batch 与各自 a 版）；JS 只有一排三个，因为它们本来就返回 Promise，ainvoke 在 JS 不存在。</desc>
+<rect x="0" y="0" width="680" height="430" fill="#111721"/>
+
+<text x="34" y="38" font-family="system-ui, sans-serif" font-size="17" font-weight="700" fill="#dfe6ee">四种形态，两个维度</text>
+<text x="34" y="62" font-family="system-ui, sans-serif" font-size="12" fill="#7d8b9c">Python 六个方法 = 2 × 3；JS 只有下面一排，因为它本来就返回 Promise</text>
+
+<text x="26" y="92" font-family="system-ui, sans-serif" font-size="9.5" fill="#7d8b9c">要不要等 ↓</text>
+<text x="120" y="90" font-family="system-ui, sans-serif" font-size="9.5" fill="#7d8b9c">怎么收 →</text>
+
+<rect x="120" y="96" width="172" height="30" rx="6" fill="#1b2532" stroke="#3a4a5e" stroke-width="1"/>
+<text x="206" y="115" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10.5" fill="#93a1b1">整条</text>
+<rect x="302" y="96" width="172" height="30" rx="6" fill="#1b2532" stroke="#3a4a5e" stroke-width="1"/>
+<text x="388" y="115" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10.5" fill="#93a1b1">流式</text>
+<rect x="484" y="96" width="172" height="30" rx="6" fill="#1b2532" stroke="#3a4a5e" stroke-width="1"/>
+<text x="570" y="115" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10.5" fill="#93a1b1">一批</text>
+
+<text x="26" y="180" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#dfe6ee">同步</text>
+<text x="26" y="198" font-family="system-ui, sans-serif" font-size="9" fill="#7d8b9c">停在这等</text>
+
+<rect x="120" y="136" width="172" height="80" rx="7" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.2"/>
+<text x="206" y="168" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#8ecbff">invoke</text>
+<text x="206" y="192" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">等，返回一条 AIMessage</text>
+
+<rect x="302" y="136" width="172" height="80" rx="7" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.2"/>
+<text x="388" y="168" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#8ecbff">stream</text>
+<text x="388" y="192" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">不等，边生成边拿 chunk</text>
+
+<rect x="484" y="136" width="172" height="80" rx="7" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.2"/>
+<text x="570" y="168" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#8ecbff">batch</text>
+<text x="570" y="192" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">一批进，按原顺序出一批</text>
+
+<text x="26" y="270" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#dfe6ee">异步</text>
+<text x="26" y="288" font-family="system-ui, sans-serif" font-size="9" fill="#7d8b9c">先干别的</text>
+
+<rect x="120" y="226" width="172" height="80" rx="7" fill="#241f38" stroke="#a78bfa" stroke-width="1.2"/>
+<text x="206" y="258" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#c9b8ff">ainvoke</text>
+<text x="206" y="282" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">invoke 的异步孪生</text>
+<text x="278" y="244" text-anchor="end" font-family="system-ui, sans-serif" font-size="9" fill="#f0655f">JS 没有</text>
+
+<rect x="302" y="226" width="172" height="80" rx="7" fill="#241f38" stroke="#a78bfa" stroke-width="1.2"/>
+<text x="388" y="258" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#c9b8ff">astream</text>
+<text x="388" y="282" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">异步流式</text>
+
+<rect x="484" y="226" width="172" height="80" rx="7" fill="#241f38" stroke="#a78bfa" stroke-width="1.2"/>
+<text x="570" y="258" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#c9b8ff">abatch</text>
+<text x="570" y="282" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">异步批量</text>
+
+<line x1="120" y1="318" x2="656" y2="318" stroke="#3a4a5e" stroke-width="1" stroke-dasharray="5 4"/>
+<text x="26" y="360" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#dfe6ee">JS</text>
+<text x="26" y="378" font-family="system-ui, sans-serif" font-size="9" fill="#7d8b9c">只有一排</text>
+
+<rect x="120" y="326" width="172" height="62" rx="7" fill="#1b2532" stroke="#3a4a5e" stroke-width="1.2"/>
+<text x="206" y="352" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#dfe6ee">invoke</text>
+<text x="206" y="372" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">返回 Promise</text>
+
+<rect x="302" y="326" width="172" height="62" rx="7" fill="#1b2532" stroke="#3a4a5e" stroke-width="1.2"/>
+<text x="388" y="352" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#dfe6ee">stream</text>
+<text x="388" y="372" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">await 后是异步迭代器</text>
+
+<rect x="484" y="326" width="172" height="62" rx="7" fill="#1b2532" stroke="#3a4a5e" stroke-width="1.2"/>
+<text x="570" y="352" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#dfe6ee">batch</text>
+<text x="570" y="372" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">返回 Promise</text>
+
+<text x="340" y="414" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9.5" fill="#7d8b9c">Python 把两个维度都做成了方法；JS 只留「怎么收」，异步靠 await 解决</text>
+</svg>

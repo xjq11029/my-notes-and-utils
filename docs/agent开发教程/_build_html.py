@@ -9,7 +9,8 @@
 
 框架线：
     输入  docs/agent开发教程/ch01..ch19*.md   —— 19 章正文
-          docs/agent开发教程/assets/NN_*.svg  —— 38 张机制图（内联，做 marker id 去重）
+          docs/agent开发教程/assets/*.svg      —— 机制图全量内联（做 marker id 去重）；
+                                                 命名见 README 配图索引（旧图 `NN_` 与章内编号 `C-N_` 并存）
     输出  docs/agent开发教程/agent-frameworks-deep-dive.html
 
 手写线（handwritten 参数）：
@@ -324,7 +325,7 @@ def inline_svg(fig_no, path):
 # Markdown -> blocks
 # --------------------------------------------------------------------------
 IMG_RE = re.compile(r"^!\[(.*?)\]\(([^)]+)\)\s*$")  # alt 非贪婪：允许内嵌 [0] 这类方括号
-CAP_RE = re.compile(r"^\*(图\s*(?:\d+|h\d+)[^*]*)\*$")
+CAP_RE = re.compile(r"^\*(图\s*(?:\d+(?:-\d+)?|h\d+)[^*]*)\*$")
 H_RE = re.compile(r"^(#{1,6})\s+(.*)$")
 
 
@@ -523,17 +524,23 @@ def render_blocks(blocks, chapter_no, anchors):
         elif t == "codetabs":
             html.append(render_code_tabs(b["py"], b["ts"], b["notes"]))
         elif t == "fig":
-            m = re.match(r"assets/((?:\d+|h\d+))_", b["src"])
+            m = re.match(r"assets/((?:\d+(?:-\d+)?|h\d+))_", b["src"])
             if not m:
                 continue
             no = m.group(1)
-            fig_no = int(no[1:]) if no.startswith("h") else int(no)
+            if "-" in no:                       # 章内编号 5-1 → 501（唯一整数，供锚点与 marker 前缀）
+                ch, k = no.split("-")
+                fig_no = int(ch) * 100 + int(k)
+            elif no.startswith("h"):
+                fig_no = int(no[1:])
+            else:
+                fig_no = int(no)
             svg_path = os.path.join(ASSETS, os.path.basename(b["src"]).rsplit(".", 1)[0] + ".svg")
             if not os.path.exists(svg_path):
                 raise SystemExit("缺少 SVG：%s" % svg_path)
             svg = inline_svg(fig_no, svg_path)
             cap = b["caption"]
-            cm = re.match(r"^(图\s*(?:\d+|h\d+))(.*)$", cap)
+            cm = re.match(r"^(图\s*(?:\d+(?:-\d+)?|h\d+))(.*)$", cap)
             cap_html = ("<b>%s</b>%s" % (cm.group(1), render_inline(cm.group(2)))) if cm else render_inline(cap)
             html.append('<figure id="fig%d">%s<figcaption>%s</figcaption></figure>' % (fig_no, svg, cap_html))
     return "\n".join(x for x in html if x)

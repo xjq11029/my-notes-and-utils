@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 440" width="680" height="440" role="img">
+<title>五种 Loader，同一个产物</title>
+<desc>TextLoader、CSVLoader、JSONLoader、PyPDFLoader、DirectoryLoader 的输入格式各不相同，出口完全相同：一列 Document，每条只有 page_content 与 metadata 两个字段。差异只在两点：一个文件切成几条，metadata 里留下什么。</desc>
+<defs>
+<marker id="ar82" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+</defs>
+
+<rect x="0" y="0" width="680" height="440" fill="#111721"/>
+
+<text x="34" y="36" font-family="system-ui, sans-serif" font-size="17" font-weight="700" fill="#dfe6ee">五种 Loader，同一个产物</text>
+<text x="34" y="60" font-family="system-ui, sans-serif" font-size="12" fill="#7d8b9c">入口按格式排开，出口只有一个形状</text>
+
+<text x="34" y="86" font-family="system-ui, sans-serif" font-size="10" fill="#7d8b9c">输入：五种文件</text>
+
+<!-- 五个 Loader -->
+<rect x="38" y="96" width="196" height="38" rx="6" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.1"/>
+<text x="52" y="113" font-family="system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#8ecbff">TextLoader</text>
+<text x="52" y="128" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">notes.txt</text>
+
+<rect x="38" y="138" width="196" height="38" rx="6" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.1"/>
+<text x="52" y="155" font-family="system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#8ecbff">CSVLoader</text>
+<text x="52" y="170" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">orders.csv</text>
+
+<rect x="38" y="180" width="196" height="38" rx="6" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.1"/>
+<text x="52" y="197" font-family="system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#8ecbff">JSONLoader</text>
+<text x="52" y="212" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">faq.json</text>
+
+<rect x="38" y="222" width="196" height="38" rx="6" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.1"/>
+<text x="52" y="239" font-family="system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#8ecbff">PyPDFLoader</text>
+<text x="52" y="254" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">manual.pdf</text>
+
+<rect x="38" y="264" width="196" height="38" rx="6" fill="#1d2b3d" stroke="#4dabf7" stroke-width="1.1"/>
+<text x="52" y="281" font-family="system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#8ecbff">DirectoryLoader</text>
+<text x="52" y="296" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">glob='*.md'</text>
+
+<!-- 汇聚线 -->
+<path d="M234 115L290 115" fill="none" stroke="#3a4a5e" stroke-width="1.2"/>
+<path d="M234 157L290 157" fill="none" stroke="#3a4a5e" stroke-width="1.2"/>
+<path d="M234 199L290 199" fill="none" stroke="#3a4a5e" stroke-width="1.2"/>
+<path d="M234 241L290 241" fill="none" stroke="#3a4a5e" stroke-width="1.2"/>
+<path d="M234 283L290 283" fill="none" stroke="#3a4a5e" stroke-width="1.2"/>
+<path d="M290 115L290 283" fill="none" stroke="#3a4a5e" stroke-width="1.2"/>
+<path d="M290 199L348 199" fill="none" stroke="#6b7a8d" stroke-width="1.5" marker-end="url(#ar82)"/>
+
+<!-- Document -->
+<rect x="356" y="146" width="288" height="140" rx="8" fill="#241f38" stroke="#a78bfa" stroke-width="1.2"/>
+<text x="372" y="170" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="#c9b8ff">Document</text>
+<text x="440" y="170" font-family="system-ui, sans-serif" font-size="9.5" fill="#7d8b9c">所有 Loader 的唯一产物</text>
+<line x1="372" y1="180" x2="628" y2="180" stroke="#3a4a5e" stroke-width="1"/>
+
+<text x="372" y="204" font-family="system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">page_content</text>
+<text x="476" y="204" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">正文</text>
+<text x="372" y="222" font-family="system-ui, sans-serif" font-size="9.5" fill="#7d8b9c">一段纯文本，Loader 不做切分</text>
+
+<line x1="372" y1="236" x2="628" y2="236" stroke="#3a4a5e" stroke-width="1"/>
+
+<text x="372" y="258" font-family="system-ui, sans-serif" font-size="10.5" fill="#dfe6ee">metadata</text>
+<text x="448" y="258" font-family="system-ui, sans-serif" font-size="10" fill="#93a1b1">出处标签</text>
+<text x="372" y="276" font-family="system-ui, sans-serif" font-size="9.5" fill="#7d8b9c">source / page / row / seq_num</text>
+
+<!-- 两条差异 -->
+<rect x="38" y="316" width="290" height="58" rx="7" fill="#1b2532" stroke="#3a4a5e" stroke-width="1.1"/>
+<text x="52" y="336" font-family="system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#dfe6ee">差异 ① 一个文件切成几条</text>
+<text x="52" y="356" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">整文件 1 条 / 每行 1 条</text>
+<text x="52" y="370" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">每页 1 条 / 每条记录 1 条</text>
+
+<rect x="356" y="316" width="288" height="58" rx="7" fill="#1b2532" stroke="#3a4a5e" stroke-width="1.1"/>
+<text x="370" y="336" font-family="system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#dfe6ee">差异 ② metadata 里留什么</text>
+<text x="370" y="356" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">source / row / page / seq_num</text>
+<text x="370" y="370" font-family="system-ui, sans-serif" font-size="9.5" fill="#93a1b1">其余字段由 metadata_func 补</text>
+
+<rect x="24" y="386" width="632" height="40" rx="7" fill="#1b2532" stroke="#3a4a5e" stroke-width="1.1"/>
+<text x="340" y="411" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10.5" fill="#9fb0c0">metadata 不是装饰：回答时标出处靠它，2.5 的检索会把原文连同它一起带回来</text>
+</svg>
